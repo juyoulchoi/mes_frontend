@@ -2,7 +2,7 @@ import { useState } from 'react';
 import AlertBox from '@/components/AlertBox';
 import SectionCard from '@/components/SectionCard';
 import SectionHeader from '@/components/SectionHeader';
-import { CheckColumn, Column, DataGrid, Paging } from '@/components/table/DataGrid';
+import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
 import {
   addTransferButtonClass,
   countBadgeClass,
@@ -42,7 +42,6 @@ export default function MMSM06005E() {
   const [procs, setProcs] = useState<ProcRow[]>([]);
   const [grpProcs, setGrpProcs] = useState<ProcRow[]>([]);
   const [selectedGrp, setSelectedGrp] = useState<string>('');
-  const [selectedGrpName, setSelectedGrpName] = useState<string>('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +64,6 @@ export default function MMSM06005E() {
       setGroups(nextGroups);
       setProcs(nextProcs);
       setSelectedGrp(nextGrp);
-      setSelectedGrpName(nextSelected?.procGrpNm || '');
       setGrpProcs(nextGrpProcs);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -80,7 +78,6 @@ export default function MMSM06005E() {
 
     const grp = row.procGrpCd || '';
     setSelectedGrp(grp);
-    setSelectedGrpName(row.procGrpNm || '');
     setLoading(true);
     setError(null);
 
@@ -96,14 +93,6 @@ export default function MMSM06005E() {
     } finally {
       setLoading(false);
     }
-  }
-
-  function toggleGroup(index: number, checked: boolean) {
-    setGroups((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], check: checked };
-      return next;
-    });
   }
 
   function toggleProcs(
@@ -124,13 +113,18 @@ export default function MMSM06005E() {
       return;
     }
 
+    if (procs.length === 0) {
+      setError('등록 가능한 공정이 없습니다. 공정정보를 먼저 등록했거나 이미 모두 등록된 상태인지 확인하세요.');
+      return;
+    }
+
     const targets = procs
       .filter((row) => row.check)
       .map((row) => row.procCd)
       .filter(Boolean) as string[];
 
     if (targets.length === 0) {
-      setError('등록할 공정을 선택하세요.');
+      setError('등록가능공정에서 등록할 공정을 선택하세요.');
       return;
     }
 
@@ -164,7 +158,7 @@ export default function MMSM06005E() {
       .filter(Boolean) as string[];
 
     if (targets.length === 0) {
-      setError('해제할 공정을 선택하세요.');
+      setError('등록공정에서 해제할 공정을 선택하세요.');
       return;
     }
 
@@ -249,20 +243,6 @@ export default function MMSM06005E() {
               >
                 <Paging enabled={false} />
                 <Column<GroupRow>
-                  dataField="check"
-                  caption="선택"
-                  width={48}
-                  alignment="center"
-                  cellRender={(row, index) => (
-                    <input
-                      type="checkbox"
-                      checked={!!row.check}
-                      onClick={(event) => event.stopPropagation()}
-                      onChange={(event) => toggleGroup(index, event.target.checked)}
-                    />
-                  )}
-                />
-                <Column<GroupRow>
                   dataField="procGrpCd"
                   caption="공정그룹코드"
                   width={130}
@@ -294,7 +274,7 @@ export default function MMSM06005E() {
               </button>
               <button
                 onClick={onAddProcsToGroup}
-                disabled={loading || !selectedGrp}
+                disabled={loading || !selectedGrp || procs.length === 0}
                 className={addTransferButtonClass}
               >
                 등록
@@ -311,16 +291,6 @@ export default function MMSM06005E() {
                 </span>
               }
             />
-            <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-              <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium text-slate-600">
-                  선택그룹: {selectedGrp || '-'}
-                </span>
-                <span className="text-xs text-slate-500">
-                  라우팅명: {selectedGrpName || '-'}
-                </span>
-              </div>
-            </div>
             <div className="grid gap-4 p-4 xl:grid-cols-2">
               <div className="min-w-0">
                 <div className="mb-2 flex items-center justify-between">
@@ -332,12 +302,26 @@ export default function MMSM06005E() {
                     dataSource={procs}
                     rowKey={(row, index) => `all-${row.procCd ?? 'proc'}-${index}`}
                     showBorders
-                    emptyText="등록 가능한 공정 목록이 없습니다."
+                    emptyText="등록 가능한 공정이 없습니다. 공정정보를 등록했거나 이미 모두 등록된 상태인지 확인하세요."
+                    getRowProps={(row, index) => ({
+                      onClick: () => toggleProcs(setProcs, index, !row.check),
+                      className: `cursor-pointer ${row.check ? 'bg-sky-50' : ''}`,
+                    })}
                   >
                     <Paging enabled={false} />
-                    <CheckColumn
-                      checked={(row) => !!row.check}
-                      onChange={(_, index, checked) => toggleProcs(setProcs, index, checked)}
+                    <Column<ProcRow>
+                      dataField="check"
+                      caption="선택"
+                      width={48}
+                      alignment="center"
+                      cellRender={(row, index) => (
+                        <input
+                          type="checkbox"
+                          checked={!!row.check}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={(event) => toggleProcs(setProcs, index, event.target.checked)}
+                        />
+                      )}
                     />
                     <Column<ProcRow>
                       dataField="procCd"
@@ -371,11 +355,27 @@ export default function MMSM06005E() {
                     rowKey={(row, index) => `group-${row.procCd ?? 'proc'}-${index}`}
                     showBorders
                     emptyText="공정그룹에 등록된 라우팅공정이 없습니다."
+                    getRowProps={(row, index) => ({
+                      onClick: () => toggleProcs(setGrpProcs, index, !row.check),
+                      className: `cursor-pointer ${row.check ? 'bg-sky-50' : ''}`,
+                    })}
                   >
                     <Paging enabled={false} />
-                    <CheckColumn
-                      checked={(row) => !!row.check}
-                      onChange={(_, index, checked) => toggleProcs(setGrpProcs, index, checked)}
+                    <Column<ProcRow>
+                      dataField="check"
+                      caption="선택"
+                      width={48}
+                      alignment="center"
+                      cellRender={(row, index) => (
+                        <input
+                          type="checkbox"
+                          checked={!!row.check}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={(event) =>
+                            toggleProcs(setGrpProcs, index, event.target.checked)
+                          }
+                        />
+                      )}
                     />
                     <Column<ProcRow>
                       dataField="procCd"

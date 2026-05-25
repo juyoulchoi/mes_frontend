@@ -15,12 +15,8 @@ export type ProcRow = {
 };
 
 type ProcGrpInfoResponse = {
-  procGb?: string;
+  procGrpCd?: string;
   procGrpNm?: string;
-  dspSeq?: number | string;
-  status?: unknown;
-  grpCd?: string;
-  grpNm?: string;
 };
 
 type ProcCodeResponse = {
@@ -28,26 +24,15 @@ type ProcCodeResponse = {
   procNm?: string;
 };
 
-const PROC_ROUTING_GROUP_CODES = new Set(['PROC', 'PROC_GB', 'ROUTING', 'ROUTING_GB', 'RT']);
-const PROC_ROUTING_GROUP_PREFIXES = ['PROC_', 'ROUTING_', 'RT_'];
-
 function resolveGroupCode(row: ProcGrpInfoResponse) {
-  return row.procGb ?? row.grpCd ?? '';
-}
-
-function isProcRoutingGroup(row: ProcGrpInfoResponse) {
-  const grpCd = resolveGroupCode(row).toUpperCase();
-  return (
-    PROC_ROUTING_GROUP_CODES.has(grpCd) ||
-    PROC_ROUTING_GROUP_PREFIXES.some((prefix) => grpCd.startsWith(prefix))
-  );
+  return row.procGrpCd ?? '';
 }
 
 function mapGroupRow(row: ProcGrpInfoResponse): GroupRow {
   return {
     check: false,
     procGrpCd: resolveGroupCode(row),
-    procGrpNm: row.procGrpNm ?? row.grpNm ?? '',
+    procGrpNm: row.procGrpNm ?? '',
   };
 }
 
@@ -60,16 +45,13 @@ function mapProcRow(row: ProcCodeResponse): ProcRow {
 }
 
 export async function fetchMmsm06005Groups() {
-  const qs = new URLSearchParams({ size: '1000' }).toString();
-  const data = await http<{ content?: ProcGrpInfoResponse[] }>(`/api/v1/mdm/grp/search?${qs}`);
-  return (Array.isArray(data.content) ? data.content : [])
-    .filter(isProcRoutingGroup)
-    .map(mapGroupRow);
+  const data = await http<ProcGrpInfoResponse[]>(`/api/v1/mdm/procGrpRouting/groups`);
+  return (Array.isArray(data) ? data : []).map(mapGroupRow);
 }
 
 export async function fetchMmsm06005Procs(procGb = '') {
   const url = procGb
-    ? `/api/v1/mdm/procInfo/searchProcInfoNotGrpList?${new URLSearchParams({ procGb })}`
+    ? `/api/v1/mdm/procGrpRouting/available-procs?${new URLSearchParams({ procGb })}`
     : `/api/v1/mdm/procInfo/searchCodeList?${new URLSearchParams({ status: 'ACTIVE' })}`;
   const data = await http<ProcCodeResponse[]>(url);
   return (Array.isArray(data) ? data : []).map(mapProcRow);
@@ -79,37 +61,22 @@ export async function fetchMmsm06005GroupProcs(grpCd: string) {
   if (!grpCd) return [] as ProcRow[];
 
   const qs = new URLSearchParams({ procGb: grpCd }).toString();
-  const data = await http<ProcCodeResponse[]>(`/api/v1/mdm/procGrpAsi/searchProcGrpProcList?${qs}`);
+  const data = await http<ProcCodeResponse[]>(`/api/v1/mdm/procGrpRouting/registered-procs?${qs}`);
   return (Array.isArray(data) ? data : []).map(mapProcRow);
 }
 
 export async function addMmsm06005GroupProcs(grpCd: string, procCds: string[]) {
-  for (const procCd of procCds) {
-    await http(`/api/v1/mdm/procGrpAsi/save`, {
-      method: 'POST',
-      body: {
-        method: 'I',
-        isNew: 'I',
-        procGb: grpCd,
-        procCd,
-        procSeq: '',
-        status: 'ACTIVE',
-      },
-    });
-  }
+  await http(`/api/v1/mdm/procGrpRouting/register`, {
+    method: 'POST',
+    body: { procGb: grpCd, procCds },
+  });
 }
 
 export async function deleteMmsm06005GroupProcs(grpCd: string, procCds: string[]) {
-  for (const procCd of procCds) {
-    await http(`/api/v1/mdm/procGrpAsi/save`, {
-      method: 'POST',
-      body: {
-        method: 'D',
-        procGb: grpCd,
-        procCd,
-      },
-    });
-  }
+  await http(`/api/v1/mdm/procGrpRouting/unregister`, {
+    method: 'POST',
+    body: { procGb: grpCd, procCds },
+  });
 }
 
 export function buildMmsm06005Csv(grpCd: string, rows: ProcRow[]) {
