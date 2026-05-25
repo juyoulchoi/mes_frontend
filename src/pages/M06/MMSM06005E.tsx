@@ -128,6 +128,8 @@ export default function MMSM06005E() {
       return;
     }
 
+    if (!window.confirm(`선택한 ${targets.length}건의 공정을 등록하시겠습니까?`)) return;
+
     setLoading(true);
     setError(null);
 
