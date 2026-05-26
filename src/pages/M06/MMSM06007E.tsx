@@ -84,6 +84,14 @@ function mapLineInfoRow(row: LineInfoResponse, index: number): Row {
   };
 }
 
+function normalizeLineCode(value: string | undefined) {
+  return (value ?? '').trim().toUpperCase();
+}
+
+function showWarning(message: string) {
+  window.alert(message);
+}
+
 export default function MMSM06007E() {
   // Filters
   const [lineNm, setLineNm] = useState('');
@@ -167,7 +175,8 @@ export default function MMSM06007E() {
       .filter(Boolean) as string[];
 
     if (checkedRows.length === 0) {
-      setError('삭제할 작업장을 선택하세요.');
+      setError(null);
+      showWarning('삭제할 작업장을 선택하세요.');
       return;
     }
 
@@ -200,17 +209,35 @@ export default function MMSM06007E() {
   async function onSave() {
     const targets = rows.filter((r) => r.CHECK || r.ISNEW);
     if (targets.length === 0) {
-      setError('저장할 대상이 없습니다.');
+      setError(null);
+      showWarning('저장할 대상이 없습니다.');
       return;
     }
     if (targets.some((r) => !r.LINE_CD?.trim())) {
-      setError('작업장코드는 필수입니다.');
+      setError(null);
+      showWarning('작업장코드는 필수입니다.');
       return;
     }
     if (targets.some((r) => !r.LINE_NM?.trim())) {
-      setError('작업장명은 필수입니다.');
+      setError(null);
+      showWarning('작업장명은 필수입니다.');
       return;
     }
+
+    const existingCodes = new Set(
+      rows.filter((r) => !r.ISNEW).map((r) => normalizeLineCode(r.LINE_CD)).filter(Boolean)
+    );
+    const newCodes = targets.filter((r) => r.ISNEW).map((r) => normalizeLineCode(r.LINE_CD));
+    const duplicatedExistingCode = newCodes.find((code) => existingCodes.has(code));
+    const duplicatedNewCode = newCodes.find((code, index) => newCodes.indexOf(code) !== index);
+
+    if (duplicatedExistingCode || duplicatedNewCode) {
+      const duplicatedCode = duplicatedExistingCode || duplicatedNewCode;
+      setError(null);
+      showWarning(`작업장코드 ${duplicatedCode}는 이미 존재합니다.`);
+      return;
+    }
+
     if (!window.confirm('저장 하시겠습니까?')) return;
     setLoading(true);
     setError(null);
