@@ -116,6 +116,9 @@ function isMissingPlanProcessError(error: unknown) {
   return error instanceof Error && /Production Plan Process Not Found/.test(error.message);
 }
 
+const missingPlanProcessGuide =
+  '제품 마스터에서 공정그룹 또는 대표공정을 등록하고, 공정그룹 라우팅에 공정을 매칭하세요.';
+
 export default function MMSM02001E() {
   const [customerOpen, setCustomerOpen] = useState(false);
   const [cstNm, setCstNm] = useState('');
@@ -444,7 +447,7 @@ export default function MMSM02001E() {
             ? `이미 생산계획이 생성된 ${duplicateRows.length}건: ${duplicateRows.join(', ')}`
             : '',
           missingProcessRows.length > 0
-            ? `공정정보가 없어 생성하지 못한 ${missingProcessRows.length}건: ${missingProcessRows.join(', ')}`
+            ? `공정정보가 없어 생성하지 못한 ${missingProcessRows.length}건: ${missingProcessRows.join(', ')}. ${missingPlanProcessGuide}`
             : '',
         ].filter(Boolean);
         setSaveError(`생산계획을 생성하지 못했습니다. ${reasons.join(' / ')}`);
@@ -457,7 +460,7 @@ export default function MMSM02001E() {
       ].filter(Boolean);
       window.alert(
         skippedMessages.length > 0
-          ? `생산계획 ${createdCount}건을 생성했습니다. ${skippedMessages.join(', ')}은 제외했습니다.`
+          ? `생산계획 ${createdCount}건을 생성했습니다. ${skippedMessages.join(', ')}은 제외했습니다. ${missingProcessRows.length > 0 ? missingPlanProcessGuide : ''}`
           : '생산계획을 생성했습니다.'
       );
       await fetchDetailList(0);

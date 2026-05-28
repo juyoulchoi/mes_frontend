@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AlertBox from '@/components/AlertBox';
 import SectionCard from '@/components/SectionCard';
 import SectionHeader from '@/components/SectionHeader';
@@ -21,6 +21,12 @@ import {
   saveMmsm06003Master,
   type MasterRow,
 } from '@/services/m06/mmsm06003';
+import {
+  fetchMmsm06005Groups,
+  fetchMmsm06005Procs,
+  type GroupRow,
+  type ProcRow,
+} from '@/services/m06/mmsm06005';
 
 // 제품 마스터 관리 (MMSM06003E)
 // 제품 마스터를 등록/수정/삭제한다.
@@ -52,6 +58,8 @@ export default function MMSM06003E() {
   const [itemNm, setItemNm] = useState('');
   const [master, setMaster] = useState<MasterRow[]>([]);
   const [selectedItemCd, setSelectedItemCd] = useState('');
+  const [procGroups, setProcGroups] = useState<GroupRow[]>([]);
+  const [procs, setProcs] = useState<ProcRow[]>([]);
   const [masterEditIndex, setMasterEditIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,11 +68,27 @@ export default function MMSM06003E() {
     return fetchMmsm06003Master({ itemNm });
   }
 
+  async function fetchRoutingOptions() {
+    const [nextGroups, nextProcs] = await Promise.all([
+      fetchMmsm06005Groups(),
+      fetchMmsm06005Procs(),
+    ]);
+    setProcGroups(nextGroups);
+    setProcs(nextProcs);
+  }
+
+  useEffect(() => {
+    void fetchRoutingOptions().catch((e) => {
+      setError(e instanceof Error ? e.message : String(e));
+    });
+  }, []);
+
   async function onSearch() {
     setLoading(true);
     setError(null);
 
     try {
+      await fetchRoutingOptions();
       const nextMaster = await fetchMaster();
       const nextItemCd =
         nextMaster.find((row) => row.itemCd && row.itemCd === selectedItemCd)?.itemCd ||
@@ -135,6 +159,8 @@ export default function MMSM06003E() {
         itemGb: 'FG',
         itemSpec: '',
         unitCd: 'EA',
+        procGb: '',
+        procCd: '',
         status: 'ACTIVE',
       },
     ]);
@@ -194,6 +220,11 @@ export default function MMSM06003E() {
 
     if (targets.some((row) => !row.itemCd?.trim() || !row.itemNm?.trim())) {
       setError('제품코드와 제품명은 필수입니다.');
+      return;
+    }
+
+    if (targets.some((row) => !row.procGb?.trim() && !row.procCd?.trim())) {
+      setError('생산계획 생성을 위해 공정그룹 또는 대표공정을 입력하세요.');
       return;
     }
 
@@ -414,6 +445,69 @@ export default function MMSM06003E() {
                         onClick={(event) => event.stopPropagation()}
                         onChange={(event) => patchMaster(index, { unitCd: event.target.value })}
                       />
+                    );
+                  }}
+                />
+                <Column<MasterRow>
+                  dataField="procGb"
+                  caption="공정그룹"
+                  width={150}
+                  alignment="center"
+                  cellRender={(row, index) => {
+                    const isEditing = row.isNew || masterEditIndex === index;
+                    const value = row.procGb ?? '';
+                    if (!isEditing) {
+                      const label =
+                        procGroups.find((group) => group.procGrpCd === value)?.procGrpNm || value;
+                      return <span className={readOnlyCellClass}>{label || '-'}</span>;
+                    }
+
+                    return (
+                      <select
+                        className={editableSelectClass}
+                        value={value}
+                        onClick={(event) => event.stopPropagation()}
+                        onChange={(event) =>
+                          patchMaster(index, { procGb: event.target.value, procCd: '' })
+                        }
+                      >
+                        <option value="">선택</option>
+                        {procGroups.map((group) => (
+                          <option key={group.procGrpCd} value={group.procGrpCd}>
+                            {group.procGrpNm || group.procGrpCd}
+                          </option>
+                        ))}
+                      </select>
+                    );
+                  }}
+                />
+                <Column<MasterRow>
+                  dataField="procCd"
+                  caption="대표공정"
+                  width={150}
+                  alignment="center"
+                  cellRender={(row, index) => {
+                    const isEditing = row.isNew || masterEditIndex === index;
+                    const value = row.procCd ?? '';
+                    if (!isEditing) {
+                      const label = procs.find((proc) => proc.procCd === value)?.procNm || value;
+                      return <span className={readOnlyCellClass}>{label || '-'}</span>;
+                    }
+
+                    return (
+                      <select
+                        className={editableSelectClass}
+                        value={value}
+                        onClick={(event) => event.stopPropagation()}
+                        onChange={(event) => patchMaster(index, { procCd: event.target.value })}
+                      >
+                        <option value="">선택</option>
+                        {procs.map((proc) => (
+                          <option key={proc.procCd} value={proc.procCd}>
+                            {proc.procNm || proc.procCd}
+                          </option>
+                        ))}
+                      </select>
                     );
                   }}
                 />

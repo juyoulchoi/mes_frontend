@@ -8,6 +8,8 @@ export type MasterRow = {
   itemSpec?: string;
   itemGb?: string;
   unitCd?: string;
+  procGb?: string;
+  procCd?: string;
   status?: string;
   [k: string]: unknown;
 };
@@ -32,6 +34,8 @@ type ProductMasterResponse = {
   itemSpec?: string;
   itemGb?: string;
   unitCd?: string;
+  procGb?: string;
+  procCd?: string;
   status?: unknown;
 };
 
@@ -50,6 +54,8 @@ type ItemInfoResponse = {
   itemSpec?: string;
   unitCd?: string;
   itemGb?: string;
+  procGb?: string;
+  procCd?: string;
   status?: unknown;
 };
 
@@ -76,6 +82,8 @@ function mapMasterRow(row: ProductMasterResponse): MasterRow {
     itemSpec: row.itemSpec ?? '',
     itemGb: row.itemGb ?? '',
     unitCd: row.unitCd ?? '',
+    procGb: row.procGb ?? '',
+    procCd: row.procCd ?? '',
     status: statusToString(row.status),
   };
 }
@@ -115,6 +123,8 @@ export async function saveMmsm06003Master(row: MasterRow) {
   const current = row.isNew || !row.itemCd ? null : await fetchItemInfo(row.itemCd);
   const itemGb = row.itemGb || current?.itemGb || 'FG';
   const unitCd = row.unitCd || current?.unitCd || 'EA';
+  const procGb = row.procGb ?? current?.procGb ?? '';
+  const procCd = row.procCd ?? current?.procCd ?? '';
   const status = row.status || statusToString(current?.status);
 
   await http(`/api/v1/mdm/item`, {
@@ -127,6 +137,8 @@ export async function saveMmsm06003Master(row: MasterRow) {
       itemSpec: row.itemSpec ?? current?.itemSpec ?? '',
       unitCd,
       itemGb,
+      procGb,
+      procCd,
       status,
     },
   });
