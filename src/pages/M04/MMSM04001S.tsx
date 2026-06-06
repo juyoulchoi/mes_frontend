@@ -1,220 +1,177 @@
-import { useEffect, useMemo, useState } from 'react';
-import { http } from '@/lib/http';
-import { BaseTable, type TableColumn } from '@/components/table/BaseTable';
+import { useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-// 제품출고 지시현황 (MMSM04001S)
-// 필터: 출고일자(시작/끝)
-// 기능: 조회, 엑셀(CSV)
-// 컬럼: 순번, 출고일자(GI_DT), 수주일자(SO_YMD), 품명(ITEM_NM), 거래처명(CST_NM), 계획수량(SO_QTY), 출고수량(GI_QTY), 잔량(REM_QTY?), 출고지시일, 출고요청일, 출고일
-
-type Row = Record<string, any>;
-
-function fmtDateYMD(d: string) {
-  if (!d) return '';
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return '';
-  const y = dt.getFullYear();
-  const m = `${dt.getMonth() + 1}`.padStart(2, '0');
-  const day = `${dt.getDate()}`.padStart(2, '0');
-  return `${y}${m}${day}`;
-}
+import AlertBox from '@/components/AlertBox';
+import CodeNameField from '@/components/CodeNameField';
+import FromToDateField from '@/components/FromToDateField';
+import SectionCard from '@/components/SectionCard';
+import SectionHeader from '@/components/SectionHeader';
+import SearchCodePickers from '@/components/SearchCodePickers';
+import StatusActionButtons from '@/components/StatusActionButtons';
+import { Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
+import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
+import { PAGE_SIZE } from '@/lib/pagination';
+import {
+  gridScrollClass,
+  pageContentClass,
+  pageShellClass,
+  statusSearchGridClass,
+} from '@/lib/pageStyles';
+import { usePageApiFetch } from '@/services/common/getApiFetch';
+import {
+  columns,
+  exportHeaders,
+  mapExportRow,
+  type RowItem,
+  type SearchForm,
+} from '@/services/m04/mmsm04001';
 
 export default function MMSM04001S() {
-  // Filters
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const navigate = useNavigate();
+  const today = useMemo(() => new Date(), []);
+  const first = useMemo(() => new Date(today.getFullYear(), today.getMonth(), 1), [today]);
+  const [customerOpen, setCustomerOpen] = useState(false);
+  const [itemPickerOpen, setItemPickerOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tableHeight = useAutoTableHeight(containerRef);
+  const [form, setForm] = useState<SearchForm>({
+    startDate: first.toISOString().slice(0, 10),
+    endDate: today.toISOString().slice(0, 10),
+    cstCd: '',
+    cstNm: '',
+    itemCd: '',
+    itemNm: '',
+  });
 
-  // Data
-  const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Init today for both dates
-  useEffect(() => {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = `${today.getMonth() + 1}`.padStart(2, '0');
-    const dd = `${today.getDate()}`.padStart(2, '0');
-    const ymd = `${yyyy}-${mm}-${dd}`;
-    setStartDate(ymd);
-    setEndDate(ymd);
-  }, []);
-
-  async function onSearch() {
-    setLoading(true);
-    setError(null);
-    try {
-      const qs = new URLSearchParams({
-        start: fmtDateYMD(startDate),
-        end: fmtDateYMD(endDate),
-      }).toString();
-      const data = await http<Row[]>(`/api/m04/mmsm04001/list?${qs}`);
-      setRows(Array.isArray(data) ? data : []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function onExportCsv() {
-    const headers = [
-      '순번',
-      '출고일자',
-      '수주일자',
-      '품명',
-      '거래처명',
-      '계획수량',
-      '출고수량',
-      '잔량',
-      '출고지시일',
-      '출고요청일',
-      '출고일',
-    ];
-    const lines = rows.map((r, i) =>
-      [
-        r.RNUM ?? i + 1,
-        r.GI_DT ?? '',
-        r.SO_YMD ?? '',
-        r.ITEM_NM ?? '',
-        r.CST_NM ?? '',
-        r.SO_QTY ?? '',
-        r.GI_QTY ?? '',
-        r.REM_QTY ?? r.BAL_QTY ?? r.REMAIN_QTY ?? r.GI_QTY ?? '',
-        r.SO_INS_YMD ?? r.SO_YMD ?? '',
-        r.SO_REQ_YMD ?? r.SO_YMD ?? '',
-        r.GI_DAY ?? r.GI_DT ?? '',
-      ]
-        .map((v) => (v ?? '').toString().replace(/"/g, '""'))
-        .map((v) => `"${v}"`)
-        .join(',')
-    );
-
-    const csv = [headers.join(','), ...lines].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'MMSM04001S.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
-  const columns = useMemo<TableColumn<Row>[]>(
-    () => [
-      {
-        key: 'RNUM',
-        header: '순번',
-        align: 'center',
-        width: 64,
-        accessor: (r, i) => r.RNUM ?? i + 1,
-      },
-      { key: 'GI_DT', header: '출고일자', align: 'center', width: 112, accessor: 'GI_DT' },
-      { key: 'SO_YMD', header: '수주일자', align: 'center', width: 112, accessor: 'SO_YMD' },
-      { key: 'ITEM_NM', header: '품명', align: 'left', accessor: 'ITEM_NM' },
-      { key: 'CST_NM', header: '거래처명', align: 'left', width: 160, accessor: 'CST_NM' },
-      { key: 'SO_QTY', header: '계획수량', align: 'right', width: 96, accessor: 'SO_QTY' },
-      { key: 'GI_QTY', header: '출고수량', align: 'right', width: 96, accessor: 'GI_QTY' },
-      {
-        key: 'REM_QTY',
-        header: '잔량',
-        align: 'right',
-        width: 96,
-        accessor: (r) => r.REM_QTY ?? r.BAL_QTY ?? r.REMAIN_QTY ?? r.GI_QTY ?? '',
-      },
-      {
-        key: 'SO_INS_YMD',
-        header: '출고지시일',
-        align: 'center',
-        width: 112,
-        accessor: (r) => r.SO_INS_YMD ?? r.SO_YMD ?? '',
-      },
-      {
-        key: 'SO_REQ_YMD',
-        header: '출고요청일',
-        align: 'center',
-        width: 112,
-        accessor: (r) => r.SO_REQ_YMD ?? r.SO_YMD ?? '',
-      },
-      {
-        key: 'GI_DAY',
-        header: '출고일',
-        align: 'center',
-        width: 112,
-        accessor: (r) => r.GI_DAY ?? r.GI_DT ?? '',
-      },
-    ],
-    []
-  );
-
-  const tableClassNames = useMemo(
-    () => ({
-      wrapper: 'border rounded overflow-auto max-h-[70vh]',
-      table: 'w-full text-sm',
-      thead: 'sticky top-0 bg-background',
-      headerRow: 'border-b',
-      headerCell: 'p-2',
-      bodyRow: 'border-b hover:bg-muted/30',
-      bodyCell: 'p-2',
-      emptyCell: 'p-3 text-center text-muted-foreground',
+  const { result, loading, error, fetchList } = usePageApiFetch<SearchForm, RowItem>({
+    apiPath: '/api/v1/material/gidet/search',
+    form,
+    pageSize: PAGE_SIZE,
+    mapParams: ({ form }) => ({
+      giYmdS: form.startDate.split('-').join(''),
+      giYmdE: form.endDate.split('-').join(''),
+      cstCd: form.cstCd,
+      itemCd: form.itemCd,
     }),
-    []
-  );
+  });
 
   return (
-    <div className="p-3 space-y-3">
-      <div className="text-base font-semibold">제품출고 지시현황</div>
+    <div className={pageShellClass} ref={containerRef}>
+      <div className={pageContentClass}>
+        <SectionCard span="full" padding="md">
+          <div className={statusSearchGridClass}>
+            <FromToDateField
+              label="출고일자"
+              fromValue={form.startDate}
+              toValue={form.endDate}
+              onFromChange={(value) => setForm((prev) => ({ ...prev, startDate: value }))}
+              onToChange={(value) => setForm((prev) => ({ ...prev, endDate: value }))}
+            />
 
-      {/* Filters & Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
-        <label className="flex flex-col text-sm">
-          <span className="mb-1">출고일자(시작)</span>
-          <input
-            type="date"
-            className="h-8 border rounded px-2"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-        </label>
-        <label className="flex flex-col text-sm">
-          <span className="mb-1">출고일자(끝)</span>
-          <input
-            type="date"
-            className="h-8 border rounded px-2"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-        </label>
-        <div className="flex gap-2 md:col-span-2 justify-end">
-          <button
-            onClick={onSearch}
-            disabled={loading}
-            className="h-8 px-3 border rounded bg-primary text-primary-foreground disabled:opacity-50"
-          >
-            조회
-          </button>
-          <button onClick={onExportCsv} className="h-8 px-3 border rounded">
-            엑셀
-          </button>
-        </div>
+            <CodeNameField
+              label="거래처"
+              id="customer"
+              code={form.cstCd}
+              name={form.cstNm}
+              codePlaceholder="코드"
+              namePlaceholder="거래처명"
+              onSearch={() => setCustomerOpen(true)}
+              onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
+            />
+
+            <StatusActionButtons
+              loading={loading}
+              onSearch={() => void fetchList(0)}
+              onSave={() => navigate('/app/m04/MMSM04002E')}
+              saveLabel="출고지시"
+              exportProps={{
+                rows: result.content,
+                headers: exportHeaders,
+                mapRow: mapExportRow,
+                filename: () => `제품출고지시현황_${form.endDate.split('-').join('')}.csv`,
+              }}
+            />
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[546px_1fr]">
+            <CodeNameField
+              label="제품"
+              id="item"
+              code={form.itemCd}
+              name={form.itemNm}
+              codePlaceholder="코드"
+              namePlaceholder="제품명"
+              onSearch={() => setItemPickerOpen(true)}
+              onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
+            />
+          </div>
+        </SectionCard>
+
+        {error && <AlertBox tone="error">{error}</AlertBox>}
+
+        <SectionCard span="full" width="full">
+          <SectionHeader title="제품출고 지시현황" />
+          <div className={gridScrollClass} style={{ height: tableHeight }}>
+            <DataGrid
+              dataSource={result.content}
+              pageResult={result}
+              rowKey={(row, index) =>
+                `${row.giYmd ?? 'gi'}-${row.giSeq ?? 'seq'}-${row.giSubSeq ?? 'sub'}-${index}`
+              }
+              showBorders={true}
+              loading={loading}
+              remoteOperations={true}
+              onPageChange={(page) => void fetchList(page)}
+              emptyText="제품출고 지시 데이터가 없습니다. 조건 선택 후 조회하세요."
+              classNames={{
+                table: 'min-w-[1520px] w-full text-sm',
+              }}
+            >
+              <Paging enabled={true} defaultPageSize={PAGE_SIZE} />
+              <Pager visible={true} showPageSizeSelector={false} />
+              {columns.map((column, index) => (
+                <Column
+                  key={`${String(column.dataField)}-${index}`}
+                  dataField={column.dataField}
+                  caption={column.caption}
+                  width={column.width}
+                  alignment={column.alignment}
+                  headerAlignment={column.headerAlignment}
+                  headerClassName={column.headerClassName}
+                  cellRender={column.cellRender}
+                />
+              ))}
+            </DataGrid>
+          </div>
+        </SectionCard>
+
+        <SearchCodePickers
+          customer={{
+            open: customerOpen,
+            title: '거래처 정보',
+            cstCd: form.cstCd,
+            cstNm: form.cstNm,
+            onClose: () => setCustomerOpen(false),
+            onSelect: (value) => {
+              setForm((prev) => ({ ...prev, cstCd: value.cstCd, cstNm: value.cstNm }));
+            },
+          }}
+          item={{
+            open: itemPickerOpen,
+            title: '제품 정보',
+            itemGb: 'FG,SFG',
+            itemNm: form.itemNm,
+            onClose: () => setItemPickerOpen(false),
+            onSelect: (value) => {
+              setForm((prev) => ({
+                ...prev,
+                itemCd: value.itemCd,
+                itemNm: value.itemNm,
+              }));
+            },
+          }}
+        />
       </div>
-
-      {error && (
-        <div className="text-sm text-destructive border border-destructive/30 rounded p-2">
-          {error}
-        </div>
-      )}
-
-      {/* Grid */}
-      <BaseTable
-        rows={rows}
-        columns={columns}
-        rowKey={(row, i) => row.RNUM ?? i}
-        classNames={tableClassNames}
-        emptyText="데이터가 없습니다. 조건을 선택하고 조회하세요."
-      />
     </div>
   );
 }
