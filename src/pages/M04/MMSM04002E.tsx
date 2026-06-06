@@ -1,501 +1,473 @@
-import { useEffect, useState } from 'react';
+import ActionButtonGroup from '@/components/ActionButtonGroup';
+import AlertBox from '@/components/AlertBox';
+import CodeNameField from '@/components/CodeNameField';
+import DateEdit from '@/components/DateEdit';
+import SearchCodePickers from '@/components/SearchCodePickers';
+import SectionCard from '@/components/SectionCard';
+import SectionHeader from '@/components/SectionHeader';
+import { CheckColumn, Column, DataGrid } from '@/components/table/DataGrid';
+import { patchCheckedRow, removeCheckedRows, updateCheckedRows } from '@/lib/gridRows';
 import { http } from '@/lib/http';
+import { EmptyPageResult, PAGE_SIZE } from '@/lib/pagination';
+import {
+  addTransferButtonClass,
+  countBadgeClass,
+  deleteTransferButtonClass,
+  editableNumberInputClass,
+  gridScrollClass,
+  pageContentClass,
+  pageShellClass,
+  registerSearchGridClass,
+  registerSplitGridClass,
+  transferButtonGroupClass,
+  transferColumnClass,
+} from '@/lib/pageStyles';
+import { getTodayYmd } from '@/lib/registerDetailUtils';
+import {
+  buildMmsm04002SavePayload,
+  fetchMmsm04002Detail,
+  fetchMmsm04002Master,
+  getDetailRowKey,
+  type AuthMeResponse,
+  type DetailRow,
+  type MasterRow,
+  type SearchForm,
+} from '@/services/m04/mmsm04002';
+import { useEffect, useState } from 'react';
 
-// 제품출고지시 (MMSM04002E)
-// 상단: 수주일자(시작/끝), 거래처 선택
-// 본문: 좌측 마스터(출고지시 헤더), 가운데 버튼(출고/추가/저장/삭제), 우측 디테일(품목별 지시 내역 편집)
-// 버튼: 조회(마스터 조회), 엑셀(디테일 CSV)
+const editableTextInputClass =
+  'h-9 w-full min-w-[140px] rounded-md border border-slate-200 bg-white px-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100';
+const issueDateInputClass =
+  'h-10 w-[150px] rounded-lg border border-slate-200 bg-white px-3 text-sm';
+const issueDateLabelClass = 'flex h-10 items-center gap-2 text-sm';
+const issueDateTextClass = 'w-[72px] shrink-0 font-medium text-slate-700';
 
-// 타입은 백엔드 스펙에 맞춰 추후 정교화 예정
-type MasterRow = {
-  CHECK?: boolean;
-  SO_YMD?: string; // 지시일자
-  SO_SEQ?: string | number; // 순번
-  CST_CD?: string;
-  CST_NM?: string;
-};
-
-type DetailRow = {
-  CHECK?: boolean;
-  SO_YMD?: string;
-  SO_SEQ?: string | number;
-  SO_SUB_SEQ?: string | number;
-  ITEM_CD?: string;
-  ITEM_NM?: string;
-  UNIT_CD?: string; // 단위 또는 계획/기타 표시용 바인딩
-  QTY?: string | number; // 출고수량(편집)
-  REQ_YMD?: string; // 출고일자(편집) - ASPX에선 REQ_YMD 사용
-};
-
-function toYMD(d: string) {
-  if (!d) return '';
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return '';
-  const y = dt.getFullYear();
-  const m = `${dt.getMonth() + 1}`.padStart(2, '0');
-  const day = `${dt.getDate()}`.padStart(2, '0');
-  return `${y}${m}${day}`;
-}
-
-function toInputDate(s?: string) {
-  if (!s) return '';
-  const t = String(s);
-  if (/^\d{8}$/.test(t)) return `${t.slice(0, 4)}-${t.slice(4, 6)}-${t.slice(6, 8)}`;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
-  return '';
+function getSalesRowKey(row: {
+  soYmd?: string;
+  soSeq?: string | number;
+  soSubSeq?: string | number;
+}) {
+  return [row.soYmd ?? '', row.soSeq ?? '', row.soSubSeq ?? ''].join('|');
 }
 
 export default function MMSM04002E() {
-  // Filters
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [cstCd, setCstCd] = useState('');
+  const [customerOpen, setCustomerOpen] = useState(false);
   const [cstNm, setCstNm] = useState('');
+  const [masterRows, setMasterRows] = useState<MasterRow[]>([]);
+  const [detailRows, setDetailRows] = useState<DetailRow[]>([]);
+  const [deletedDetailRows, setDeletedDetailRows] = useState<DetailRow[]>([]);
+  const [masterResult, setMasterResult] = useState(() => EmptyPageResult<MasterRow>(0, PAGE_SIZE));
+  const [detailResult, setDetailResult] = useState(() => EmptyPageResult<DetailRow>(0, PAGE_SIZE));
+  const [masterLoading, setMasterLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [masterError, setMasterError] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [form, setForm] = useState<SearchForm>(() => ({
+    soYmd: getTodayYmd(),
+    giYmd: getTodayYmd(),
+    cstCd: '',
+  }));
 
-  // Data
-  const [master, setMaster] = useState<MasterRow[]>([]);
-  const [detail, setDetail] = useState<DetailRow[]>([]);
-  const [selected, setSelected] = useState<{ so_ymd?: string; so_seq?: string | number }>({});
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const isBusy = masterLoading || detailLoading || saving;
 
-  // 고객 선택 모달(간단)
-  const [custOpen, setCustOpen] = useState(false);
-  const [tmpCd, setTmpCd] = useState('');
-  const [tmpNm, setTmpNm] = useState('');
+  async function fetchMasterList(nextPage = 0) {
+    setMasterLoading(true);
+    setMasterError(null);
 
-  // 초기값: 오늘
-  useEffect(() => {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = `${today.getMonth() + 1}`.padStart(2, '0');
-    const dd = `${today.getDate()}`.padStart(2, '0');
-    const ymd = `${yyyy}-${mm}-${dd}`;
-    setStartDate(ymd);
-    setEndDate(ymd);
-  }, []);
+    try {
+      setMasterResult(
+        await fetchMmsm04002Master({
+          form,
+          cstNm,
+          page: nextPage,
+          pageSize: PAGE_SIZE,
+        })
+      );
+    } catch (error) {
+      setMasterResult(EmptyPageResult<MasterRow>(nextPage, PAGE_SIZE));
+      setMasterError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setMasterLoading(false);
+    }
+  }
+
+  async function fetchDetailList(nextPage = 0) {
+    setDetailLoading(true);
+    setDetailError(null);
+
+    try {
+      setDetailResult(
+        await fetchMmsm04002Detail({
+          form,
+          page: nextPage,
+          pageSize: PAGE_SIZE,
+        })
+      );
+    } catch (error) {
+      setDetailResult(EmptyPageResult<DetailRow>(nextPage, PAGE_SIZE));
+      setDetailError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setDetailLoading(false);
+    }
+  }
 
   async function onSearch() {
-    setLoading(true);
-    setError(null);
-    try {
-      const qs = new URLSearchParams({
-        start: toYMD(startDate),
-        end: toYMD(endDate),
-        cst_cd: cstCd || '',
-      }).toString();
-      const data = await http<MasterRow[]>(`/api/m04/mmsm04002/master?${qs}`);
-      const list = (Array.isArray(data) ? data : []).map((r) => ({ ...r, CHECK: false }));
-      setMaster(list);
-      setDetail([]);
-      setSelected({});
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function onSelectMaster(i: number) {
-    const row = master[i];
-    if (!row) return;
-    const so_ymd = row.SO_YMD ? String(row.SO_YMD) : '';
-    const so_seq = row.SO_SEQ ?? '';
-    setSelected({ so_ymd, so_seq });
-    setLoading(true);
-    setError(null);
-    try {
-      const qs = new URLSearchParams({
-        so_ymd: so_ymd.replace(/-/g, ''),
-        so_seq: String(so_seq),
-      }).toString();
-      const data = await http<DetailRow[]>(`/api/m04/mmsm04002/detail?${qs}`);
-      const list = (Array.isArray(data) ? data : []).map((r) => ({ ...r, CHECK: false }));
-      setDetail(list);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function toggleMaster(i: number, checked: boolean) {
-    setMaster((prev) => {
-      const next = [...prev];
-      next[i] = { ...next[i], CHECK: checked };
-      return next;
-    });
-  }
-  function toggleDetail(i: number, checked: boolean) {
-    setDetail((prev) => {
-      const next = [...prev];
-      next[i] = { ...next[i], CHECK: checked };
-      return next;
-    });
-  }
-  function onDetailChange(i: number, patch: Partial<DetailRow>) {
-    setDetail((prev) => {
-      const next = [...prev];
-      next[i] = { ...next[i], ...patch, CHECK: true };
-      return next;
-    });
-  }
-
-  function onAddDetail() {
-    if (!selected.so_ymd || selected.so_seq === undefined) {
-      setError('좌측 마스터를 먼저 선택하세요.');
+    if (!form.cstCd) {
+      window.alert('거래처는 조회 필수값입니다.');
       return;
     }
-    const newRow: DetailRow = {
-      CHECK: true,
-      SO_YMD: selected.so_ymd,
-      SO_SEQ: selected.so_seq,
-      SO_SUB_SEQ: '',
-      ITEM_CD: '',
-      ITEM_NM: '',
-      UNIT_CD: '',
-      QTY: '',
-      REQ_YMD: toInputDate(selected.so_ymd),
-    };
-    setDetail((prev) => [newRow, ...prev]);
+
+    setSaveError(null);
+    await Promise.all([fetchMasterList(0), fetchDetailList(0)]);
+  }
+
+  useEffect(() => {
+    setMasterRows(masterResult.content.map((row) => ({ ...row, CHECK: false })));
+  }, [masterResult.content]);
+
+  useEffect(() => {
+    setDeletedDetailRows([]);
+    setDetailRows(detailResult.content.map((row) => ({ ...row, CHECK: false })));
+  }, [detailResult.content]);
+
+  function toggleMaster(rowIndex: number, checked: boolean) {
+    updateCheckedRows(setMasterRows, rowIndex, checked);
+  }
+
+  function toggleDetail(rowIndex: number, checked: boolean) {
+    updateCheckedRows(setDetailRows, rowIndex, checked);
+  }
+
+  function onDetailChange(rowIndex: number, patch: Partial<DetailRow>) {
+    setDetailRows((prev) =>
+      patchCheckedRow(prev, rowIndex, {
+        ...patch,
+        method: prev[rowIndex]?.method === 'I' ? 'I' : 'U',
+      })
+    );
+  }
+
+  function onAddFromMaster() {
+    const selectedRows = masterRows.filter((row) => row.CHECK);
+    if (selectedRows.length === 0) return;
+
+    setDetailRows((currentRows) => {
+      const existingKeys = new Set(currentRows.map(getSalesRowKey));
+      const additions = selectedRows
+        .filter((row) => !existingKeys.has(getSalesRowKey(row)))
+        .map((row) => ({
+          CHECK: true,
+          method: 'I' as const,
+          soYmd: row.soYmd ?? '',
+          soSeq: row.soSeq ?? '',
+          soSubSeq: row.soSubSeq ?? '',
+          soNo: row.soNo ?? '',
+          itemCd: row.itemCd ?? '',
+          itemNm: row.itemNm ?? '',
+          unitCd: row.unitCd ?? '',
+          unitNm: row.unitNm ?? row.unitCd ?? '',
+          qty: row.remainingQty ?? '',
+          remainingQty: row.remainingQty ?? 0,
+          description: '',
+        }));
+
+      return [...currentRows, ...additions];
+    });
   }
 
   function onDeleteDetail() {
-    setDetail((prev) => prev.filter((r) => !r.CHECK));
+    setDetailRows((currentRows) => {
+      const rowsToDelete = currentRows.filter((row) => row.CHECK);
+      if (rowsToDelete.length === 0) return currentRows;
+
+      setDeletedDetailRows((deletedRows) => [
+        ...deletedRows,
+        ...rowsToDelete
+          .filter((row) => row.method !== 'I' && getDetailRowKey(row) !== '||')
+          .map((row) => ({ ...row, CHECK: false, method: 'D' as const })),
+      ]);
+
+      return removeCheckedRows(currentRows);
+    });
   }
 
   async function onSave() {
-    if (!selected.so_ymd || selected.so_seq === undefined) {
-      setError('마스터 선택 후 저장하세요.');
+    if (!form.cstCd) {
+      setSaveError('거래처를 선택하세요.');
       return;
     }
-    const targets = detail.filter((r) => r.CHECK);
-    if (targets.length === 0) {
-      setError('저장할 데이터가 없습니다.');
+    if (detailRows.length === 0 && deletedDetailRows.length === 0) {
+      setSaveError('저장할 데이터가 없습니다.');
       return;
     }
+
+    const invalidRowIndex = detailRows.findIndex(
+      (row) => !row.itemCd || !row.unitCd || !row.qty || Number(row.qty) <= 0
+    );
+    if (invalidRowIndex >= 0) {
+      setSaveError(`상세 ${invalidRowIndex + 1}행의 품목, 단위, 출고수량을 확인하세요.`);
+      return;
+    }
+
+    const excessRowIndex = detailRows.findIndex(
+      (row) =>
+        row.method === 'I' &&
+        row.remainingQty !== undefined &&
+        Number(row.qty) > row.remainingQty
+    );
+    if (excessRowIndex >= 0) {
+      setSaveError(`상세 ${excessRowIndex + 1}행의 출고수량이 출고가능수량을 초과했습니다.`);
+      return;
+    }
+
     if (!window.confirm('저장 하시겠습니까?')) return;
-    setLoading(true);
-    setError(null);
+
+    setSaving(true);
+    setSaveError(null);
+
     try {
-      const payload = targets.map((r) => ({
-        SO_YMD: String(selected.so_ymd).replace(/-/g, ''),
-        SO_SEQ: String(selected.so_seq ?? ''),
-        SO_SUB_SEQ: r.SO_SUB_SEQ ?? '',
-        ITEM_CD: r.ITEM_CD ?? '',
-        UNIT_CD: r.UNIT_CD ?? '',
-        QTY: r.QTY ?? '',
-        REQ_YMD: r.REQ_YMD ? String(r.REQ_YMD).replace(/-/g, '') : '',
-      }));
-      await http(`/api/m04/mmsm04002/save`, { method: 'POST', body: payload });
-      // 저장 후 새로고침
-      if (selected.so_ymd && selected.so_seq !== undefined) {
-        const qs = new URLSearchParams({
-          so_ymd: String(selected.so_ymd).replace(/-/g, ''),
-          so_seq: String(selected.so_seq),
-        }).toString();
-        const data = await http<DetailRow[]>(`/api/m04/mmsm04002/detail?${qs}`);
-        const list = (Array.isArray(data) ? data : []).map((r) => ({ ...r, CHECK: false }));
-        setDetail(list);
+      const me = await http<AuthMeResponse>('/api/v1/auth/me');
+      const userId = (
+        me.user?.userid ??
+        me.user?.userId ??
+        me.data?.user?.userid ??
+        me.data?.user?.userId ??
+        ''
+      ).trim();
+
+      if (!userId) {
+        setSaveError('사용자 정보를 확인할 수 없습니다. 다시 로그인 후 시도하세요.');
+        return;
       }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+
+      const payload = buildMmsm04002SavePayload({
+        form,
+        detailRows,
+        deletedDetailRows,
+        userId,
+      });
+      await http('/api/v1/material/gimst/savePayload', { method: 'POST', body: payload });
+      setDeletedDetailRows([]);
+      await Promise.all([fetchMasterList(0), fetchDetailList(0)]);
+      window.alert('저장되었습니다.');
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : String(error));
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   }
 
   function onExportCsv() {
-    const headers = ['순번', '제품순번', '제품코드', '제품명', '단위', '출고수량', '출고일자'];
-    const lines = detail.map((r, i) =>
+    const headers = ['수주번호', '제품코드', '제품명', '단위', '출고수량', '비고'];
+    const lines = detailRows.map((row) =>
       [
-        r.SO_SEQ ?? '',
-        r.SO_SUB_SEQ ?? '',
-        r.ITEM_CD ?? '',
-        r.ITEM_NM ?? '',
-        r.UNIT_CD ?? '',
-        r.QTY ?? '',
-        r.REQ_YMD ?? '',
+        row.soNo ?? '',
+        row.itemCd ?? '',
+        row.itemNm ?? '',
+        row.unitNm ?? row.unitCd ?? '',
+        row.qty ?? '',
+        row.description ?? '',
       ]
-        .map((v) => (v ?? '').toString().replace(/"/g, '""'))
-        .map((v) => `"${v}"`)
+        .map((value) => String(value).replace(/"/g, '""'))
+        .map((value) => `"${value}"`)
         .join(',')
     );
-    const csv = [headers.join(','), ...lines].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([[headers.join(','), ...lines].join('\n')], {
+      type: 'text/csv;charset=utf-8;',
+    });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'MMSM04002E_detail.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'MMSM04002E_detail.csv';
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
     URL.revokeObjectURL(url);
   }
 
-  function openCustomerPicker() {
-    setTmpCd(cstCd);
-    setTmpNm(cstNm);
-    setCustOpen(true);
-  }
-  function applyCustomer() {
-    setCstCd(tmpCd.trim());
-    setCstNm(tmpNm.trim());
-    setCustOpen(false);
-  }
-
   return (
-    <div className="p-3 space-y-3">
-      <div className="text-base font-semibold">제품출고지시</div>
-
-      {/* Filters & Top Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
-        <label className="flex flex-col text-sm">
-          <span className="mb-1">수주일자(시작)</span>
-          <input
-            type="date"
-            className="h-8 border rounded px-2"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-        </label>
-        <label className="flex flex-col text-sm">
-          <span className="mb-1">수주일자(끝)</span>
-          <input
-            type="date"
-            className="h-8 border rounded px-2"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-        </label>
-        <label className="flex flex-col text-sm md:col-span-2">
-          <span className="mb-1">거래처명</span>
-          <div className="flex gap-1">
-            <input
-              value={cstCd}
-              readOnly
-              className="h-8 border rounded px-2 w-28 bg-muted"
-              placeholder="코드"
+    <div className={pageShellClass}>
+      <div className={pageContentClass}>
+        <SectionCard span="full" padding="md">
+          <div className={registerSearchGridClass}>
+            <DateEdit
+              label="수주일자"
+              value={form.soYmd}
+              onChange={(value) => setForm((prev) => ({ ...prev, soYmd: value }))}
             />
-            <input
-              value={cstNm}
-              readOnly
-              className="h-8 border rounded px-2 flex-1 bg-muted"
-              placeholder="거래처 선택"
+            <CodeNameField
+              label="거래처"
+              id="cust"
+              code={form.cstCd}
+              name={cstNm}
+              codePlaceholder="코드"
+              namePlaceholder="거래처명"
+              onSearch={() => setCustomerOpen(true)}
+              onClear={() => {
+                setCstNm('');
+                setForm((prev) => ({ ...prev, cstCd: '' }));
+              }}
             />
-            <button type="button" className="h-8 px-2 border rounded" onClick={openCustomerPicker}>
-              ...
-            </button>
-          </div>
-        </label>
-        <div className="flex gap-2 justify-end">
-          <button
-            onClick={onSearch}
-            disabled={loading}
-            className="h-8 px-3 border rounded bg-primary text-primary-foreground disabled:opacity-50"
-          >
-            조회
-          </button>
-          <button onClick={onExportCsv} className="h-8 px-3 border rounded">
-            엑셀
-          </button>
-        </div>
-      </div>
-
-      {error && (
-        <div className="text-sm text-destructive border border-destructive/30 rounded p-2">
-          {error}
-        </div>
-      )}
-
-      {/* Layout: Master | Buttons | Detail */}
-      <div className="grid grid-cols-12 gap-3">
-        {/* Master */}
-        <div className="col-span-12 md:col-span-4 border rounded overflow-auto max-h-[65vh]">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-background">
-              <tr className="border-b">
-                <th className="w-12 p-2 text-center">선택</th>
-                <th className="w-20 p-2 text-center">순번</th>
-                <th className="w-28 p-2 text-center">출고지시일</th>
-                <th className="p-2 text-left">거래처명</th>
-                <th className="w-28 p-2 text-center">출고요청일</th>
-              </tr>
-            </thead>
-            <tbody>
-              {master.map((r, i) => (
-                <tr
-                  key={i}
-                  className="border-b hover:bg-muted/30 cursor-pointer"
-                  onClick={() => onSelectMaster(i)}
-                >
-                  <td className="p-2 text-center">
-                    <input
-                      type="checkbox"
-                      checked={!!r.CHECK}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        toggleMaster(i, e.target.checked);
-                      }}
-                    />
-                  </td>
-                  <td className="p-2 text-center">{r.SO_SEQ ?? ''}</td>
-                  <td className="p-2 text-center">{r.SO_YMD ?? ''}</td>
-                  <td className="p-2 text-left">{r.CST_NM ?? ''}</td>
-                  <td className="p-2 text-center">{r.SO_YMD ?? ''}</td>
-                </tr>
-              ))}
-              {master.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="p-3 text-center text-muted-foreground">
-                    마스터 데이터가 없습니다. 조건을 입력하고 조회하세요.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Middle Buttons */}
-        <div className="col-span-12 md:col-span-1 flex md:flex-col gap-2 items-center justify-center">
-          <button className="h-8 px-3 border rounded">출고</button>
-          <button onClick={onAddDetail} className="h-8 px-3 border rounded">
-            추가
-          </button>
-          <button onClick={onSave} disabled={loading} className="h-8 px-3 border rounded">
-            저장
-          </button>
-          <button onClick={onDeleteDetail} className="h-8 px-3 border rounded">
-            삭제
-          </button>
-        </div>
-
-        {/* Detail */}
-        <div className="col-span-12 md:col-span-7 border rounded overflow-auto max-h-[65vh]">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-background">
-              <tr className="border-b">
-                <th className="w-12 p-2 text-center">선택</th>
-                <th className="w-20 p-2 text-center">순번</th>
-                <th className="w-24 p-2 text-center">제품순번</th>
-                <th className="w-28 p-2 text-center">제품코드</th>
-                <th className="p-2 text-left">제품명</th>
-                <th className="w-20 p-2 text-center">단위</th>
-                <th className="w-24 p-2 text-right">출고수량</th>
-                <th className="w-28 p-2 text-center">출고일자</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detail.map((r, i) => (
-                <tr key={i} className="border-b hover:bg-muted/30">
-                  <td className="p-2 text-center">
-                    <input
-                      type="checkbox"
-                      checked={!!r.CHECK}
-                      onChange={(e) => toggleDetail(i, e.target.checked)}
-                    />
-                  </td>
-                  <td className="p-1 text-center">
-                    <input
-                      className="h-8 border rounded px-2 w-full bg-muted"
-                      value={r.SO_SEQ ?? ''}
-                      readOnly
-                    />
-                  </td>
-                  <td className="p-1 text-center">
-                    <input
-                      className="h-8 border rounded px-2 w-full bg-muted"
-                      value={r.SO_SUB_SEQ ?? ''}
-                      readOnly
-                    />
-                  </td>
-                  <td className="p-1 text-center">
-                    <input
-                      className="h-8 border rounded px-2 w-full bg-muted"
-                      value={r.ITEM_CD ?? ''}
-                      readOnly
-                    />
-                  </td>
-                  <td className="p-1 text-left">
-                    <input
-                      className="h-8 border rounded px-2 w-full bg-muted"
-                      value={r.ITEM_NM ?? ''}
-                      readOnly
-                    />
-                  </td>
-                  <td className="p-1 text-center">
-                    <input
-                      className="h-8 border rounded px-2 w-full"
-                      value={r.UNIT_CD ?? ''}
-                      onChange={(e) => onDetailChange(i, { UNIT_CD: e.target.value })}
-                    />
-                  </td>
-                  <td className="p-1 text-right">
-                    <input
-                      className="h-8 border rounded px-2 w-full text-right"
-                      value={r.QTY ?? ''}
-                      onChange={(e) => onDetailChange(i, { QTY: e.target.value })}
-                    />
-                  </td>
-                  <td className="p-1 text-center">
-                    <input
-                      type="date"
-                      className="h-8 border rounded px-2 w-full"
-                      value={toInputDate(r.REQ_YMD)}
-                      onChange={(e) => onDetailChange(i, { REQ_YMD: e.target.value })}
-                    />
-                  </td>
-                </tr>
-              ))}
-              {detail.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="p-3 text-center text-muted-foreground">
-                    디테일 데이터가 없습니다. 좌측에서 마스터를 선택하거나 추가 버튼으로 생성하세요.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* 고객 선택 모달 */}
-      {custOpen && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-background border rounded p-3 w-[460px] space-y-2 shadow-lg">
-            <div className="font-semibold">고객사 선택</div>
-            <div className="grid grid-cols-2 gap-2">
-              <label className="flex flex-col text-sm">
-                <span className="mb-1">코드</span>
-                <input
-                  className="h-8 border rounded px-2"
-                  value={tmpCd}
-                  onChange={(e) => setTmpCd(e.target.value)}
-                />
-              </label>
-              <label className="flex flex-col text-sm">
-                <span className="mb-1">이름</span>
-                <input
-                  className="h-8 border rounded px-2"
-                  value={tmpNm}
-                  onChange={(e) => setTmpNm(e.target.value)}
-                />
-              </label>
+            <div className="flex flex-wrap items-end justify-end gap-2">
+              <ActionButtonGroup
+                onSearch={() => void onSearch()}
+                onSave={() => void onSave()}
+                onUpload={() => undefined}
+                onExport={onExportCsv}
+                searchDisabled={isBusy}
+                saveDisabled={isBusy}
+                showUpload={false}
+                className="flex flex-wrap items-end justify-end gap-2"
+              />
             </div>
-            <div className="flex justify-end gap-2 pt-1">
-              <button className="h-8 px-3 border rounded" onClick={() => setCustOpen(false)}>
-                취소
-              </button>
-              <button
-                className="h-8 px-3 border rounded bg-primary text-primary-foreground"
-                onClick={applyCustomer}
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-slate-800">출고지시 정보</span>
+              <span className={countBadgeClass}>
+                {detailRows.filter((row) => row.CHECK).length}건 선택
+              </span>
+            </div>
+            <label className={issueDateLabelClass}>
+              <span className={issueDateTextClass}>출고일자</span>
+              <input
+                type="date"
+                className={issueDateInputClass}
+                value={form.giYmd}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, giYmd: event.target.value }))
+                }
+              />
+            </label>
+          </div>
+        </SectionCard>
+
+        {(masterError || detailError || saveError) && (
+          <AlertBox tone="error">{masterError ?? detailError ?? saveError}</AlertBox>
+        )}
+
+        <div className={registerSplitGridClass}>
+          <SectionCard span="left" width="full">
+            <SectionHeader
+              title="출고 대상 수주"
+              right={<span className={countBadgeClass}>{masterRows.length}건</span>}
+            />
+            <div className={gridScrollClass}>
+              <DataGrid
+                dataSource={masterRows}
+                showBorders={true}
+                rowKey={(row, index) => row.soNo || index}
+                emptyText="출고 가능한 수주가 없습니다."
+                classNames={{ table: 'min-w-[900px] w-full text-sm' }}
               >
-                선택
+                <CheckColumn
+                  checked={(row) => !!row.CHECK}
+                  onChange={(_row, rowIndex, checked) => toggleMaster(rowIndex, checked)}
+                />
+                <Column dataField="soNo" caption="수주번호" width={150} alignment="center" />
+                <Column dataField="itemCd" caption="제품코드" width={110} alignment="center" />
+                <Column dataField="itemNm" caption="제품명" width={180} />
+                <Column dataField="unitNm" caption="단위" width={80} alignment="center" />
+                <Column dataField="emNm" caption="긴급구분" width={100} alignment="center" />
+                <Column dataField="qty" caption="수주수량" width={100} alignment="right" />
+                <Column dataField="outQty" caption="기출고" width={90} alignment="right" />
+                <Column
+                  dataField="remainingQty"
+                  caption="출고가능"
+                  width={100}
+                  alignment="right"
+                />
+              </DataGrid>
+            </div>
+          </SectionCard>
+
+          <div className={transferColumnClass}>
+            <div className={transferButtonGroupClass}>
+              <button onClick={onAddFromMaster} className={addTransferButtonClass}>
+                추가
+              </button>
+              <button onClick={onDeleteDetail} className={deleteTransferButtonClass}>
+                삭제
               </button>
             </div>
           </div>
+
+          <SectionCard span="right" width="full">
+            <SectionHeader
+              title="출고지시 상세"
+              right={<span className={countBadgeClass}>{detailRows.length}건</span>}
+            />
+            <div className={gridScrollClass}>
+              <DataGrid
+                dataSource={detailRows}
+                showBorders={true}
+                rowKey={(row, index) => {
+                  const key = getDetailRowKey(row);
+                  return key === '||' ? `${getSalesRowKey(row)}-${index}` : `${key}-${index}`;
+                }}
+                emptyText="좌측 수주에서 선택 후 추가하세요."
+                classNames={{ table: 'min-w-[820px] w-full text-sm' }}
+              >
+                <CheckColumn
+                  checked={(row) => !!row.CHECK}
+                  onChange={(_row, rowIndex, checked) => toggleDetail(rowIndex, checked)}
+                />
+                <Column dataField="soNo" caption="수주번호" width={150} alignment="center" />
+                <Column dataField="itemCd" caption="제품코드" width={110} alignment="center" />
+                <Column dataField="itemNm" caption="제품명" width={180} />
+                <Column dataField="unitNm" caption="단위" width={80} alignment="center" />
+                <Column
+                  dataField="qty"
+                  caption="출고수량"
+                  width={120}
+                  alignment="right"
+                  cellRender={(row: DetailRow, rowIndex) => (
+                    <input
+                      type="number"
+                      min="0"
+                      className={editableNumberInputClass}
+                      value={row.qty ?? ''}
+                      onChange={(event) => onDetailChange(rowIndex, { qty: event.target.value })}
+                    />
+                  )}
+                />
+                <Column
+                  dataField="description"
+                  caption="비고"
+                  width={180}
+                  cellRender={(row: DetailRow, rowIndex) => (
+                    <input
+                      className={editableTextInputClass}
+                      value={row.description ?? ''}
+                      onChange={(event) =>
+                        onDetailChange(rowIndex, { description: event.target.value })
+                      }
+                    />
+                  )}
+                />
+              </DataGrid>
+            </div>
+          </SectionCard>
         </div>
-      )}
+
+        <SearchCodePickers
+          customer={{
+            open: customerOpen,
+            title: '거래처 정보',
+            custGb: 'CUSTOMER',
+            cstCd: form.cstCd,
+            cstNm,
+            onClose: () => setCustomerOpen(false),
+            onSelect: (value) => {
+              setCstNm(value.cstNm);
+              setForm((prev) => ({ ...prev, cstCd: value.cstCd }));
+            },
+          }}
+        />
+      </div>
     </div>
   );
 }
