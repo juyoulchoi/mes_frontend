@@ -51,7 +51,13 @@ export const columns: GridColumn<RowItem>[] = [
     headerAlignment: 'center',
     cellRender: (row) => formatNumber(row.qty ?? 0),
   },
-  { dataField: 'unitNm', caption: '단위', width: 90, alignment: 'center' },
+  {
+    dataField: 'unitNm',
+    caption: '단위',
+    width: 90,
+    alignment: 'center',
+    cellRender: (row) => row.unitNm ?? row.unitCd ?? '',
+  },
   {
     dataField: 'outQty',
     caption: '출고수량',
@@ -68,7 +74,13 @@ export const columns: GridColumn<RowItem>[] = [
     headerAlignment: 'center',
     cellRender: (row) => formatNumber(getRemainingQty(row)),
   },
-  { dataField: 'emNm', caption: '긴급구분', width: 110, alignment: 'center' },
+  {
+    dataField: 'emNm',
+    caption: '긴급구분',
+    width: 110,
+    alignment: 'center',
+    cellRender: (row) => row.emNm ?? row.emGb ?? '',
+  },
   {
     dataField: 'endYn',
     caption: '마감여부',
