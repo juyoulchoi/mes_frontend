@@ -1,14 +1,20 @@
 import { useCallback, useEffect, useState } from 'react';
 import { http } from '@/lib/http';
+import {
+  columns,
+  exportHeaders,
+  formatCellValue,
+  mapExportRow,
+  normalizeRows,
+  type ApiRow,
+  type RowItem,
+} from '@/services/m02/mmsm02005';
 
 // 모니터링 (MMSM02005S)
 // 필터 없음. 기능: 조회, 엑셀(CSV)
-// 그리드 컬럼: 생산예정일, 생산계획순번, 제품명, 공정 단계(P01~P13)
-
-type Row = Record<string, string | number | null | undefined>;
 
 export default function MMSM02005S() {
-  const [rows, setRows] = useState<Row[]>([]);
+  const [rows, setRows] = useState<RowItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,8 +22,8 @@ export default function MMSM02005S() {
     setLoading(true);
     setError(null);
     try {
-      const data = await http<Row[]>(`/api/m02/mmsm02005/list`);
-      setRows(Array.isArray(data) ? data : []);
+      const data = await http<ApiRow[]>(`/api/v1/planning/productionStatus/search`);
+      setRows(normalizeRows(Array.isArray(data) ? data : []));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -30,48 +36,13 @@ export default function MMSM02005S() {
   }, [onSearch]);
 
   function onExportCsv() {
-    const headers = [
-      '생산예정일',
-      '생산계획순번',
-      '제품명',
-      '제판',
-      '재단',
-      '인쇄',
-      '제본',
-      '코팅',
-      '합지기',
-      '톰슨',
-      '가공',
-      '트레이',
-      '창문',
-      '소분',
-      '접착',
-      '출고',
-    ];
     const lines = rows.map((r) =>
-      [
-        r.PRD_SCHD_YMD ?? '',
-        r.PRD_PLAN_SEQ ?? '',
-        r.ITEM_NM ?? '',
-        r.P01 ?? '',
-        r.P02 ?? '',
-        r.P03 ?? '',
-        r.P04 ?? '',
-        r.P05 ?? '',
-        r.P06 ?? '',
-        r.P07 ?? '',
-        r.P08 ?? '',
-        r.P09 ?? '',
-        r.P10 ?? '',
-        r.P11 ?? '',
-        r.P12 ?? '',
-        r.P13 ?? '',
-      ]
+      mapExportRow(r)
         .map((v) => (v ?? '').toString().replace(/"/g, '""'))
         .map((v) => `"${v}"`)
         .join(',')
     );
-    const csv = [headers.join(','), ...lines].join('\n');
+    const csv = [exportHeaders.join(','), ...lines].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -111,48 +82,26 @@ export default function MMSM02005S() {
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-background">
             <tr className="border-b">
-              <th className="w-28 p-2 text-center">생산예정일</th>
-              <th className="w-24 p-2 text-center">생산계획순번</th>
-              <th className="w-40 p-2 text-left">제품명</th>
-              <th className="w-20 p-2 text-center">제판</th>
-              <th className="w-20 p-2 text-center">재단</th>
-              <th className="w-20 p-2 text-center">인쇄</th>
-              <th className="w-20 p-2 text-center">제본</th>
-              <th className="w-20 p-2 text-center">코팅</th>
-              <th className="w-20 p-2 text-center">합지기</th>
-              <th className="w-20 p-2 text-center">톰슨</th>
-              <th className="w-20 p-2 text-center">가공</th>
-              <th className="w-20 p-2 text-center">트레이</th>
-              <th className="w-20 p-2 text-center">창문</th>
-              <th className="w-20 p-2 text-center">소분</th>
-              <th className="w-20 p-2 text-center">접착</th>
-              <th className="w-20 p-2 text-center">출고</th>
+              {columns.map((column) => (
+                <th key={column.dataField} className={column.headerClassName}>
+                  {column.caption}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {rows.map((r, i) => (
               <tr key={i} className="border-b hover:bg-muted/30">
-                <td className="p-2 text-center">{r.PRD_SCHD_YMD ?? ''}</td>
-                <td className="p-2 text-center">{r.PRD_PLAN_SEQ ?? ''}</td>
-                <td className="p-2 text-left">{r.ITEM_NM ?? ''}</td>
-                <td className="p-2 text-center">{r.P01 ?? ''}</td>
-                <td className="p-2 text-center">{r.P02 ?? ''}</td>
-                <td className="p-2 text-center">{r.P03 ?? ''}</td>
-                <td className="p-2 text-center">{r.P04 ?? ''}</td>
-                <td className="p-2 text-center">{r.P05 ?? ''}</td>
-                <td className="p-2 text-center">{r.P06 ?? ''}</td>
-                <td className="p-2 text-center">{r.P07 ?? ''}</td>
-                <td className="p-2 text-center">{r.P08 ?? ''}</td>
-                <td className="p-2 text-center">{r.P09 ?? ''}</td>
-                <td className="p-2 text-center">{r.P10 ?? ''}</td>
-                <td className="p-2 text-center">{r.P11 ?? ''}</td>
-                <td className="p-2 text-center">{r.P12 ?? ''}</td>
-                <td className="p-2 text-center">{r.P13 ?? ''}</td>
+                {columns.map((column) => (
+                  <td key={column.dataField} className={column.cellClassName}>
+                    {formatCellValue(r, column)}
+                  </td>
+                ))}
               </tr>
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={16} className="p-3 text-center text-muted-foreground">
+                <td colSpan={columns.length} className="p-3 text-center text-muted-foreground">
                   데이터가 없습니다. 조회 버튼을 눌러 갱신하세요.
                 </td>
               </tr>
