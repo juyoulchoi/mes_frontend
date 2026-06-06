@@ -1,328 +1,176 @@
-import { useEffect, useState } from 'react';
-import { http } from '@/lib/http';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// 수주현황 (MMSM02007S)
-// 필터: 수주일자(시작/끝), 거래처(코드/명), 제품(코드/명)
-// 기능: 조회, 수주등록(이동), 엑셀(CSV)
-// 컬럼: 수주번호(SO_NO), 거래처명(CST_NM), 제품명(ITEM_NM), 수량(QTY), 긴급구분(EM_NM), 등록일자(REQ_YMD)
-
-type Row = Record<string, any>;
-
-function fmtDateYMD(d: string) {
-  if (!d) return '';
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return '';
-  const y = dt.getFullYear();
-  const m = `${dt.getMonth() + 1}`.padStart(2, '0');
-  const day = `${dt.getDate()}`.padStart(2, '0');
-  return `${y}${m}${day}`;
-}
+import AlertBox from '@/components/AlertBox';
+import CodeNameField from '@/components/CodeNameField';
+import FromToDateField from '@/components/FromToDateField';
+import SectionCard from '@/components/SectionCard';
+import SectionHeader from '@/components/SectionHeader';
+import SearchCodePickers from '@/components/SearchCodePickers';
+import StatusActionButtons from '@/components/StatusActionButtons';
+import { Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
+import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
+import { PAGE_SIZE } from '@/lib/pagination';
+import {
+  gridScrollClass,
+  pageContentClass,
+  pageShellClass,
+  statusSearchGridClass,
+} from '@/lib/pageStyles';
+import { usePageApiFetch } from '@/services/common/getApiFetch';
+import {
+  columns,
+  exportHeaders,
+  mapExportRow,
+  type RowItem,
+  type SearchForm,
+} from '@/services/m02/mmsm02007';
 
 export default function MMSM02007S() {
   const navigate = useNavigate();
+  const today = useMemo(() => new Date(), []);
+  const first = useMemo(() => new Date(today.getFullYear(), today.getMonth(), 1), [today]);
+  const [customerOpen, setCustomerOpen] = useState(false);
+  const [itemPickerOpen, setItemPickerOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tableHeight = useAutoTableHeight(containerRef);
+  const [form, setForm] = useState<SearchForm>({
+    startDate: first.toISOString().slice(0, 10),
+    endDate: today.toISOString().slice(0, 10),
+    cstCd: '',
+    cstNm: '',
+    itemCd: '',
+    itemNm: '',
+  });
 
-  // Filters
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [cstCd, setCstCd] = useState('');
-  const [cstNm, setCstNm] = useState('');
-  const [itemCd, setItemCd] = useState('');
-  const [itemNm, setItemNm] = useState('');
-
-  // Data
-  const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Init today for both dates
-  useEffect(() => {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = `${today.getMonth() + 1}`.padStart(2, '0');
-    const dd = `${today.getDate()}`.padStart(2, '0');
-    const ymd = `${yyyy}-${mm}-${dd}`;
-    setStartDate(ymd);
-    setEndDate(ymd);
-  }, []);
-
-  async function onSearch() {
-    setLoading(true);
-    setError(null);
-    try {
-      const qs = new URLSearchParams({
-        start: fmtDateYMD(startDate),
-        end: fmtDateYMD(endDate),
-        cst_cd: cstCd || '',
-        item_cd: itemCd || '',
-      }).toString();
-      const data = await http<Row[]>(`/api/m02/mmsm02007/list?${qs}`);
-      setRows(Array.isArray(data) ? data : []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // 간단 고객/제품 선택 모달 (코드/이름 수기 입력 후 적용)
-  const [custOpen, setCustOpen] = useState(false);
-  const [prodOpen, setProdOpen] = useState(false);
-  const [tempCode, setTempCode] = useState('');
-  const [tempName, setTempName] = useState('');
-
-  function openCustomerPicker() {
-    setTempCode(cstCd);
-    setTempName(cstNm);
-    setCustOpen(true);
-  }
-  function applyCustomer() {
-    setCstCd(tempCode.trim());
-    setCstNm(tempName.trim());
-    setCustOpen(false);
-  }
-
-  function openProductPicker() {
-    setTempCode(itemCd);
-    setTempName(itemNm);
-    setProdOpen(true);
-  }
-  function applyProduct() {
-    setItemCd(tempCode.trim());
-    setItemNm(tempName.trim());
-    setProdOpen(false);
-  }
-
-  // 엑셀(CSV) 내보내기
-  function onExportCsv() {
-    const headers = ['순번', '수주번호', '거래처명', '제품명', '수량', '긴급구분', '등록일자'];
-    const lines = rows.map((r, i) =>
-      [
-        r.RNUM ?? i + 1,
-        r.SO_NO ?? '',
-        r.CST_NM ?? '',
-        r.ITEM_NM ?? '',
-        r.QTY ?? '',
-        r.EM_NM ?? '',
-        r.REQ_YMD ?? '',
-      ]
-        .map((v) => (v ?? '').toString().replace(/"/g, '""'))
-        .map((v) => `"${v}"`)
-        .join(',')
-    );
-    const csv = [headers.join(','), ...lines].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'MMSM02007S.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
+  const { result, loading, error, fetchList } = usePageApiFetch<SearchForm, RowItem>({
+    apiPath: '/api/v1/sales/findSoStatusList',
+    form,
+    pageSize: PAGE_SIZE,
+    includePageParam: false,
+    includeSizeParam: false,
+    mapParams: ({ form }) => ({
+      startDate: form.startDate.split('-').join(''),
+      endDate: form.endDate.split('-').join(''),
+      cstNm: form.cstNm,
+      itemNm: form.itemNm,
+    }),
+  });
 
   return (
-    <div className="p-3 space-y-3">
-      <div className="text-base font-semibold">수주현황</div>
+    <div className={pageShellClass} ref={containerRef}>
+      <div className={pageContentClass}>
+        <SectionCard span="full" padding="md">
+          <div className={statusSearchGridClass}>
+            <FromToDateField
+              label="수주일자"
+              fromValue={form.startDate}
+              toValue={form.endDate}
+              onFromChange={(value) => setForm((prev) => ({ ...prev, startDate: value }))}
+              onToChange={(value) => setForm((prev) => ({ ...prev, endDate: value }))}
+            />
 
-      {/* Filters & Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-2 items-end">
-        <label className="flex flex-col text-sm">
-          <span className="mb-1">수주일자(시작)</span>
-          <input
-            type="date"
-            className="h-8 border rounded px-2"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-        </label>
-        <label className="flex flex-col text-sm">
-          <span className="mb-1">수주일자(끝)</span>
-          <input
-            type="date"
-            className="h-8 border rounded px-2"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-        </label>
-        <label className="flex flex-col text-sm">
-          <span className="mb-1">거래처명</span>
-          <div className="flex gap-1">
-            <input
-              value={cstCd}
-              readOnly
-              className="h-8 border rounded px-2 w-28 bg-muted"
-              placeholder="코드"
+            <CodeNameField
+              label="거래처"
+              id="customer"
+              code={form.cstCd}
+              name={form.cstNm}
+              codePlaceholder="코드"
+              namePlaceholder="거래처명"
+              onSearch={() => setCustomerOpen(true)}
+              onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
             />
-            <input
-              value={cstNm}
-              readOnly
-              className="h-8 border rounded px-2 flex-1 bg-muted"
-              placeholder="거래처 선택"
+
+            <StatusActionButtons
+              loading={loading}
+              onSearch={() => void fetchList(0)}
+              onSave={() => navigate('/app/m02/MMSM02001E')}
+              saveLabel="수주등록"
+              exportProps={{
+                rows: result.content,
+                headers: exportHeaders,
+                mapRow: mapExportRow,
+                filename: () => `수주현황_${form.endDate.split('-').join('')}.csv`,
+              }}
             />
-            <button type="button" className="h-8 px-2 border rounded" onClick={openCustomerPicker}>
-              ...
-            </button>
           </div>
-        </label>
-        <label className="flex flex-col text-sm md:col-span-2 lg:col-span-2">
-          <span className="mb-1">제품명</span>
-          <div className="flex gap-1">
-            <input
-              value={itemCd}
-              readOnly
-              className="h-8 border rounded px-2 w-28 bg-muted"
-              placeholder="코드"
+
+          <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[546px_1fr]">
+            <CodeNameField
+              label="제품"
+              id="item"
+              code={form.itemCd}
+              name={form.itemNm}
+              codePlaceholder="코드"
+              namePlaceholder="제품명"
+              onSearch={() => setItemPickerOpen(true)}
+              onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
             />
-            <input
-              value={itemNm}
-              readOnly
-              className="h-8 border rounded px-2 flex-1 bg-muted"
-              placeholder="제품 선택"
-            />
-            <button type="button" className="h-8 px-2 border rounded" onClick={openProductPicker}>
-              ...
-            </button>
           </div>
-        </label>
-        <div className="flex gap-2 md:col-span-1 lg:col-span-1 justify-end">
-          <button
-            onClick={onSearch}
-            disabled={loading}
-            className="h-8 px-3 border rounded bg-primary text-primary-foreground disabled:opacity-50"
-          >
-            조회
-          </button>
-          <button
-            onClick={() => navigate('/app/m02/MMSM02001E')}
-            className="h-8 px-3 border rounded"
-          >
-            수주등록
-          </button>
-          <button onClick={onExportCsv} className="h-8 px-3 border rounded">
-            엑셀
-          </button>
-        </div>
+        </SectionCard>
+
+        {error && <AlertBox tone="error">{error}</AlertBox>}
+
+        <SectionCard span="full" width="full">
+          <SectionHeader title="수주 현황" />
+          <div className={gridScrollClass} style={{ height: tableHeight }}>
+            <DataGrid
+              dataSource={result.content}
+              rowKey={(row, index) =>
+                `${row.soNo ?? 'so'}-${row.itemCd ?? 'item'}-${row.reqYmd ?? 'date'}-${index}`
+              }
+              showBorders={true}
+              loading={loading}
+              emptyText="수주 현황 데이터가 없습니다. 조건 선택 후 조회하세요."
+              classNames={{
+                table: 'min-w-[1540px] w-full text-sm',
+              }}
+            >
+              <Paging enabled={true} defaultPageSize={PAGE_SIZE} />
+              <Pager visible={true} showPageSizeSelector={false} />
+              {columns.map((column, index) => (
+                <Column
+                  key={`${String(column.dataField)}-${index}`}
+                  dataField={column.dataField}
+                  caption={column.caption}
+                  width={column.width}
+                  alignment={column.alignment}
+                  headerAlignment={column.headerAlignment}
+                  headerClassName={column.headerClassName}
+                  cellRender={column.cellRender}
+                />
+              ))}
+            </DataGrid>
+          </div>
+        </SectionCard>
+
+        <SearchCodePickers
+          customer={{
+            open: customerOpen,
+            title: '거래처 정보',
+            cstCd: form.cstCd,
+            cstNm: form.cstNm,
+            onClose: () => setCustomerOpen(false),
+            onSelect: (value) => {
+              setForm((prev) => ({ ...prev, cstCd: value.cstCd, cstNm: value.cstNm }));
+            },
+          }}
+          item={{
+            open: itemPickerOpen,
+            title: '제품 정보',
+            itemGb: 'FG,SFG',
+            itemNm: form.itemNm,
+            onClose: () => setItemPickerOpen(false),
+            onSelect: (value) => {
+              setForm((prev) => ({
+                ...prev,
+                itemCd: value.itemCd,
+                itemNm: value.itemNm,
+              }));
+            },
+          }}
+        />
       </div>
-
-      {error && (
-        <div className="text-sm text-destructive border border-destructive/30 rounded p-2">
-          {error}
-        </div>
-      )}
-
-      {/* Grid */}
-      <div className="border rounded overflow-auto max-h-[70vh]">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-background">
-            <tr className="border-b">
-              <th className="w-16 p-2 text-center">순번</th>
-              <th className="w-32 p-2 text-center">수주번호</th>
-              <th className="w-40 p-2 text-left">거래처명</th>
-              <th className="p-2 text-left">제품명</th>
-              <th className="w-24 p-2 text-right">수량</th>
-              <th className="w-24 p-2 text-center">긴급구분</th>
-              <th className="w-28 p-2 text-center">등록일자</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={i} className="border-b hover:bg-muted/30">
-                <td className="p-2 text-center">{r.RNUM ?? i + 1}</td>
-                <td className="p-2 text-center">{r.SO_NO ?? ''}</td>
-                <td className="p-2 text-left">{r.CST_NM ?? ''}</td>
-                <td className="p-2 text-left">{r.ITEM_NM ?? ''}</td>
-                <td className="p-2 text-right">{r.QTY ?? ''}</td>
-                <td className="p-2 text-center">{r.EM_NM ?? ''}</td>
-                <td className="p-2 text-center">{r.REQ_YMD ?? ''}</td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={7} className="p-3 text-center text-muted-foreground">
-                  데이터가 없습니다. 조건을 선택하고 조회하세요.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* 고객/제품 간단 선택 모달 */}
-      {custOpen && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-background border rounded p-3 w-[460px] space-y-2 shadow-lg">
-            <div className="font-semibold">고객사 선택</div>
-            <div className="grid grid-cols-2 gap-2">
-              <label className="flex flex-col text-sm">
-                <span className="mb-1">코드</span>
-                <input
-                  className="h-8 border rounded px-2"
-                  value={tempCode}
-                  onChange={(e) => setTempCode(e.target.value)}
-                />
-              </label>
-              <label className="flex flex-col text-sm">
-                <span className="mb-1">이름</span>
-                <input
-                  className="h-8 border rounded px-2"
-                  value={tempName}
-                  onChange={(e) => setTempName(e.target.value)}
-                />
-              </label>
-            </div>
-            <div className="flex justify-end gap-2 pt-1">
-              <button className="h-8 px-3 border rounded" onClick={() => setCustOpen(false)}>
-                취소
-              </button>
-              <button
-                className="h-8 px-3 border rounded bg-primary text-primary-foreground"
-                onClick={applyCustomer}
-              >
-                선택
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {prodOpen && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-background border rounded p-3 w-[460px] space-y-2 shadow-lg">
-            <div className="font-semibold">제품 선택</div>
-            <div className="grid grid-cols-2 gap-2">
-              <label className="flex flex-col text-sm">
-                <span className="mb-1">코드</span>
-                <input
-                  className="h-8 border rounded px-2"
-                  value={tempCode}
-                  onChange={(e) => setTempCode(e.target.value)}
-                />
-              </label>
-              <label className="flex flex-col text-sm">
-                <span className="mb-1">이름</span>
-                <input
-                  className="h-8 border rounded px-2"
-                  value={tempName}
-                  onChange={(e) => setTempName(e.target.value)}
-                />
-              </label>
-            </div>
-            <div className="flex justify-end gap-2 pt-1">
-              <button className="h-8 px-3 border rounded" onClick={() => setProdOpen(false)}>
-                취소
-              </button>
-              <button
-                className="h-8 px-3 border rounded bg-primary text-primary-foreground"
-                onClick={applyProduct}
-              >
-                선택
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
