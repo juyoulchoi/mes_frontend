@@ -1,121 +1,100 @@
-import { useEffect, useState } from 'react';
-import { http } from '@/lib/http';
+import { useRef, useState } from 'react';
 
-// 제품투입품목 조회 (MMSM04007S)
-// 필터 없음 (ASPX 상단 조건 비어있음)
-// 기능: 조회, 엑셀(CSV)
-// 컬럼: 선택(CHECK), 투입품목(ITEM_CD), 투입품목명(ITEM_NM), 단위(UNIT_CD), 입고일자(PO_YMD)
-
-type Row = Record<string, any>;
+import AlertBox from '@/components/AlertBox';
+import SectionCard from '@/components/SectionCard';
+import SectionHeader from '@/components/SectionHeader';
+import StatusActionButtons from '@/components/StatusActionButtons';
+import { CheckColumn, Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
+import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
+import { PAGE_SIZE } from '@/lib/pagination';
+import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
+import {
+  columns,
+  exportHeaders,
+  fetchRows,
+  mapExportRow,
+  toggleRow,
+  type Row,
+} from '@/services/m04/mmsm04007';
 
 export default function MMSM04007S() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tableHeight = useAutoTableHeight(containerRef);
+  const gridHeight = Math.max(tableHeight - 58, 360);
 
   async function onSearch() {
     setLoading(true);
     setError(null);
+
     try {
-      const data = await http<Row[]>(`/api/m04/mmsm04007/list`);
-      const list = (Array.isArray(data) ? data : []).map((r) => ({ ...r, CHECK: !!r.CHECK }));
-      setRows(list);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setRows(await fetchRows());
+    } catch (searchError) {
+      setRows([]);
+      setError(searchError instanceof Error ? searchError.message : String(searchError));
     } finally {
       setLoading(false);
     }
   }
 
-  function toggle(i: number, checked: boolean) {
-    setRows((prev) => {
-      const next = [...prev];
-      next[i] = { ...next[i], CHECK: checked };
-      return next;
-    });
-  }
-
-  function onExportCsv() {
-    const headers = ['선택', '투입품목', '투입품목명', '단위', '입고일자'];
-    const lines = rows.map((r) =>
-      [r.CHECK ? 'Y' : 'N', r.ITEM_CD ?? '', r.ITEM_NM ?? '', r.UNIT_CD ?? '', r.PO_YMD ?? '']
-        .map((v) => (v ?? '').toString().replace(/"/g, '""'))
-        .map((v) => `"${v}"`)
-        .join(',')
-    );
-    const csv = [headers.join(','), ...lines].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'MMSM04007S.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  function onToggleRow(rowIndex: number, checked: boolean) {
+    setRows((currentRows) => toggleRow(currentRows, rowIndex, checked));
   }
 
   return (
-    <div className="p-3 space-y-3">
-      <div className="text-base font-semibold">제품투입품목 조회</div>
+    <div className={pageShellClass} ref={containerRef}>
+      <div className={pageContentClass}>
+        <SectionCard span="full" padding="md">
+          <div className="flex justify-end">
+            <StatusActionButtons
+              loading={loading}
+              onSearch={() => void onSearch()}
+              exportProps={{
+                rows,
+                headers: exportHeaders,
+                mapRow: mapExportRow,
+                filename: 'MMSM04007S.csv',
+              }}
+            />
+          </div>
+        </SectionCard>
 
-      {/* Buttons */}
-      <div className="flex gap-2 justify-end">
-        <button
-          onClick={onSearch}
-          disabled={loading}
-          className="h-8 px-3 border rounded bg-primary text-primary-foreground disabled:opacity-50"
-        >
-          조회
-        </button>
-        <button onClick={onExportCsv} className="h-8 px-3 border rounded">
-          엑셀
-        </button>
-      </div>
+        {error ? <AlertBox tone="error">{error}</AlertBox> : null}
 
-      {error && (
-        <div className="text-sm text-destructive border border-destructive/30 rounded p-2">
-          {error}
-        </div>
-      )}
-
-      {/* Grid */}
-      <div className="border rounded overflow-auto max-h-[70vh]">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-background">
-            <tr className="border-b">
-              <th className="w-12 p-2 text-center">선택</th>
-              <th className="w-28 p-2 text-center">투입품목</th>
-              <th className="p-2 text-left">투입품목명</th>
-              <th className="w-24 p-2 text-center">단위</th>
-              <th className="w-28 p-2 text-center">입고일자</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={i} className="border-b hover:bg-muted/30">
-                <td className="p-2 text-center">
-                  <input
-                    type="checkbox"
-                    checked={!!r.CHECK}
-                    onChange={(e) => toggle(i, e.target.checked)}
-                  />
-                </td>
-                <td className="p-2 text-center">{r.ITEM_CD ?? ''}</td>
-                <td className="p-2 text-left">{r.ITEM_NM ?? ''}</td>
-                <td className="p-2 text-center">{r.UNIT_CD ?? ''}</td>
-                <td className="p-2 text-center">{r.PO_YMD ?? ''}</td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={5} className="p-3 text-center text-muted-foreground">
-                  데이터가 없습니다. 조회를 눌러 가져오세요.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <SectionCard span="full" width="full">
+          <SectionHeader title="제품 투입품목 목록" />
+          <div className={gridScrollClass} style={{ height: gridHeight }}>
+            <DataGrid
+              dataSource={rows}
+              rowKey={(row, index) => `${row.ITEM_CD ?? 'item'}-${row.PO_YMD ?? 'date'}-${index}`}
+              showBorders={true}
+              loading={loading}
+              emptyText="제품 투입품목 데이터가 없습니다. 조회를 눌러 가져오세요."
+              classNames={{ table: 'min-w-[760px] w-full text-sm' }}
+            >
+              <Paging enabled={true} defaultPageSize={PAGE_SIZE} />
+              <Pager visible={true} showPageSizeSelector={false} />
+              <CheckColumn
+                checked={(row) => !!row.CHECK}
+                onChange={(_row, rowIndex, checked) => onToggleRow(rowIndex, checked)}
+              />
+              {columns.map((column, index) => (
+                <Column
+                  key={`${String(column.dataField)}-${index}`}
+                  dataField={column.dataField}
+                  caption={column.caption}
+                  width={column.width}
+                  alignment={column.alignment}
+                  headerAlignment={column.headerAlignment}
+                  headerClassName={column.headerClassName}
+                  cellRender={column.cellRender}
+                />
+              ))}
+            </DataGrid>
+          </div>
+        </SectionCard>
       </div>
     </div>
   );
