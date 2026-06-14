@@ -1,364 +1,421 @@
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
+
+import AlertBox from '@/components/AlertBox';
+import CodeNameField from '@/components/CodeNameField';
+import CustomerCodePicker from '@/components/CustomerCodePicker';
+import DateEdit from '@/components/DateEdit';
+import SectionCard from '@/components/SectionCard';
+import SectionHeader from '@/components/SectionHeader';
+import StatusActionButtons from '@/components/StatusActionButtons';
+import { CheckColumn, Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
+import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
 import { http } from '@/lib/http';
+import { PAGE_SIZE, type PageableResponse } from '@/lib/pagination';
+import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
+import { getTodayYmd } from '@/lib/registerDetailUtils';
 
-// 제품출고지시(단일 그리드 편집) - MMSM04006E
-// 필터: 입고일자(단일), 순번, 거래처(코드/명)
-// 기능: 조회, 저장(체크된 행), 엑셀(CSV)
-// 그리드: 선택, 품목코드/명(읽기), 단위(편집), 수량(편집), 출고지시량(표시), 기출고량(표시), 잔량(표시), 비고(편집)
+type Row = {
+  CHECK?: boolean;
+  RNUM?: string | number;
+  GI_YMD?: string;
+  GI_SEQ?: number;
+  GI_SUB_SEQ?: number;
+  SO_YMD?: string;
+  SO_SEQ?: number;
+  SO_SUB_SEQ?: number;
+  ITEM_CD?: string;
+  ITEM_NM?: string;
+  UNIT_CD?: string;
+  QTY?: string | number;
+  GI_PLAN_QTY?: string | number;
+  PLAN_QTY?: string | number;
+  GI_QTY?: string | number;
+  REM_QTY?: string | number;
+  BAL_QTY?: string | number;
+  DESC?: string;
+  STATUS?: string;
+};
 
-type Row = Record<string, any>;
+type ApiRow = {
+  giYmd?: string;
+  giSeq?: number;
+  giSubSeq?: number;
+  soYmd?: string;
+  soSeq?: number;
+  soSubSeq?: number;
+  itemCd?: string;
+  itemNm?: string;
+  qty?: string | number;
+  unitCd?: string;
+  description?: string;
+  status?: string;
+};
 
-function toYMD(d: string) {
-  if (!d) return '';
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return '';
-  const y = dt.getFullYear();
-  const m = `${dt.getMonth() + 1}`.padStart(2, '0');
-  const day = `${dt.getDate()}`.padStart(2, '0');
-  return `${y}${m}${day}`;
+type SoStatusRow = {
+  soNo?: string;
+  qty?: string | number;
+  outQty?: string | number;
+};
+
+const exportHeaders = [
+  '순번',
+  '품목코드',
+  '품목명',
+  '단위',
+  '수량',
+  '출고지시량',
+  '기출고량',
+  '잔량',
+  '비고',
+];
+
+function mapExportRow(row: Row) {
+  return [
+    row.RNUM ?? '',
+    row.ITEM_CD ?? '',
+    row.ITEM_NM ?? '',
+    row.UNIT_CD ?? '',
+    row.QTY ?? '',
+    row.GI_PLAN_QTY ?? row.PLAN_QTY ?? '',
+    row.GI_QTY ?? '',
+    row.REM_QTY ?? row.BAL_QTY ?? '',
+    row.DESC ?? '',
+  ];
+}
+
+function toYmd(value: string) {
+  return value.split('-').join('');
+}
+
+function toNumber(value: string | number | undefined) {
+  const number = Number(value ?? 0);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function GridInput({
+  value,
+  type = 'text',
+  align = 'left',
+  onChange,
+}: {
+  value?: string | number;
+  type?: 'text' | 'number';
+  align?: 'left' | 'right';
+  onChange: (value: string) => void;
+}) {
+  return (
+    <input
+      type={type}
+      value={value ?? ''}
+      onChange={(event) => onChange(event.target.value)}
+      className={`h-8 w-full rounded-md border border-slate-200 px-2 text-sm outline-none focus:border-slate-400 ${
+        align === 'right' ? 'text-right' : 'text-left'
+      }`}
+    />
+  );
 }
 
 export default function MMSM04006E() {
-  // Filters
-  const [inDate, setInDate] = useState('');
+  const [customerOpen, setCustomerOpen] = useState(false);
+  const [inDate, setInDate] = useState(getTodayYmd());
   const [seq, setSeq] = useState('');
   const [cstCd, setCstCd] = useState('');
   const [cstNm, setCstNm] = useState('');
-
-  // Data
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tableHeight = useAutoTableHeight(containerRef);
 
-  // 고객 간단 선택 모달
-  const [custOpen, setCustOpen] = useState(false);
-  const [tmpCd, setTmpCd] = useState('');
-  const [tmpNm, setTmpNm] = useState('');
+  const busy = loading || saving;
+  const gridHeight = Math.max(tableHeight - 58, 360);
 
-  useEffect(() => {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = `${today.getMonth() + 1}`.padStart(2, '0');
-    const dd = `${today.getDate()}`.padStart(2, '0');
-    const ymd = `${yyyy}-${mm}-${dd}`;
-    setInDate(ymd);
-  }, []);
+  async function loadRows() {
+    const qs = new URLSearchParams({
+      giYmdS: toYmd(inDate),
+      giYmdE: toYmd(inDate),
+      cstCd,
+      page: '0',
+      size: '200',
+    }).toString();
+    const data = await http<PageableResponse<ApiRow>>(`/api/v1/material/gidet/search?${qs}`);
+    const content = Array.isArray(data) ? data : (data.content ?? []);
+    const soDates = content.map((row) => row.soYmd).filter((value): value is string => !!value);
+    const soStatusRows =
+      soDates.length > 0
+        ? await http<SoStatusRow[]>(
+            `/api/v1/sales/findSoStatusList?${new URLSearchParams({
+              startDate: soDates.reduce((min, value) => (value < min ? value : min)),
+              endDate: soDates.reduce((max, value) => (value > max ? value : max)),
+              cstNm: '',
+              itemNm: '',
+            }).toString()}`
+          )
+        : [];
+    const soStatusMap = new Map(
+      (Array.isArray(soStatusRows) ? soStatusRows : []).map((row) => [row.soNo ?? '', row])
+    );
+
+    return content
+      .filter((row) => !seq || String(row.giSeq ?? '') === seq.trim())
+      .map((row, index) => {
+        const soNo =
+          row.soYmd && row.soSeq !== undefined && row.soSubSeq !== undefined
+            ? `${row.soYmd}-${row.soSeq}-${row.soSubSeq}`
+            : '';
+        const status = soStatusMap.get(soNo);
+        const currentQty = toNumber(row.qty);
+        const totalIssuedQty = status ? toNumber(status.outQty) : currentQty;
+        const orderQty = status ? toNumber(status.qty) : currentQty;
+
+        return {
+          CHECK: false,
+          RNUM: index + 1,
+          GI_YMD: row.giYmd,
+          GI_SEQ: row.giSeq,
+          GI_SUB_SEQ: row.giSubSeq,
+          SO_YMD: row.soYmd,
+          SO_SEQ: row.soSeq,
+          SO_SUB_SEQ: row.soSubSeq,
+          ITEM_CD: row.itemCd,
+          ITEM_NM: row.itemNm,
+          UNIT_CD: row.unitCd,
+          QTY: row.qty,
+          GI_PLAN_QTY: currentQty,
+          GI_QTY: Math.max(totalIssuedQty - currentQty, 0),
+          REM_QTY: Math.max(orderQty - totalIssuedQty, 0),
+          DESC: row.description ?? '',
+          STATUS: row.status,
+        };
+      });
+  }
 
   async function onSearch() {
     setLoading(true);
     setError(null);
+
     try {
-      const qs = new URLSearchParams({
-        in_ymd: toYMD(inDate),
-        seq: seq || '',
-        cst_cd: cstCd || '',
-      }).toString();
-      const data = await http<Row[]>(`/api/m04/mmsm04006/list?${qs}`);
-      const list = (Array.isArray(data) ? data : []).map((r) => ({ ...r, CHECK: false }));
-      setRows(list);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setRows(await loadRows());
+    } catch (searchError) {
+      setRows([]);
+      setError(searchError instanceof Error ? searchError.message : String(searchError));
     } finally {
       setLoading(false);
     }
   }
 
-  function toggle(i: number, checked: boolean) {
-    setRows((prev) => {
-      const next = [...prev];
-      next[i] = { ...next[i], CHECK: checked };
-      return next;
-    });
+  function toggleRow(rowIndex: number, checked: boolean) {
+    setRows((currentRows) =>
+      currentRows.map((row, index) => (index === rowIndex ? { ...row, CHECK: checked } : row))
+    );
   }
-  function onChange(i: number, patch: Partial<Row>) {
-    setRows((prev) => {
-      const next = [...prev];
-      next[i] = { ...next[i], ...patch, CHECK: true };
-      return next;
-    });
+
+  function updateRow(rowIndex: number, patch: Partial<Row>) {
+    setRows((currentRows) =>
+      currentRows.map((row, index) => {
+        if (index !== rowIndex) return row;
+
+        if (Object.prototype.hasOwnProperty.call(patch, 'QTY')) {
+          const nextQty = toNumber(patch.QTY);
+          const availableQty = toNumber(row.GI_PLAN_QTY) + toNumber(row.REM_QTY);
+          return {
+            ...row,
+            ...patch,
+            GI_PLAN_QTY: nextQty,
+            REM_QTY: Math.max(availableQty - nextQty, 0),
+            CHECK: true,
+          };
+        }
+
+        return { ...row, ...patch, CHECK: true };
+      })
+    );
   }
 
   async function onSave() {
-    const targets = rows.filter((r) => r.CHECK);
+    const targets = rows.filter((row) => row.CHECK);
     if (targets.length === 0) {
-      setError('저장할 대상이 없습니다.');
+      setError('저장할 출고 지시 데이터가 없습니다.');
       return;
     }
-    if (!window.confirm('저장 하시겠습니까?')) return;
-    setLoading(true);
+    if (!window.confirm(`선택한 ${targets.length}건을 저장하시겠습니까?`)) return;
+
+    setSaving(true);
     setError(null);
+
     try {
-      const payload = targets.map((r) => ({
-        IN_YMD: toYMD(inDate),
-        SEQ: seq || '',
-        CST_CD: cstCd || '',
-        ITEM_CD: r.ITEM_CD ?? '',
-        UNIT_CD: r.UNIT_CD ?? '',
-        QTY: r.QTY ?? '',
-        DESC: r.DESC ?? '',
-      }));
-      await http(`/api/m04/mmsm04006/save`, { method: 'POST', body: payload });
-      await onSearch();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      await Promise.all(
+        targets.map((row) =>
+          http('/api/v1/material/gidet', {
+            method: 'POST',
+            body: {
+              method: 'U',
+              isNew: 'N',
+              giYmd: row.GI_YMD,
+              giSeq: row.GI_SEQ,
+              giSubSeq: row.GI_SUB_SEQ,
+              soYmd: row.SO_YMD,
+              soSeq: row.SO_SEQ,
+              soSubSeq: row.SO_SUB_SEQ,
+              itemCd: row.ITEM_CD,
+              unitCd: row.UNIT_CD,
+              qty: row.QTY,
+              description: row.DESC,
+              status: row.STATUS,
+            },
+          })
+        )
+      );
+      setRows(await loadRows());
+      window.alert('저장되었습니다.');
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : String(saveError));
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
-  }
-
-  function onExportCsv() {
-    const headers = [
-      '선택',
-      '순번',
-      '품목코드',
-      '품목명',
-      '단위',
-      '수량',
-      '출고지시량',
-      '기출고량',
-      '잔량',
-      '비고',
-    ];
-    const lines = rows.map((r, i) =>
-      [
-        r.CHECK ? 'Y' : 'N',
-        r.RNUM ?? i + 1,
-        r.ITEM_CD ?? '',
-        r.ITEM_NM ?? '',
-        r.UNIT_CD ?? '',
-        r.QTY ?? '',
-        r.GI_PLAN_QTY ?? r.PLAN_QTY ?? '',
-        r.GI_QTY ?? '',
-        r.REM_QTY ?? r.BAL_QTY ?? '',
-        r.DESC ?? '',
-      ]
-        .map((v) => (v ?? '').toString().replace(/"/g, '""'))
-        .map((v) => `"${v}"`)
-        .join(',')
-    );
-    const csv = [headers.join(','), ...lines].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'MMSM04006E.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
-  function openCustomerPicker() {
-    setTmpCd(cstCd);
-    setTmpNm(cstNm);
-    setCustOpen(true);
-  }
-  function applyCustomer() {
-    setCstCd(tmpCd.trim());
-    setCstNm(tmpNm.trim());
-    setCustOpen(false);
   }
 
   return (
-    <div className="p-3 space-y-3">
-      <div className="text-base font-semibold">제품출고지시</div>
+    <div className={pageShellClass} ref={containerRef}>
+      <div className={pageContentClass}>
+        <SectionCard span="full" padding="md">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+            <DateEdit label="입고일자" value={inDate} onChange={setInDate} />
 
-      {/* Filters & Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
-        <label className="flex flex-col text-sm">
-          <span className="mb-1">입고일자</span>
-          <input
-            type="date"
-            className="h-8 border rounded px-2"
-            value={inDate}
-            onChange={(e) => setInDate(e.target.value)}
-          />
-        </label>
-        <label className="flex flex-col text-sm">
-          <span className="mb-1">순번</span>
-          <input
-            className="h-8 border rounded px-2"
-            value={seq}
-            onChange={(e) => setSeq(e.target.value)}
-          />
-        </label>
-        <label className="flex flex-col text-sm md:col-span-2">
-          <span className="mb-1">거래처명</span>
-          <div className="flex gap-1">
-            <input
-              value={cstCd}
-              readOnly
-              className="h-8 border rounded px-2 w-28 bg-muted"
-              placeholder="코드"
+            <label className="grid w-[240px] grid-cols-[80px_150px] items-center gap-3">
+              <span className="text-sm text-gray-600">순번</span>
+              <input
+                value={seq}
+                onChange={(event) => setSeq(event.target.value)}
+                className="h-9 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-400"
+              />
+            </label>
+
+            <CodeNameField
+              label="거래처"
+              id="cust"
+              code={cstCd}
+              name={cstNm}
+              codePlaceholder="코드"
+              namePlaceholder="거래처명"
+              onSearch={() => setCustomerOpen(true)}
+              onClear={() => {
+                setCstCd('');
+                setCstNm('');
+              }}
             />
-            <input
-              value={cstNm}
-              readOnly
-              className="h-8 border rounded px-2 flex-1 bg-muted"
-              placeholder="거래처 선택"
-            />
-            <button type="button" className="h-8 px-2 border rounded" onClick={openCustomerPicker}>
-              ...
-            </button>
-          </div>
-        </label>
-        <div className="flex gap-2 justify-end">
-          <button
-            onClick={onSearch}
-            disabled={loading}
-            className="h-8 px-3 border rounded bg-primary text-primary-foreground disabled:opacity-50"
-          >
-            조회
-          </button>
-          <button onClick={onSave} disabled={loading} className="h-8 px-3 border rounded">
-            저장
-          </button>
-          <button onClick={onExportCsv} className="h-8 px-3 border rounded">
-            엑셀
-          </button>
-        </div>
-      </div>
 
-      {error && (
-        <div className="text-sm text-destructive border border-destructive/30 rounded p-2">
-          {error}
-        </div>
-      )}
-
-      {/* Grid */}
-      <div className="border rounded overflow-auto max-h-[70vh]">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-background">
-            <tr className="border-b">
-              <th className="w-12 p-2 text-center">선택</th>
-              <th className="w-16 p-2 text-center">순번</th>
-              <th className="w-28 p-2 text-center">품목코드</th>
-              <th className="p-2 text-left">품목명</th>
-              <th className="w-20 p-2 text-center">단위</th>
-              <th className="w-24 p-2 text-right">수량</th>
-              <th className="w-24 p-2 text-right">출고지시량</th>
-              <th className="w-24 p-2 text-right">기출고량</th>
-              <th className="w-24 p-2 text-right">잔량</th>
-              <th className="w-40 p-2 text-left">비고</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={i} className="border-b hover:bg-muted/30">
-                <td className="p-2 text-center">
-                  <input
-                    type="checkbox"
-                    checked={!!r.CHECK}
-                    onChange={(e) => toggle(i, e.target.checked)}
-                  />
-                </td>
-                <td className="p-2 text-center">{r.RNUM ?? i + 1}</td>
-                <td className="p-1 text-center">
-                  <input
-                    className="h-8 border rounded px-2 w-full bg-muted"
-                    value={r.ITEM_CD ?? ''}
-                    readOnly
-                  />
-                </td>
-                <td className="p-1 text-left">
-                  <input
-                    className="h-8 border rounded px-2 w-full bg-muted"
-                    value={r.ITEM_NM ?? ''}
-                    readOnly
-                  />
-                </td>
-                <td className="p-1 text-center">
-                  <input
-                    className="h-8 border rounded px-2 w-full"
-                    value={r.UNIT_CD ?? ''}
-                    onChange={(e) => onChange(i, { UNIT_CD: e.target.value })}
-                  />
-                </td>
-                <td className="p-1 text-right">
-                  <input
-                    className="h-8 border rounded px-2 w-full text-right"
-                    value={r.QTY ?? ''}
-                    onChange={(e) => onChange(i, { QTY: e.target.value })}
-                  />
-                </td>
-                <td className="p-1 text-right">
-                  <input
-                    className="h-8 border rounded px-2 w-full text-right bg-muted"
-                    value={r.GI_PLAN_QTY ?? r.PLAN_QTY ?? ''}
-                    readOnly
-                  />
-                </td>
-                <td className="p-1 text-right">
-                  <input
-                    className="h-8 border rounded px-2 w-full text-right bg-muted"
-                    value={r.GI_QTY ?? ''}
-                    readOnly
-                  />
-                </td>
-                <td className="p-1 text-right">
-                  <input
-                    className="h-8 border rounded px-2 w-full text-right bg-muted"
-                    value={r.REM_QTY ?? r.BAL_QTY ?? ''}
-                    readOnly
-                  />
-                </td>
-                <td className="p-1">
-                  <input
-                    className="h-8 border rounded px-2 w-full"
-                    value={r.DESC ?? ''}
-                    onChange={(e) => onChange(i, { DESC: e.target.value })}
-                  />
-                </td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={10} className="p-3 text-center text-muted-foreground">
-                  데이터가 없습니다. 조건을 입력하고 조회하세요.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* 고객 선택 모달 */}
-      {custOpen && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-background border rounded p-3 w-[460px] space-y-2 shadow-lg">
-            <div className="font-semibold">고객사 선택</div>
-            <div className="grid grid-cols-2 gap-2">
-              <label className="flex flex-col text-sm">
-                <span className="mb-1">코드</span>
-                <input
-                  className="h-8 border rounded px-2"
-                  value={tmpCd}
-                  onChange={(e) => setTmpCd(e.target.value)}
-                />
-              </label>
-              <label className="flex flex-col text-sm">
-                <span className="mb-1">이름</span>
-                <input
-                  className="h-8 border rounded px-2"
-                  value={tmpNm}
-                  onChange={(e) => setTmpNm(e.target.value)}
-                />
-              </label>
-            </div>
-            <div className="flex justify-end gap-2 pt-1">
-              <button className="h-8 px-3 border rounded" onClick={() => setCustOpen(false)}>
-                취소
-              </button>
-              <button
-                className="h-8 px-3 border rounded bg-primary text-primary-foreground"
-                onClick={applyCustomer}
-              >
-                선택
-              </button>
+            <div className="ml-auto">
+              <StatusActionButtons
+                loading={loading}
+                saving={saving}
+                disabled={busy}
+                onSearch={() => void onSearch()}
+                onSave={() => void onSave()}
+                exportProps={{
+                  rows,
+                  headers: exportHeaders,
+                  mapRow: mapExportRow,
+                  filename: () => `제품출고지시_${toYmd(inDate)}.csv`,
+                }}
+              />
             </div>
           </div>
-        </div>
-      )}
+        </SectionCard>
+
+        {error ? <AlertBox tone="error">{error}</AlertBox> : null}
+
+        <SectionCard span="full" width="full">
+          <SectionHeader title="제품 출고 지시 목록" />
+          <div className={gridScrollClass} style={{ height: gridHeight }}>
+            <DataGrid
+              dataSource={rows}
+              rowKey={(row, index) => `${row.ITEM_CD ?? 'item'}-${row.RNUM ?? index}-${index}`}
+              showBorders={true}
+              loading={busy}
+              emptyText="제품 출고 지시 데이터가 없습니다. 조건 선택 후 조회하세요."
+              classNames={{ table: 'min-w-[1280px] w-full text-sm' }}
+            >
+              <Paging enabled={true} defaultPageSize={PAGE_SIZE} />
+              <Pager visible={true} showPageSizeSelector={false} />
+              <CheckColumn
+                checked={(row) => !!row.CHECK}
+                onChange={(_row, rowIndex, checked) => toggleRow(rowIndex, checked)}
+              />
+              <Column dataField="RNUM" caption="순번" width={80} alignment="center" />
+              <Column dataField="ITEM_CD" caption="품목코드" width={140} alignment="center" />
+              <Column dataField="ITEM_NM" caption="품목명" width={220} />
+              <Column
+                dataField="UNIT_CD"
+                caption="단위"
+                width={100}
+                alignment="center"
+                cellRender={(row, rowIndex) => (
+                  <GridInput
+                    value={row.UNIT_CD}
+                    onChange={(value) => updateRow(rowIndex, { UNIT_CD: value })}
+                  />
+                )}
+              />
+              <Column
+                dataField="QTY"
+                caption="수량"
+                width={120}
+                alignment="right"
+                cellRender={(row, rowIndex) => (
+                  <GridInput
+                    type="number"
+                    align="right"
+                    value={row.QTY}
+                    onChange={(value) => updateRow(rowIndex, { QTY: value })}
+                  />
+                )}
+              />
+              <Column
+                dataField="GI_PLAN_QTY"
+                caption="출고지시량"
+                width={130}
+                alignment="right"
+                cellRender={(row: Row) => row.GI_PLAN_QTY ?? row.PLAN_QTY ?? ''}
+              />
+              <Column dataField="GI_QTY" caption="기출고량" width={120} alignment="right" />
+              <Column
+                dataField="REM_QTY"
+                caption="잔량"
+                width={120}
+                alignment="right"
+                cellRender={(row: Row) => row.REM_QTY ?? row.BAL_QTY ?? ''}
+              />
+              <Column
+                dataField="DESC"
+                caption="비고"
+                width={260}
+                cellRender={(row, rowIndex) => (
+                  <GridInput
+                    value={row.DESC}
+                    onChange={(value) => updateRow(rowIndex, { DESC: value })}
+                  />
+                )}
+              />
+            </DataGrid>
+          </div>
+        </SectionCard>
+
+        {customerOpen ? (
+          <CustomerCodePicker
+            title="거래처 정보"
+            custGb="CUSTOMER"
+            cstCd={cstCd}
+            cstNm={cstNm}
+            onClose={() => setCustomerOpen(false)}
+            onSelect={(value) => {
+              setCstCd(value.cstCd);
+              setCstNm(value.cstNm);
+            }}
+          />
+        ) : null}
+      </div>
     </div>
   );
 }
