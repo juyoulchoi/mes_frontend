@@ -1,365 +1,340 @@
-import { useEffect, useState } from 'react';
-import { http } from '@/lib/http';
+import { useRef, useState, type ReactNode } from 'react';
 
-// 외주입출고관리 (MMSM02006E)
-// 필터: 수주일자(시작/끝), 외주구분
-// 기능: 조회, 저장(체크된 행), 엑셀(CSV)
-// 그리드 주요 컬럼: 순번, 품명, 거래처명, 외주코드, 외주구분, 업체명, 출고일자, 출고수량, 입고요청일자, 입고일자, 입고수량(편집), 외주직접출고여부(편집), 비고
+import AlertBox from '@/components/AlertBox';
+import FromToDateField from '@/components/FromToDateField';
+import SectionCard from '@/components/SectionCard';
+import SectionHeader from '@/components/SectionHeader';
+import StatusActionButtons from '@/components/StatusActionButtons';
+import { CheckColumn, Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
+import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
+import { PAGE_SIZE } from '@/lib/pagination';
+import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
+import { getTodayYmd } from '@/lib/registerDetailUtils';
+import {
+  exportHeaders,
+  fetchRows,
+  mapExportRow,
+  patchRow,
+  saveRows,
+  toggleRow,
+  type DetailInputProps,
+  type OutsourceIoRow,
+} from '@/services/m02/mmsm02006';
 
-type Row = Record<string, any>;
-
-function toYMD(d: string) {
-  if (!d) return '';
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return '';
-  const y = dt.getFullYear();
-  const m = `${dt.getMonth() + 1}`.padStart(2, '0');
-  const day = `${dt.getDate()}`.padStart(2, '0');
-  return `${y}${m}${day}`;
+function DetailInput({
+  label,
+  value,
+  type = 'text',
+  readOnly = false,
+  onChange,
+}: DetailInputProps) {
+  return (
+    <label className="grid grid-cols-[120px_1fr] items-center gap-3 text-sm">
+      <span className="text-slate-500">{label}</span>
+      <input
+        type={type}
+        value={value ?? ''}
+        readOnly={readOnly}
+        onChange={(event) => onChange?.(event.target.value)}
+        className={`h-9 rounded-md border px-3 text-sm outline-none transition ${
+          readOnly
+            ? 'border-slate-100 bg-slate-50 text-slate-500'
+            : 'border-slate-200 bg-white text-slate-800 focus:border-slate-400'
+        } ${type === 'number' ? 'text-right' : ''}`}
+      />
+    </label>
+  );
 }
 
-function toInputDate(s: string | undefined) {
-  if (!s) return '';
-  const t = String(s).trim();
-  if (/^\d{8}$/.test(t)) return `${t.slice(0, 4)}-${t.slice(4, 6)}-${t.slice(6, 8)}`;
-  if (/^\d{4}[.-]\d{2}[.-]\d{2}$/.test(t)) return t.replace(/[.]/g, '-');
-  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
-  return '';
-}
-
-function fromInputToYMD(s: string) {
-  if (!s) return '';
-  const t = s.trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t.replace(/-/g, '');
-  if (/^\d{4}[.]-\d{2}[.]-\d{2}$/.test(t)) return t.replace(/[.]/g, '');
-  return '';
+function ClickableCell({
+  children,
+  onDoubleClick,
+  align = 'left',
+}: {
+  children: ReactNode;
+  onDoubleClick: () => void;
+  align?: 'left' | 'center';
+}) {
+  return (
+    <button
+      type="button"
+      onDoubleClick={onDoubleClick}
+      className={`group inline-flex min-h-7 w-full items-center rounded-md border border-transparent px-2 py-1 text-sm font-medium text-sky-700 transition hover:text-sky-800 focus:outline-none ${
+        align === 'center' ? 'justify-center text-center' : 'justify-start text-left'
+      }`}
+      title="더블클릭하여 외주 입출고 상세 보기"
+    >
+      <span className="truncate underline decoration-sky-300 underline-offset-4 group-hover:decoration-sky-500">
+        {children}
+      </span>
+    </button>
+  );
 }
 
 export default function MMSM02006E() {
-  // Filters
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const today = getTodayYmd();
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
   const [outGb, setOutGb] = useState('');
-
-  // Data
-  const [rows, setRows] = useState<Row[]>([]);
+  const [rows, setRows] = useState<OutsourceIoRow[]>([]);
+  const [detailRow, setDetailRow] = useState<OutsourceIoRow | null>(null);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tableHeight = useAutoTableHeight(containerRef);
 
-  useEffect(() => {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = `${today.getMonth() + 1}`.padStart(2, '0');
-    const dd = `${today.getDate()}`.padStart(2, '0');
-    const ymd = `${yyyy}-${mm}-${dd}`;
-    setStartDate(ymd);
-    setEndDate(ymd);
-  }, []);
+  const busy = loading || saving;
+  const gridHeight = Math.max(tableHeight - 58, 360);
+
+  async function loadRows() {
+    return fetchRows({ startDate, endDate, outGb });
+  }
 
   async function onSearch() {
     setLoading(true);
     setError(null);
+
     try {
-      const qs = new URLSearchParams({
-        start: toYMD(startDate),
-        end: toYMD(endDate),
-        out_gb: outGb || '',
-      }).toString();
-      const data = await http<Row[]>(`/api/m02/mmsm02006/list?${qs}`);
-      const list = (Array.isArray(data) ? data : []).map((r) => ({ ...r, CHECK: false }));
-      setRows(list);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setRows(await loadRows());
+    } catch (searchError) {
+      setRows([]);
+      setError(searchError instanceof Error ? searchError.message : String(searchError));
     } finally {
       setLoading(false);
     }
   }
 
-  function toggle(i: number, checked: boolean) {
-    setRows((prev) => {
-      const next = [...prev];
-      next[i] = { ...next[i], CHECK: checked };
-      return next;
-    });
+  function updateDetail(patch: Partial<OutsourceIoRow>) {
+    setDetailRow((current) => (current ? patchRow(current, patch) : current));
   }
 
-  function onChange(i: number, patch: Partial<Row>) {
-    setRows((prev) => {
-      const next = [...prev];
-      next[i] = { ...next[i], ...patch, CHECK: true };
-      return next;
-    });
-  }
-
-  async function onSave() {
-    const targets = rows.filter((r) => r.CHECK);
-    if (targets.length === 0) {
-      setError('저장할 대상이 없습니다.');
+  async function onSaveDetail() {
+    if (!detailRow) {
+      setError('저장할 외주 입출고 정보가 없습니다.');
       return;
     }
-    if (!window.confirm('저장 하시겠습니까?')) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const payload = targets.map((r) => ({
-        // 식별자(백엔드 협의 필요): RNUM, OUT_CD 등 사용
-        RNUM: r.RNUM ?? '',
-        OUT_CD: r.OUT_CD ?? '',
-        // 변경 가능 필드
-        OUT_DT: fromInputToYMD(toInputDate(r.OUT_DT)),
-        IN_PRD_DT: fromInputToYMD(toInputDate(r.IN_PRD_DT)),
-        IN_DT: fromInputToYMD(toInputDate(r.IN_DT)),
-        IN_QTY: r.IN_QTY ?? '',
-        OUT_DIR_YN: r.OUT_DIR_YN ?? '',
-        DESC: r.DESC ?? '',
-      }));
-      await http(`/api/m02/mmsm02006/save`, { method: 'POST', body: payload });
-      await onSearch();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
+    if (!detailRow.outCd) {
+      setError('외주코드가 없는 데이터는 저장할 수 없습니다.');
+      return;
     }
-  }
+    if (!window.confirm('외주 입출고 정보를 저장하시겠습니까?')) return;
 
-  function onExportCsv() {
-    const headers = [
-      '순번',
-      '품명',
-      '거래처명',
-      '외주코드',
-      '외주구분',
-      '업체명',
-      '출고일자',
-      '출고수량',
-      '입고요청일자',
-      '입고일자',
-      '입고수량',
-      '외주직접출고여부',
-      '비고',
-    ];
-    const lines = rows.map((r, i) =>
-      [
-        r.RNUM ?? i + 1,
-        r.ITEM_NM ?? '',
-        r.CST_NM ?? '',
-        r.OUT_CD ?? '',
-        r.OUT_GB ?? r.Out_GB ?? '',
-        r.BUS_NM ?? '',
-        r.OUT_DT ?? '',
-        r.OUT_QTY ?? '',
-        r.IN_PRD_DT ?? '',
-        r.IN_DT ?? '',
-        r.IN_QTY ?? '',
-        r.OUT_DIR_YN ?? '',
-        r.DESC ?? '',
-      ]
-        .map((v) => (v ?? '').toString().replace(/"/g, '""'))
-        .map((v) => `"${v}"`)
-        .join(',')
-    );
-    const csv = [headers.join(','), ...lines].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'MMSM02006E.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    setSaving(true);
+    setError(null);
+
+    try {
+      await saveRows([detailRow]);
+      setRows(await loadRows());
+      setDetailRow(null);
+      window.alert('저장되었습니다.');
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : String(saveError));
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
-    <div className="p-3 space-y-3">
-      <div className="text-base font-semibold">외주입출고관리</div>
+    <div className={pageShellClass} ref={containerRef}>
+      <div className={pageContentClass}>
+        <SectionCard span="full" padding="md">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[470px_260px_1fr] xl:gap-6">
+            <FromToDateField
+              label="수주일자"
+              fromValue={startDate}
+              toValue={endDate}
+              onFromChange={setStartDate}
+              onToChange={setEndDate}
+            />
 
-      {/* Filters & Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
-        <label className="flex flex-col text-sm">
-          <span className="mb-1">수주일자(시작)</span>
-          <input
-            type="date"
-            className="h-8 border rounded px-2"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-        </label>
-        <label className="flex flex-col text-sm">
-          <span className="mb-1">수주일자(끝)</span>
-          <input
-            type="date"
-            className="h-8 border rounded px-2"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-        </label>
-        <label className="flex flex-col text-sm md:col-span-2">
-          <span className="mb-1">외주구분</span>
-          <input
-            className="h-8 border rounded px-2"
-            value={outGb}
-            onChange={(e) => setOutGb(e.target.value)}
-            placeholder="외주구분"
-          />
-        </label>
-        <div className="flex gap-2 justify-end">
-          <button
-            onClick={onSearch}
-            disabled={loading}
-            className="h-8 px-3 border rounded bg-primary text-primary-foreground disabled:opacity-50"
-          >
-            조회
-          </button>
-          <button onClick={onSave} disabled={loading} className="h-8 px-3 border rounded">
-            저장
-          </button>
-          <button onClick={onExportCsv} className="h-8 px-3 border rounded">
-            엑셀
-          </button>
-        </div>
-      </div>
+            <label className="grid grid-cols-[80px_160px] items-center gap-3">
+              <span className="text-sm text-gray-600">외주구분</span>
+              <select
+                value={outGb}
+                onChange={(event) => setOutGb(event.target.value)}
+                className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-slate-400"
+              >
+                <option value="">전체</option>
+                <option value="Y">외주출고</option>
+                <option value="N">입고출고</option>
+              </select>
+            </label>
 
-      {error && (
-        <div className="text-sm text-destructive border border-destructive/30 rounded p-2">
-          {error}
-        </div>
-      )}
+            <StatusActionButtons
+              loading={loading}
+              saving={saving}
+              disabled={busy}
+              onSearch={() => void onSearch()}
+              onSave={() => {
+                const selected = rows.find((row) => row.check);
+                if (!selected) {
+                  setError('저장할 외주 입출고 데이터를 선택하세요.');
+                  return;
+                }
+                setDetailRow({ ...selected });
+              }}
+              saveLabel="상세"
+              exportProps={{
+                rows,
+                headers: exportHeaders,
+                mapRow: mapExportRow,
+                filename: '외주입출고관리.csv',
+              }}
+            />
+          </div>
+        </SectionCard>
 
-      {/* Grid */}
-      <div className="border rounded overflow-auto max-h-[70vh]">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-background">
-            <tr className="border-b">
-              <th className="w-12 p-2 text-center">선택</th>
-              <th className="w-16 p-2 text-center">순번</th>
-              <th className="w-40 p-2 text-left">품명</th>
-              <th className="w-36 p-2 text-left">거래처명</th>
-              <th className="w-0 p-2 text-center">외주코드</th>
-              <th className="w-24 p-2 text-center">외주구분</th>
-              <th className="w-36 p-2 text-left">업체명</th>
-              <th className="w-28 p-2 text-center">출고일자</th>
-              <th className="w-24 p-2 text-right">출고수량</th>
-              <th className="w-28 p-2 text-center">입고요청일자</th>
-              <th className="w-28 p-2 text-center">입고일자</th>
-              <th className="w-24 p-2 text-right">입고수량</th>
-              <th className="w-32 p-2 text-center">외주직접출고여부</th>
-              <th className="w-64 p-2 text-left">비고</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={i} className="border-b hover:bg-muted/30">
-                <td className="p-2 text-center">
-                  <input
-                    type="checkbox"
-                    checked={!!r.CHECK}
-                    onChange={(e) => toggle(i, e.target.checked)}
-                  />
-                </td>
-                <td className="p-2 text-center">{r.RNUM ?? i + 1}</td>
-                <td className="p-1 text-left">
-                  <input
-                    className="h-8 border rounded px-2 w-full bg-muted"
-                    value={r.ITEM_NM ?? ''}
-                    readOnly
-                  />
-                </td>
-                <td className="p-1 text-left">
-                  <input
-                    className="h-8 border rounded px-2 w-full bg-muted"
-                    value={r.CST_NM ?? ''}
-                    readOnly
-                  />
-                </td>
-                <td className="p-1 text-center">
-                  <input
-                    className="h-8 border rounded px-2 w-full bg-muted"
-                    value={r.OUT_CD ?? ''}
-                    readOnly
-                  />
-                </td>
-                <td className="p-1 text-center">
-                  <input
-                    className="h-8 border rounded px-2 w-full bg-muted"
-                    value={r.OUT_GB ?? r.Out_GB ?? ''}
-                    readOnly
-                  />
-                </td>
-                <td className="p-1 text-left">
-                  <input
-                    className="h-8 border rounded px-2 w-full bg-muted"
-                    value={r.BUS_NM ?? ''}
-                    readOnly
-                  />
-                </td>
-                <td className="p-1 text-center">
-                  <input
-                    type="date"
-                    className="h-8 border rounded px-2 w-full"
-                    value={toInputDate(r.OUT_DT)}
-                    onChange={(e) => onChange(i, { OUT_DT: e.target.value })}
-                  />
-                </td>
-                <td className="p-1 text-right">
-                  <input
-                    className="h-8 border rounded px-2 w-full text-right bg-muted"
-                    value={r.OUT_QTY ?? ''}
-                    readOnly
-                  />
-                </td>
-                <td className="p-1 text-center">
-                  <input
-                    type="date"
-                    className="h-8 border rounded px-2 w-full"
-                    value={toInputDate(r.IN_PRD_DT)}
-                    onChange={(e) => onChange(i, { IN_PRD_DT: e.target.value })}
-                  />
-                </td>
-                <td className="p-1 text-center">
-                  <input
-                    type="date"
-                    className="h-8 border rounded px-2 w-full"
-                    value={toInputDate(r.IN_DT)}
-                    onChange={(e) => onChange(i, { IN_DT: e.target.value })}
-                  />
-                </td>
-                <td className="p-1 text-right">
-                  <input
-                    className="h-8 border rounded px-2 w-full text-right"
-                    value={r.IN_QTY ?? ''}
-                    onChange={(e) => onChange(i, { IN_QTY: e.target.value })}
-                  />
-                </td>
-                <td className="p-1 text-center">
-                  <select
-                    className="h-8 border rounded px-2 w-full"
-                    value={r.OUT_DIR_YN ?? ''}
-                    onChange={(e) => onChange(i, { OUT_DIR_YN: e.target.value })}
+        {error ? <AlertBox tone="error">{error}</AlertBox> : null}
+
+        <SectionCard span="full" width="full">
+          <SectionHeader title="외주 입출고 목록" />
+          <div className={gridScrollClass} style={{ height: gridHeight }}>
+            <DataGrid
+              dataSource={rows}
+              rowKey={(row, index) => `${row.outCd ?? 'out'}-${row.rnum ?? index}-${index}`}
+              showBorders={true}
+              loading={busy}
+              emptyText="외주 입출고 데이터가 없습니다. 조건 선택 후 조회하세요."
+              classNames={{ table: 'min-w-[1580px] w-full text-sm' }}
+            >
+              <Paging enabled={true} defaultPageSize={PAGE_SIZE} />
+              <Pager visible={true} showPageSizeSelector={false} />
+              <CheckColumn
+                checked={(row) => Boolean(row.check)}
+                onChange={(_row, rowIndex, checked) =>
+                  setRows((current) => toggleRow(current, rowIndex, checked))
+                }
+              />
+              <Column dataField="rnum" caption="순번" width={70} alignment="center" />
+              <Column
+                dataField="itemNm"
+                caption="품명"
+                width={180}
+                cellRender={(row) => (
+                  <ClickableCell onDoubleClick={() => setDetailRow({ ...row })}>
+                    {row.itemNm ?? ''}
+                  </ClickableCell>
+                )}
+              />
+              <Column dataField="cstNm" caption="거래처명" width={160} />
+              <Column
+                dataField="outCd"
+                caption="외주코드"
+                width={130}
+                alignment="center"
+                cellRender={(row) => (
+                  <ClickableCell onDoubleClick={() => setDetailRow({ ...row })} align="center">
+                    {row.outCd ?? ''}
+                  </ClickableCell>
+                )}
+              />
+              <Column dataField="outGb" caption="외주구분" width={100} alignment="center" />
+              <Column dataField="busNm" caption="업체명" width={160} />
+              <Column dataField="outDt" caption="출고일자" width={120} alignment="center" />
+              <Column dataField="outQty" caption="출고수량" width={110} alignment="right" />
+              <Column dataField="inPrdDt" caption="입고요청일자" width={130} alignment="center" />
+              <Column dataField="inDt" caption="입고일자" width={120} alignment="center" />
+              <Column dataField="inQty" caption="입고수량" width={110} alignment="right" />
+              <Column
+                dataField="outDirYn"
+                caption="외주직접출고여부"
+                width={150}
+                alignment="center"
+                cellRender={(row) =>
+                  row.outDirYn === 'Y' ? '외주출고' : row.outDirYn === 'N' ? '입고출고' : ''
+                }
+              />
+              <Column dataField="description" caption="비고" width={240} />
+            </DataGrid>
+          </div>
+        </SectionCard>
+
+        {detailRow ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="flex max-h-[88vh] w-full max-w-[860px] flex-col rounded-xl bg-white shadow-xl">
+              <div className="flex items-center justify-between border-b px-6 py-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">외주 입출고 상세</h3>
+                  <p className="text-sm text-slate-500">
+                    외주 출고 및 입고 일정과 수량을 관리합니다.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void onSaveDetail()}
+                    disabled={saving}
+                    className="h-9 rounded-lg border border-sky-200 bg-sky-50 px-4 text-sm font-medium text-sky-700 transition hover:bg-sky-100 disabled:opacity-50"
                   >
-                    <option value=""></option>
+                    {saving ? '저장중...' : '저장'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDetailRow(null)}
+                    className="h-9 rounded-lg border border-slate-200 px-4 text-sm text-slate-700 transition hover:bg-slate-50"
+                  >
+                    닫기
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid gap-x-8 gap-y-4 overflow-auto p-6 md:grid-cols-2">
+                <DetailInput label="품명" value={detailRow.itemNm} readOnly />
+                <DetailInput label="거래처명" value={detailRow.cstNm} readOnly />
+                <DetailInput label="외주코드" value={detailRow.outCd} readOnly />
+                <DetailInput label="외주구분" value={detailRow.outGb} readOnly />
+                <DetailInput label="업체명" value={detailRow.busNm} readOnly />
+                <DetailInput label="출고수량" value={detailRow.outQty} type="number" readOnly />
+                <DetailInput
+                  label="출고일자"
+                  value={detailRow.outDt}
+                  type="date"
+                  onChange={(value) => updateDetail({ outDt: value })}
+                />
+                <DetailInput
+                  label="입고요청일자"
+                  value={detailRow.inPrdDt}
+                  type="date"
+                  onChange={(value) => updateDetail({ inPrdDt: value })}
+                />
+                <DetailInput
+                  label="입고일자"
+                  value={detailRow.inDt}
+                  type="date"
+                  onChange={(value) => updateDetail({ inDt: value })}
+                />
+                <DetailInput
+                  label="입고수량"
+                  value={detailRow.inQty}
+                  type="number"
+                  onChange={(value) => updateDetail({ inQty: value })}
+                />
+
+                <label className="grid grid-cols-[120px_1fr] items-center gap-3 text-sm">
+                  <span className="text-slate-500">직접출고여부</span>
+                  <select
+                    value={detailRow.outDirYn ?? ''}
+                    onChange={(event) =>
+                      updateDetail({ outDirYn: event.target.value as 'Y' | 'N' | '' })
+                    }
+                    className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-slate-400"
+                  >
+                    <option value="">선택</option>
                     <option value="Y">외주출고</option>
                     <option value="N">입고출고</option>
                   </select>
-                </td>
-                <td className="p-1">
-                  <input
-                    className="h-8 border rounded px-2 w-full bg-muted"
-                    value={r.DESC ?? ''}
-                    readOnly
-                  />
-                </td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={14} className="p-3 text-center text-muted-foreground">
-                  데이터가 없습니다. 조건을 선택하고 조회하세요.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                </label>
+
+                <DetailInput
+                  label="비고"
+                  value={detailRow.description}
+                  onChange={(value) => updateDetail({ description: value })}
+                />
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
