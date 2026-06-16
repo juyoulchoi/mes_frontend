@@ -73,7 +73,7 @@ function ClickableCell({
 
 export default function MMSM02006E() {
   const today = getTodayYmd();
-  const [startDate, setStartDate] = useState(today);
+  const [startDate, setStartDate] = useState(`${today.slice(0, 7)}-01`);
   const [endDate, setEndDate] = useState(today);
   const [outGb, setOutGb] = useState('');
   const [rows, setRows] = useState<OutsourceIoRow[]>([]);
