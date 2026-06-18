@@ -58,6 +58,7 @@ export async function login({
       body: { userId, password },
       withCredentials: true,
       unwrapEnvelope: false,
+      redirectOnUnauthorized: false,
     });
 
     if (payload.success !== true) {

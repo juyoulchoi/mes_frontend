@@ -10,6 +10,7 @@ export type HttpOptions = {
   withCredentials?: boolean; // 세션 쿠키 모드
   csrfToken?: string;
   unwrapEnvelope?: boolean;
+  redirectOnUnauthorized?: boolean;
 };
 
 const defaultHeaders = { 'Content-Type': 'application/json' };
@@ -138,7 +139,11 @@ export async function http<T>(url: string, opt: HttpOptions = {}): Promise<T> {
   const shouldUnwrapEnvelope = opt.unwrapEnvelope !== false;
 
   if (!res.ok) {
-    if (res.status === 401 && shouldRedirectForUnauthorized()) {
+    if (
+      res.status === 401 &&
+      opt.redirectOnUnauthorized !== false &&
+      shouldRedirectForUnauthorized()
+    ) {
       handleInvalidToken();
       return new Promise<T>(() => {});
     }
