@@ -1,33 +1,55 @@
 import { useEffect, useMemo, useState } from 'react';
-import { http } from '@/lib/http';
+import AlertBox from '@/components/AlertBox';
+import SectionCard from '@/components/SectionCard';
+import SectionHeader from '@/components/SectionHeader';
+import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
+import {
+  countBadgeClass,
+  editableInputClass,
+  editableNumberInputClass,
+  exportCsvButtonClass,
+  gridScrollClass,
+  pageContentClass,
+  pageShellClass,
+  registerSplitGridClass,
+  saveButtonClass,
+  searchButtonClass,
+} from '@/lib/pageStyles';
+import {
+  buildMmsm07003Csv,
+  createChildMenuRow,
+  createSameLevelMenuRow,
+  deleteMmsm07003Row,
+  fetchMmsm07003Rows,
+  normalizeId,
+  onlyDigits,
+  saveMmsm07003Rows,
+  type MenuRow,
+} from '@/services/m07/mmsm07003';
 
 // 프로그램 메뉴 관리 (MMSM07003E)
-// 좌: 트리(메뉴) | 우: 선택 메뉴 상세 폼
-// 버튼: 동일행추가, 하위행추가, 조회, 저장, 삭제
+// MMSM06007E 패턴 기반: 좌측 목록 선택 + 우측 상세 편집
 
-type MenuNode = {
-  MENU_ID: string;
-  TOP_MENU: string | null;
-  MENU_NM: string;
-  LVL: number;
-};
+const searchGridClass = 'grid grid-cols-1 gap-3 md:grid-cols-[360px_1fr]';
+const searchLabelClass = 'font-medium text-slate-700';
+const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
+const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
+const searchInputClass = 'h-10 w-full rounded-lg border border-slate-200 px-3 text-sm';
+const panelActionClass =
+  'h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50';
+const deleteButtonClass =
+  'h-9 rounded-lg border border-rose-200 bg-rose-50 px-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100 disabled:opacity-50';
+const readonlyInputClass = `${editableInputClass} bg-slate-100 text-slate-500`;
+const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
 
-type Detail = {
-  ISNEW?: boolean;
-  TOP_MENU: string;
-  MENU_ID: string; // 신규 저장 시 서버 발번 또는 입력 필요 여부는 백엔드 정책에 따름 (현재 읽기전용 가정)
-  MENU_NM: string;
-  LVL: number;
-  DSP_SEQ: number | string;
-  PGM_ID: string;
-  PGM_NM: string;
-};
+function showWarning(message: string) {
+  window.alert(message);
+}
 
 export default function MMSM07003E() {
-  const [tree, setTree] = useState<MenuNode[]>([]);
-  const [selectedId, setSelectedId] = useState<string>('');
-  const [detail, setDetail] = useState<Detail | null>(null);
-
+  const [keyword, setKeyword] = useState('');
+  const [rows, setRows] = useState<MenuRow[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,43 +58,26 @@ export default function MMSM07003E() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const nodesByParent = useMemo(() => {
-    const map = new Map<string | null, MenuNode[]>();
-    for (const n of tree) {
-      const key = (n.TOP_MENU ?? '') as unknown as string | null; // normalize null/''
-      const k = key === '' ? null : key;
-      if (!map.has(k)) map.set(k, []);
-      map.get(k)!.push(n);
-    }
-    for (const [, arr] of map) arr.sort((a, b) => (a.MENU_NM || '').localeCompare(b.MENU_NM || ''));
-    return map;
-  }, [tree]);
+  const filteredRows = useMemo(() => {
+    const key = keyword.trim().toLowerCase();
+    if (!key) return rows;
+    return rows.filter(
+      (row) =>
+        (row.MENU_ID ?? '').toLowerCase().includes(key) ||
+        (row.MENU_NM ?? '').toLowerCase().includes(key) ||
+        (row.PGM_ID ?? '').toLowerCase().includes(key)
+    );
+  }, [keyword, rows]);
 
-  function getNode(id: string) {
-    return tree.find((n) => n.MENU_ID === id) || null;
-  }
+  const selected = selectedIndex === null ? null : (rows[selectedIndex] ?? null);
 
   async function onSearch() {
     setLoading(true);
     setError(null);
     try {
-      const data = await http<MenuNode[]>(`/api/m07/mmsm07003/tree`);
-      const list = (Array.isArray(data) ? data : []).map((r) => ({
-        MENU_ID: r.MENU_ID ?? '',
-        TOP_MENU: r.TOP_MENU ?? null,
-        MENU_NM: r.MENU_NM ?? '',
-        LVL: Number(r.LVL ?? 0),
-      }));
-      setTree(list);
-      const first = list[0];
-      if (first) {
-        setSelectedId(first.MENU_ID);
-        const det = await fetchDetail(first.MENU_ID);
-        setDetail(det);
-      } else {
-        setSelectedId('');
-        setDetail(null);
-      }
+      const list = await fetchMmsm07003Rows();
+      setRows(list);
+      setSelectedIndex(list.length ? 0 : null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -80,80 +85,55 @@ export default function MMSM07003E() {
     }
   }
 
-  async function fetchDetail(menuId: string): Promise<Detail> {
-    const qs = new URLSearchParams({ menu_id: menuId }).toString();
-    const d = await http<any>(`/api/m07/mmsm07003/detail?${qs}`);
-    return {
-      ISNEW: !!d?.ISNEW,
-      TOP_MENU: d?.TOP_MENU ?? '',
-      MENU_ID: d?.MENU_ID ?? menuId,
-      MENU_NM: d?.MENU_NM ?? '',
-      LVL: Number(d?.LVL ?? getNode(menuId)?.LVL ?? 0),
-      DSP_SEQ: d?.DSP_SEQ ?? '',
-      PGM_ID: d?.PGM_ID ?? '',
-      PGM_NM: d?.PGM_NM ?? '',
-    };
-  }
-
-  async function onSelect(menuId: string) {
-    setSelectedId(menuId);
-    setLoading(true);
-    setError(null);
-    try {
-      setDetail(await fetchDetail(menuId));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
-    }
+  function patchSelected(patch: Partial<MenuRow>) {
+    if (selectedIndex === null) return;
+    setRows((prev) => {
+      const next = [...prev];
+      next[selectedIndex] = { ...next[selectedIndex], ...patch, CHECK: true };
+      return next;
+    });
   }
 
   function onAddSame() {
-    const cur = selectedId ? getNode(selectedId) : null;
-    const parentId = (cur?.TOP_MENU ?? '') as string;
-    const lvl = Number(cur?.LVL ?? 0);
-    setDetail({
-      ISNEW: true,
-      TOP_MENU: parentId || '',
-      MENU_ID: '',
-      MENU_NM: '',
-      LVL: lvl,
-      DSP_SEQ: '',
-      PGM_ID: '',
-      PGM_NM: '',
+    const current = selected;
+    setRows((prev) => {
+      const nextIndex = prev.length;
+      setSelectedIndex(nextIndex);
+      return [...prev, createSameLevelMenuRow(current)];
     });
+    setError(null);
   }
 
   function onAddChild() {
-    const cur = selectedId ? getNode(selectedId) : null;
-    const parentId = cur?.MENU_ID ?? '';
-    const lvl = Number(cur?.LVL ?? 0) + 1;
-    if (!parentId) {
-      setError('좌측에서 기준 메뉴를 선택하세요.');
+    const current = selected;
+    if (!current?.MENU_ID) {
+      setError(null);
+      showWarning('좌측에서 기준 메뉴를 선택하세요.');
       return;
     }
-    setDetail({
-      ISNEW: true,
-      TOP_MENU: parentId,
-      MENU_ID: '',
-      MENU_NM: '',
-      LVL: lvl,
-      DSP_SEQ: '',
-      PGM_ID: '',
-      PGM_NM: '',
+
+    setRows((prev) => {
+      const nextIndex = prev.length;
+      setSelectedIndex(nextIndex);
+      return [...prev, createChildMenuRow(current)];
     });
+    setError(null);
   }
 
   async function onDelete() {
-    if (!selectedId) {
-      setError('삭제할 메뉴를 선택하세요.');
+    if (!selected) {
+      setError(null);
+      showWarning('삭제할 메뉴를 선택하세요.');
       return;
     }
     if (!window.confirm('삭제 하시겠습니까?')) return;
+
     setLoading(true);
     setError(null);
     try {
-      await http(`/api/m07/mmsm07003/delete`, { method: 'POST', body: { MENU_ID: selectedId } });
+      await deleteMmsm07003Row(selected);
+      setRows((prev) => prev.filter((_, index) => index !== selectedIndex));
+      setSelectedIndex(null);
       await onSearch();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -163,33 +143,44 @@ export default function MMSM07003E() {
   }
 
   async function onSave() {
-    if (!detail) {
-      setError('저장할 항목이 없습니다.');
+    const targets = rows.filter((row) => row.CHECK || row.ISNEW);
+    if (targets.length === 0) {
+      setError(null);
+      showWarning('저장할 대상이 없습니다.');
       return;
     }
-    if (!detail.MENU_NM) {
-      setError('메뉴명을 입력하세요.');
+    if (targets.some((row) => !row.MENU_ID?.trim())) {
+      setError(null);
+      showWarning('메뉴ID는 필수입니다.');
       return;
     }
+    if (targets.some((row) => !row.MENU_NM?.trim())) {
+      setError(null);
+      showWarning('메뉴명은 필수입니다.');
+      return;
+    }
+
+    const existingIds = new Set(
+      rows
+        .filter((row) => !row.ISNEW)
+        .map((row) => normalizeId(row.MENU_ID))
+        .filter(Boolean)
+    );
+    const newIds = targets.filter((row) => row.ISNEW).map((row) => normalizeId(row.MENU_ID));
+    const duplicatedId =
+      newIds.find((id) => existingIds.has(id)) ||
+      newIds.find((id, index) => newIds.indexOf(id) !== index);
+    if (duplicatedId) {
+      setError(null);
+      showWarning(`메뉴ID ${duplicatedId}는 이미 존재합니다.`);
+      return;
+    }
+
     if (!window.confirm('저장 하시겠습니까?')) return;
     setLoading(true);
     setError(null);
     try {
-      const payload = {
-        ISNEW: !!detail.ISNEW,
-        TOP_MENU: detail.TOP_MENU ?? '',
-        MENU_ID: detail.MENU_ID ?? '',
-        MENU_NM: detail.MENU_NM ?? '',
-        LVL: Number(detail.LVL ?? 0),
-        DSP_SEQ:
-          detail.DSP_SEQ === '' || detail.DSP_SEQ === null || detail.DSP_SEQ === undefined
-            ? null
-            : Number(detail.DSP_SEQ),
-        PGM_ID: detail.PGM_ID ?? '',
-        PGM_NM: detail.PGM_NM ?? '',
-      };
-      await http(`/api/m07/mmsm07003/save`, { method: 'POST', body: payload });
-      // 저장 후 재조회 및 선택 유지
+      await saveMmsm07003Rows(targets);
       await onSearch();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -198,164 +189,200 @@ export default function MMSM07003E() {
     }
   }
 
-  function renderTree(parent: string | null, indent: number) {
-    const children = nodesByParent.get(parent ?? null) || [];
-    const items: any[] = [];
-    for (const n of children) {
-      items.push(
-        <div
-          key={n.MENU_ID}
-          className={`flex items-center px-2 py-1 cursor-pointer hover:bg-muted/30 ${selectedId === n.MENU_ID ? 'bg-muted/30 font-medium' : ''}`}
-          style={{ paddingLeft: indent }}
-          onClick={() => onSelect(n.MENU_ID)}
-        >
-          <span className="truncate">{n.MENU_NM}</span>
-        </div>
-      );
-      items.push(...renderTree(n.MENU_ID, indent + 16));
-    }
-    return items;
-  }
-
-  function patchDetail(p: Partial<Detail>) {
-    setDetail((prev) => (prev ? { ...prev, ...p } : prev));
-  }
-
-  async function onPickProgram() {
-    // 자리표시자: 간단 프롬프트로 연결. 추후 모달/검색 연동 가능
-    const id = window.prompt('프로그램ID를 입력하세요', detail?.PGM_ID || '');
-    if (id === null) return;
-    const name = window.prompt('프로그램명을 입력하세요', detail?.PGM_NM || '');
-    if (name === null) return;
-    patchDetail({ PGM_ID: id, PGM_NM: name });
+  function onExportCsv() {
+    const csv = buildMmsm07003Csv(rows);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'MMSM07003E_menu.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   return (
-    <div className="p-3 space-y-3">
-      <div className="text-base font-semibold">프로그램 메뉴 관리</div>
-
-      {/* Top Buttons */}
-      <div className="flex gap-2 justify-end">
-        <button onClick={onAddSame} disabled={loading} className="h-8 px-3 border rounded">
-          동일행추가
-        </button>
-        <button onClick={onAddChild} disabled={loading} className="h-8 px-3 border rounded">
-          하위행추가
-        </button>
-        <button
-          onClick={onSearch}
-          disabled={loading}
-          className="h-8 px-3 border rounded bg-primary text-primary-foreground disabled:opacity-50"
-        >
-          조회
-        </button>
-        <button onClick={onSave} disabled={loading} className="h-8 px-3 border rounded">
-          저장
-        </button>
-        <button
-          onClick={onDelete}
-          disabled={loading || !selectedId}
-          className="h-8 px-3 border rounded"
-        >
-          삭제
-        </button>
-      </div>
-
-      {error && (
-        <div className="text-sm text-destructive border border-destructive/30 rounded p-2">
-          {error}
-        </div>
-      )}
-
-      {/* Split: Tree | Detail */}
-      <div className="grid grid-cols-12 gap-3">
-        {/* Left: Tree */}
-        <div className="col-span-12 md:col-span-4 border rounded overflow-auto max-h-[70vh]">
-          {renderTree(null, 8)}
-          {tree.length === 0 && (
-            <div className="p-3 text-center text-muted-foreground">
-              메뉴가 없습니다. 조회를 눌러 로드하세요.
+    <div className={pageShellClass}>
+      <div className={pageContentClass}>
+        <SectionCard span="full" padding="md">
+          <div className={searchGridClass}>
+            <div className={searchFieldClass}>
+              <span className={searchLabelTextClass}>메뉴/프로그램</span>
+              <input
+                className={searchInputClass}
+                value={keyword}
+                onChange={(event) => setKeyword(event.target.value)}
+              />
             </div>
-          )}
-        </div>
-
-        {/* Right: Detail Form */}
-        <div className="col-span-12 md:col-span-8 border rounded p-3 space-y-3">
-          {!detail ? (
-            <div className="text-sm text-muted-foreground">
-              우측 폼은 좌측에서 메뉴를 선택하거나 추가 후 입력하세요.
+            <div className="flex flex-wrap items-end justify-end gap-2">
+              <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
+                조회
+              </button>
             </div>
-          ) : (
-            <div className="grid grid-cols-12 gap-3 text-sm">
-              <label className="col-span-12 md:col-span-6 flex flex-col">
-                <span className="mb-1">상위메뉴ID</span>
-                <input
-                  className="h-8 border rounded px-2 bg-muted"
-                  value={detail.TOP_MENU ?? ''}
-                  readOnly
-                />
-              </label>
-              <label className="col-span-12 md:col-span-6 flex flex-col">
-                <span className="mb-1">메뉴ID</span>
-                <input
-                  className="h-8 border rounded px-2 bg-muted"
-                  value={detail.MENU_ID ?? ''}
-                  readOnly
-                />
-              </label>
+          </div>
+        </SectionCard>
 
-              <label className="col-span-12 md:col-span-6 flex flex-col">
-                <span className="mb-1">메뉴명</span>
-                <input
-                  className={`h-8 border rounded px-2 ${!detail.MENU_NM ? 'border-destructive' : ''}`}
-                  value={detail.MENU_NM ?? ''}
-                  onChange={(e) => patchDetail({ MENU_NM: e.target.value })}
-                />
-              </label>
-              <label className="col-span-12 md:col-span-3 flex flex-col">
-                <span className="mb-1">메뉴레벨</span>
-                <input
-                  className="h-8 border rounded px-2 bg-muted"
-                  value={detail.LVL ?? 0}
-                  readOnly
-                />
-              </label>
-              <label className="col-span-12 md:col-span-3 flex flex-col">
-                <span className="mb-1">순서</span>
-                <input
-                  className="h-8 border rounded px-2"
-                  value={detail.DSP_SEQ ?? ''}
-                  onChange={(e) =>
-                    patchDetail({ DSP_SEQ: e.target.value.replace(/[^0-9\-]/g, '') })
-                  }
-                />
-              </label>
+        {error ? <AlertBox>{error}</AlertBox> : null}
 
-              <div className="col-span-12 md:col-span-6">
-                <label className="flex flex-col">
-                  <span className="mb-1">프로그램ID</span>
-                  <div className="flex gap-2">
+        <div className={registerSplitGridClass}>
+          <SectionCard span="wideLeft" width="full">
+            <SectionHeader
+              title="메뉴"
+              right={
+                <span className={countBadgeClass}>
+                  {loading ? '조회중...' : `${filteredRows.length}건`}
+                </span>
+              }
+            />
+            <div className="flex justify-end gap-2 px-4 py-3">
+              <button onClick={onAddSame} disabled={loading} className={panelActionClass}>
+                동일행추가
+              </button>
+              <button onClick={onAddChild} disabled={loading} className={panelActionClass}>
+                하위행추가
+              </button>
+            </div>
+            <div className={gridScrollClass}>
+              <DataGrid<MenuRow>
+                dataSource={filteredRows}
+                rowKey={(row, index) => `${row.MENU_ID || 'menu'}-${index}`}
+                showBorders
+                emptyText="메뉴 목록이 없습니다."
+                classNames={{ table: 'min-w-[520px] w-full text-sm' }}
+                getRowProps={(row) => {
+                  const realIndex = rows.indexOf(row);
+                  return {
+                    onClick: () => setSelectedIndex(realIndex),
+                    className:
+                      selectedIndex === realIndex
+                        ? 'cursor-pointer bg-slate-100'
+                        : 'cursor-pointer',
+                  };
+                }}
+              >
+                <Paging enabled={false} />
+                <Column<MenuRow>
+                  dataField="MENU_ID"
+                  caption="메뉴ID"
+                  width={150}
+                  cellRender={(row) => (
+                    <span className={readOnlyCellClass}>{row.MENU_ID ?? ''}</span>
+                  )}
+                />
+                <Column<MenuRow>
+                  dataField="MENU_NM"
+                  caption="메뉴명"
+                  width={220}
+                  cellRender={(row) => (
+                    <span className={readOnlyCellClass}>{row.MENU_NM ?? ''}</span>
+                  )}
+                />
+                <Column<MenuRow>
+                  dataField="DSP_SEQ"
+                  caption="순서"
+                  width={80}
+                  alignment="center"
+                  cellRender={(row) => (
+                    <span className={readOnlyCellClass}>{row.DSP_SEQ ?? ''}</span>
+                  )}
+                />
+              </DataGrid>
+            </div>
+          </SectionCard>
+
+          <SectionCard span="wideRight" width="full">
+            <SectionHeader
+              title="메뉴 상세"
+              right={
+                selected ? (
+                  <span className={countBadgeClass}>{selected.ISNEW ? '신규' : '편집'}</span>
+                ) : null
+              }
+            />
+            <div className="flex justify-end gap-2 px-4 py-3">
+              <button onClick={onSave} disabled={loading} className={saveButtonClass}>
+                저장
+              </button>
+              <button
+                onClick={onDelete}
+                disabled={loading || !selected}
+                className={deleteButtonClass}
+              >
+                삭제
+              </button>
+              <button onClick={onExportCsv} disabled={loading} className={exportCsvButtonClass}>
+                엑셀
+              </button>
+            </div>
+            <div className="grid grid-cols-1 gap-3 px-4 pb-4 text-sm md:grid-cols-2">
+              {!selected ? (
+                <div className="col-span-full rounded-lg border border-dashed border-slate-200 p-6 text-center text-slate-500">
+                  좌측에서 메뉴를 선택하세요.
+                </div>
+              ) : (
+                <>
+                  <label className="flex flex-col gap-2">
+                    <span className={searchLabelClass}>메뉴ID</span>
                     <input
-                      className="h-8 border rounded px-2 bg-muted flex-1"
-                      value={detail.PGM_ID ?? ''}
-                      readOnly
+                      className={selected.ISNEW ? editableInputClass : readonlyInputClass}
+                      value={selected.MENU_ID ?? ''}
+                      readOnly={!selected.ISNEW}
+                      onChange={(event) => patchSelected({ MENU_ID: event.target.value })}
                     />
-                    <button className="h-8 px-2 border rounded" onClick={onPickProgram}>
-                      검색
-                    </button>
-                  </div>
-                </label>
-              </div>
-              <label className="col-span-12 md:col-span-6 flex flex-col">
-                <span className="mb-1">프로그램명</span>
-                <input
-                  className="h-8 border rounded px-2 bg-muted"
-                  value={detail.PGM_NM ?? ''}
-                  readOnly
-                />
-              </label>
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className={searchLabelClass}>상위메뉴</span>
+                    <input
+                      className={editableInputClass}
+                      value={selected.TOP_MENU ?? ''}
+                      onChange={(event) => patchSelected({ TOP_MENU: event.target.value })}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className={searchLabelClass}>메뉴명</span>
+                    <input
+                      className={`${editableInputClass} ${!selected.MENU_NM ? 'border-rose-300' : ''}`}
+                      value={selected.MENU_NM ?? ''}
+                      onChange={(event) => patchSelected({ MENU_NM: event.target.value })}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className={searchLabelClass}>메뉴레벨</span>
+                    <input
+                      className={editableNumberInputClass}
+                      inputMode="numeric"
+                      value={selected.LVL ?? ''}
+                      onChange={(event) => patchSelected({ LVL: onlyDigits(event.target.value) })}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className={searchLabelClass}>순서</span>
+                    <input
+                      className={editableNumberInputClass}
+                      inputMode="numeric"
+                      value={selected.DSP_SEQ ?? ''}
+                      onChange={(event) =>
+                        patchSelected({ DSP_SEQ: onlyDigits(event.target.value) })
+                      }
+                    />
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className={searchLabelClass}>프로그램ID</span>
+                    <input
+                      className={editableInputClass}
+                      value={selected.PGM_ID ?? ''}
+                      onChange={(event) => patchSelected({ PGM_ID: event.target.value })}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-2 md:col-span-2">
+                    <span className={searchLabelClass}>프로그램명</span>
+                    <input className={readonlyInputClass} value={selected.PGM_NM ?? ''} readOnly />
+                  </label>
+                </>
+              )}
             </div>
-          )}
+          </SectionCard>
         </div>
       </div>
     </div>

@@ -1,45 +1,54 @@
 import { useEffect, useState } from 'react';
-import { http } from '@/lib/http';
+import AlertBox from '@/components/AlertBox';
+import SectionCard from '@/components/SectionCard';
+import SectionHeader from '@/components/SectionHeader';
+import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
+import {
+  countBadgeClass,
+  editableInputClass,
+  gridScrollClass,
+  pageContentClass,
+  pageShellClass,
+  registerSplitGridClass,
+  saveButtonClass,
+  searchButtonClass,
+} from '@/lib/pageStyles';
+import {
+  fetchMmsm07004Groups,
+  fetchMmsm07004Rights,
+  saveMmsm07004Rights,
+  type AuthColumnKey,
+  type GroupRow,
+  type RightRow,
+} from '@/services/m07/mmsm07004';
 
 // 권한 관리 (MMSM07004E)
-// 좌: 사용자그룹 목록 | 우: 선택된 그룹의 메뉴 권한(조회/편집/출력/EXCEL)
-// 상단 필터: 구분(PGM_TYPE), 상위메뉴(MENU_ID) → 우측 권한 목록 필터용
+// MMSM06007E 패턴 기반: 좌측 사용자그룹 + 우측 메뉴 권한 그리드
 
-type GroupRow = {
-  SERL?: number | string;
-  USR_GRP_CD: string;
-  USR_GRP_NM: string;
-};
+const searchGridClass = 'grid grid-cols-1 gap-3 md:grid-cols-[340px_340px_1fr]';
+const searchLabelClass = 'font-medium text-slate-700';
+const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
+const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
+const searchInputClass = 'h-10 w-full rounded-lg border border-slate-200 px-3 text-sm';
+const panelActionClass =
+  'h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50';
 
-type RightRow = {
-  USR_GRP_CD: string;
-  MENU_ID: string;
-  PGMTP_NM?: string; // 구분명
-  MENU_NM?: string;
-  SER_AUTH?: boolean; // 조회
-  SAV_AUTH?: boolean; // 편집
-  PRT_AUTH?: boolean; // 출력
-  EXL_AUTH?: boolean; // EXCEL
-  DIRTY?: boolean; // 변경 추적
-};
+function showWarning(message: string) {
+  window.alert(message);
+}
 
 export default function MMSM07004E() {
-  // Filters (우측 권한 목록용)
-  const [pgmType, setPgmType] = useState('');
-  const [parentMenuId, setParentMenuId] = useState('');
+  const [groupKeyword, setGroupKeyword] = useState('');
+  const [menuKeyword, setMenuKeyword] = useState('');
 
-  // Left: Groups
   const [groups, setGroups] = useState<GroupRow[]>([]);
-  const [selectedGroup, setSelectedGroup] = useState<string>('');
-
-  // Right: Rights for selected group
+  const [selectedGroup, setSelectedGroup] = useState('');
   const [rights, setRights] = useState<RightRow[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // 초기 로드: 그룹 목록 후 첫 그룹 선택
     onSearchGroups();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -48,17 +57,18 @@ export default function MMSM07004E() {
     setLoading(true);
     setError(null);
     try {
-      const list = await http<GroupRow[]>(`/api/m07/mmsm07004/groups`);
-      const g = (Array.isArray(list) ? list : []).map((r, i) => ({
-        SERL: r.SERL ?? i + 1,
-        USR_GRP_CD: r.USR_GRP_CD,
-        USR_GRP_NM: r.USR_GRP_NM,
-      }));
-      setGroups(g);
-      const first = g[0]?.USR_GRP_CD || '';
-      setSelectedGroup(first);
-      if (first) await loadRights(first);
-      else setRights([]);
+      const list = await fetchMmsm07004Groups(groupKeyword);
+      setGroups(list);
+      const nextGroup =
+        list.find((row) => row.USR_GRP_CD === selectedGroup)?.USR_GRP_CD ??
+        list[0]?.USR_GRP_CD ??
+        '';
+      setSelectedGroup(nextGroup);
+      if (nextGroup) {
+        await loadRights(nextGroup);
+      } else {
+        setRights([]);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -70,24 +80,8 @@ export default function MMSM07004E() {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams();
-      if (pgmType) params.set('pgm_type', pgmType);
-      if (parentMenuId) params.set('menu_id', parentMenuId);
-      params.set('usr_grp_cd', groupCd);
-      const url = `/api/m07/mmsm07004/rights?${params.toString()}`;
-      const list = await http<RightRow[]>(url);
-      const arr = (Array.isArray(list) ? list : []).map((r) => ({
-        USR_GRP_CD: r.USR_GRP_CD ?? groupCd,
-        MENU_ID: r.MENU_ID ?? '',
-        PGMTP_NM: r.PGMTP_NM ?? '',
-        MENU_NM: r.MENU_NM ?? '',
-        SER_AUTH: !!r.SER_AUTH,
-        SAV_AUTH: !!r.SAV_AUTH,
-        PRT_AUTH: !!r.PRT_AUTH,
-        EXL_AUTH: !!r.EXL_AUTH,
-        DIRTY: false,
-      }));
-      setRights(arr);
+      const list = await fetchMmsm07004Rights(groupCd, menuKeyword);
+      setRights(list);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setRights([]);
@@ -96,55 +90,50 @@ export default function MMSM07004E() {
     }
   }
 
-  function onSelectGroup(i: number) {
-    const grp = groups[i]?.USR_GRP_CD || '';
-    setSelectedGroup(grp);
-    if (grp) loadRights(grp);
-    else setRights([]);
+  function onSelectGroup(groupCd: string) {
+    setSelectedGroup(groupCd);
+    loadRights(groupCd);
   }
 
-  function toggleCell(
-    i: number,
-    key: 'SER_AUTH' | 'SAV_AUTH' | 'PRT_AUTH' | 'EXL_AUTH',
-    checked: boolean
-  ) {
+  function toggleCell(index: number, key: AuthColumnKey, checked: boolean) {
     setRights((prev) => {
-      const n = [...prev];
-      const row = { ...n[i] } as RightRow;
-      (row as any)[key] = checked;
-      row.DIRTY = true;
-      n[i] = row;
-      return n;
+      const next = [...prev];
+      next[index] = { ...next[index], [key]: checked, DIRTY: true };
+      return next;
     });
   }
 
-  function toggleColumn(key: 'SER_AUTH' | 'SAV_AUTH' | 'PRT_AUTH' | 'EXL_AUTH', checked: boolean) {
-    setRights((prev) => prev.map((r) => ({ ...r, [key]: checked, DIRTY: true }) as RightRow));
+  function toggleColumn(key: AuthColumnKey, checked: boolean) {
+    setRights((prev) => prev.map((row) => ({ ...row, [key]: checked, DIRTY: true })));
+  }
+
+  async function onSearchRights() {
+    if (!selectedGroup) {
+      setError(null);
+      showWarning('좌측에서 사용자그룹을 선택하세요.');
+      return;
+    }
+    await loadRights(selectedGroup);
   }
 
   async function onSave() {
     if (!selectedGroup) {
-      setError('좌측에서 사용자그룹을 선택하세요.');
+      setError(null);
+      showWarning('좌측에서 사용자그룹을 선택하세요.');
       return;
     }
-    const targets = rights.filter((r) => r.DIRTY);
+    const targets = rights.filter((row) => row.DIRTY);
     if (targets.length === 0) {
-      setError('저장할 변경사항이 없습니다.');
+      setError(null);
+      showWarning('저장할 변경사항이 없습니다.');
       return;
     }
     if (!window.confirm('저장 하시겠습니까?')) return;
+
     setLoading(true);
     setError(null);
     try {
-      const payload = targets.map((r) => ({
-        USR_GRP_CD: selectedGroup,
-        MENU_ID: r.MENU_ID,
-        SER_AUTH: !!r.SER_AUTH,
-        SAV_AUTH: !!r.SAV_AUTH,
-        PRT_AUTH: !!r.PRT_AUTH,
-        EXL_AUTH: !!r.EXL_AUTH,
-      }));
-      await http(`/api/m07/mmsm07004/save`, { method: 'POST', body: payload });
+      await saveMmsm07004Rights(selectedGroup, targets);
       await loadRights(selectedGroup);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -153,180 +142,130 @@ export default function MMSM07004E() {
     }
   }
 
-  function onSearchRights() {
-    if (!selectedGroup) {
-      setError('좌측에서 사용자그룹을 선택하세요.');
-      return;
-    }
-    loadRights(selectedGroup);
-  }
-
-  function onAddUserGroup() {
-    // 자리표시자: 사용자그룹 관리 팝업 연동 지점
-    alert('사용자그룹 추가 팝업은 추후 연동 예정입니다.');
-  }
+  const authColumns = [
+    ['SER_AUTH', '조회'],
+    ['CLE_AUTH', '초기화'],
+    ['SAV_AUTH', '저장'],
+    ['DEL_AUTH', '삭제'],
+    ['PRT_AUTH', '출력'],
+    ['EXL_AUTH', 'EXCEL'],
+  ] as const;
 
   return (
-    <div className="p-3 space-y-3">
-      <div className="text-base font-semibold">권한 관리</div>
+    <div className={pageShellClass}>
+      <div className={pageContentClass}>
+        <SectionCard span="full" padding="md">
+          <div className={searchGridClass}>
+            <div className={searchFieldClass}>
+              <span className={searchLabelTextClass}>사용자그룹</span>
+              <input
+                className={searchInputClass}
+                value={groupKeyword}
+                onChange={(event) => setGroupKeyword(event.target.value)}
+              />
+            </div>
+            <div className={searchFieldClass}>
+              <span className={searchLabelTextClass}>메뉴</span>
+              <input
+                className={searchInputClass}
+                value={menuKeyword}
+                onChange={(event) => setMenuKeyword(event.target.value)}
+              />
+            </div>
+            <div className="flex flex-wrap items-end justify-end gap-2">
+              <button onClick={onSearchGroups} disabled={loading} className={panelActionClass}>
+                그룹조회
+              </button>
+              <button onClick={onSearchRights} disabled={loading} className={searchButtonClass}>
+                조회
+              </button>
+              <button onClick={onSave} disabled={loading} className={saveButtonClass}>
+                저장
+              </button>
+            </div>
+          </div>
+        </SectionCard>
 
-      {/* Filters & Buttons */}
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col text-sm">
-          <span className="mb-1">구분</span>
-          <input
-            className="h-8 border rounded px-2 w-40"
-            value={pgmType}
-            onChange={(e) => setPgmType(e.target.value)}
-            placeholder="예: 메뉴/프로그램"
-          />
-        </label>
-        <label className="flex flex-col text-sm">
-          <span className="mb-1">상위 메뉴ID</span>
-          <input
-            className="h-8 border rounded px-2 w-40"
-            value={parentMenuId}
-            onChange={(e) => setParentMenuId(e.target.value)}
-            placeholder="예: TOP001"
-          />
-        </label>
-        <div className="ml-auto flex gap-2">
-          <button onClick={onAddUserGroup} className="h-8 px-3 border rounded">
-            사용자그룹추가
-          </button>
-          <button
-            onClick={onSearchRights}
-            disabled={loading}
-            className="h-8 px-3 border rounded bg-primary text-primary-foreground disabled:opacity-50"
-          >
-            조회
-          </button>
-          <button onClick={onSave} disabled={loading} className="h-8 px-3 border rounded">
-            저장
-          </button>
-        </div>
-      </div>
+        {error ? <AlertBox>{error}</AlertBox> : null}
 
-      {error && (
-        <div className="text-sm text-destructive border border-destructive/30 rounded p-2">
-          {error}
-        </div>
-      )}
+        <div className={registerSplitGridClass}>
+          <SectionCard span="left" width="full">
+            <SectionHeader
+              title="사용자그룹"
+              right={<span className={countBadgeClass}>{groups.length}건</span>}
+            />
+            <div className={gridScrollClass}>
+              <DataGrid<GroupRow>
+                dataSource={groups}
+                rowKey={(row) => row.USR_GRP_CD}
+                showBorders
+                emptyText="사용자그룹이 없습니다."
+                classNames={{ table: 'min-w-[260px] w-full text-sm' }}
+                getRowProps={(row) => ({
+                  onClick: () => onSelectGroup(row.USR_GRP_CD),
+                  className:
+                    selectedGroup === row.USR_GRP_CD
+                      ? 'cursor-pointer bg-slate-100'
+                      : 'cursor-pointer',
+                })}
+              >
+                <Paging enabled={false} />
+                <Column<GroupRow> dataField="SERL" caption="No." width={56} alignment="center" />
+                <Column<GroupRow> dataField="USR_GRP_NM" caption="사용자그룹" />
+              </DataGrid>
+            </div>
+          </SectionCard>
 
-      {/* Split: Groups | Rights */}
-      <div className="grid grid-cols-12 gap-3">
-        {/* Left: User Groups */}
-        <div className="col-span-12 md:col-span-3 border rounded overflow-auto max-h-[70vh]">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-background">
-              <tr className="border-b">
-                <th className="w-12 p-2 text-center">No</th>
-                <th className="p-2 text-left">사용자그룹</th>
-              </tr>
-            </thead>
-            <tbody>
-              {groups.map((g, i) => (
-                <tr
-                  key={g.USR_GRP_CD}
-                  className={`border-b hover:bg-muted/30 cursor-pointer ${selectedGroup === g.USR_GRP_CD ? 'bg-muted/30' : ''}`}
-                  onClick={() => onSelectGroup(i)}
-                >
-                  <td className="p-2 text-center">{g.SERL ?? i + 1}</td>
-                  <td className="p-2 text-left">{g.USR_GRP_NM}</td>
-                </tr>
-              ))}
-              {groups.length === 0 && (
-                <tr>
-                  <td colSpan={2} className="p-3 text-center text-muted-foreground">
-                    그룹이 없습니다. 좌측 상단에서 사용자그룹을 추가하세요.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Right: Rights Table */}
-        <div className="col-span-12 md:col-span-9 border rounded overflow-auto max-h-[70vh]">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-background">
-              <tr className="border-b">
-                <th className="w-32 p-2 text-left">구분</th>
-                <th className="p-2 text-left">메뉴명</th>
-                <th className="w-24 p-2 text-center">
-                  조회{' '}
-                  <input
-                    type="checkbox"
-                    onChange={(e) => toggleColumn('SER_AUTH', e.target.checked)}
+          <SectionCard span="right" width="full">
+            <SectionHeader
+              title={selectedGroup ? `권한 - ${selectedGroup}` : '권한'}
+              right={
+                <span className={countBadgeClass}>
+                  {loading ? '조회중...' : `${rights.length}건`}
+                </span>
+              }
+            />
+            <div className={gridScrollClass}>
+              <DataGrid<RightRow>
+                dataSource={rights}
+                rowKey={(row, index) => `${row.MENU_ID}-${index}`}
+                showBorders
+                emptyText="권한 목록이 없습니다. 사용자그룹을 선택하고 조회하세요."
+                classNames={{ table: 'min-w-[920px] w-full text-sm' }}
+              >
+                <Paging enabled={false} />
+                <Column<RightRow> dataField="MENU_ID" caption="메뉴ID" width={150} />
+                <Column<RightRow> dataField="PGM_ID" caption="프로그램ID" width={150} />
+                <Column<RightRow> dataField="MENU_NM" caption="메뉴명" width={220} />
+                {authColumns.map(([field, caption]) => (
+                  <Column<RightRow>
+                    key={field}
+                    dataField={field}
+                    caption={
+                      <span className="inline-flex items-center gap-1">
+                        {caption}
+                        <input
+                          type="checkbox"
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={(event) => toggleColumn(field, event.target.checked)}
+                        />
+                      </span>
+                    }
+                    width={92}
+                    alignment="center"
+                    cellRender={(row, index) => (
+                      <input
+                        type="checkbox"
+                        checked={!!row[field]}
+                        onClick={(event) => event.stopPropagation()}
+                        onChange={(event) => toggleCell(index, field, event.target.checked)}
+                      />
+                    )}
                   />
-                </th>
-                <th className="w-24 p-2 text-center">
-                  편집{' '}
-                  <input
-                    type="checkbox"
-                    onChange={(e) => toggleColumn('SAV_AUTH', e.target.checked)}
-                  />
-                </th>
-                <th className="w-24 p-2 text-center">
-                  출력{' '}
-                  <input
-                    type="checkbox"
-                    onChange={(e) => toggleColumn('PRT_AUTH', e.target.checked)}
-                  />
-                </th>
-                <th className="w-28 p-2 text-center">
-                  EXCEL{' '}
-                  <input
-                    type="checkbox"
-                    onChange={(e) => toggleColumn('EXL_AUTH', e.target.checked)}
-                  />
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rights.map((r, i) => (
-                <tr key={`${r.MENU_ID}`} className="border-b hover:bg-muted/30">
-                  <td className="p-2">{r.PGMTP_NM ?? ''}</td>
-                  <td className="p-2">{r.MENU_NM ?? ''}</td>
-                  <td className="p-2 text-center">
-                    <input
-                      type="checkbox"
-                      checked={!!r.SER_AUTH}
-                      onChange={(e) => toggleCell(i, 'SER_AUTH', e.target.checked)}
-                    />
-                  </td>
-                  <td className="p-2 text-center">
-                    <input
-                      type="checkbox"
-                      checked={!!r.SAV_AUTH}
-                      onChange={(e) => toggleCell(i, 'SAV_AUTH', e.target.checked)}
-                    />
-                  </td>
-                  <td className="p-2 text-center">
-                    <input
-                      type="checkbox"
-                      checked={!!r.PRT_AUTH}
-                      onChange={(e) => toggleCell(i, 'PRT_AUTH', e.target.checked)}
-                    />
-                  </td>
-                  <td className="p-2 text-center">
-                    <input
-                      type="checkbox"
-                      checked={!!r.EXL_AUTH}
-                      onChange={(e) => toggleCell(i, 'EXL_AUTH', e.target.checked)}
-                    />
-                  </td>
-                </tr>
-              ))}
-              {rights.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="p-3 text-center text-muted-foreground">
-                    권한 목록이 없습니다. 그룹과 필터를 설정하고 조회하세요.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                ))}
+              </DataGrid>
+            </div>
+          </SectionCard>
         </div>
       </div>
     </div>

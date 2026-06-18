@@ -1,33 +1,60 @@
 import { useState } from 'react';
-import { http } from '@/lib/http';
+import AlertBox from '@/components/AlertBox';
+import SectionCard from '@/components/SectionCard';
+import SectionHeader from '@/components/SectionHeader';
+import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
+import {
+  countBadgeClass,
+  editableInputClass,
+  editableSelectClass,
+  exportCsvButtonClass,
+  gridScrollClass,
+  pageContentClass,
+  pageShellClass,
+  registerSplitGridClass,
+  saveButtonClass,
+  searchButtonClass,
+} from '@/lib/pageStyles';
+import {
+  buildMmsm07001Csv,
+  createNewMmsm07001Row,
+  deleteMmsm07001Rows,
+  fetchMmsm07001Rows,
+  normalizeUserId,
+  saveMmsm07001Rows,
+  type Row,
+} from '@/services/m07/mmsm07001';
 
 // 사용자 관리 (MMSM07001E)
-// 단일 그리드 편집: 조회/추가/저장/삭제/엑셀
-// 필터: 사용자 이름(USR_NM), 사용자그룹(USR_GRP_CD), 부서(DEPT_CD), 사용여부(USE_YN)
+// MMSM06007E와 동일한 단일 그리드 패턴: 조회/추가/저장/삭제/엑셀
+// 필터: 사용자 이름, 사용자그룹, 부서, 사용여부
 
-type Row = {
-  CHECK?: boolean;
-  ISNEW?: boolean;
-  SERL?: number | string;
-  USR_ID?: string;
-  USR_NM?: string;
-  PWD?: string;
-  DEPT_CD?: string;
-  DEPT_NM?: string;
-  USR_GRP_CD?: string;
-  USE_YN?: string; // 'Y' | 'N'
-  [k: string]: any;
-};
+const searchGridClass =
+  'grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[320px_260px_260px_180px_1fr]';
+const searchLabelClass = 'font-medium text-slate-700';
+const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
+const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
+const searchInputClass = 'h-10 w-full rounded-lg border border-slate-200 px-3 text-sm';
+const searchSelectClass = `${searchInputClass} bg-white`;
+const panelActionClass =
+  'h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50';
+const deleteButtonClass =
+  'h-9 rounded-lg border border-rose-200 bg-rose-50 px-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100 disabled:opacity-50';
+const readonlyInputClass = `${editableInputClass} bg-slate-100 text-slate-500`;
+const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
+
+function showWarning(message: string) {
+  window.alert(message);
+}
 
 export default function MMSM07001E() {
-  // Filters
   const [usrNm, setUsrNm] = useState('');
   const [usrGrpCd, setUsrGrpCd] = useState('');
   const [deptCd, setDeptCd] = useState('');
-  const [useYn, setUseYn] = useState(''); // '' 전체, 'Y', 'N'
+  const [useYn, setUseYn] = useState('');
 
-  // Data
   const [rows, setRows] = useState<Row[]>([]);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,29 +62,9 @@ export default function MMSM07001E() {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams();
-      if (usrNm) params.set('usr_nm', usrNm);
-      if (usrGrpCd) params.set('usr_grp_cd', usrGrpCd);
-      if (deptCd) params.set('dept_cd', deptCd);
-      if (useYn) params.set('use_yn', useYn);
-      const url = `/api/m07/mmsm07001/list` + (params.toString() ? `?${params.toString()}` : '');
-      const data = await http<Row[]>(url);
-      const list = (Array.isArray(data) ? data : []).map(
-        (r, i) =>
-          ({
-            CHECK: false,
-            ISNEW: !!r.ISNEW,
-            SERL: r.SERL ?? i + 1,
-            USR_ID: r.USR_ID ?? '',
-            USR_NM: r.USR_NM ?? '',
-            PWD: r.PWD ?? '',
-            DEPT_CD: r.DEPT_CD ?? '',
-            DEPT_NM: r.DEPT_NM ?? '',
-            USR_GRP_CD: r.USR_GRP_CD ?? '',
-            USE_YN: r.USE_YN ?? 'Y',
-          }) as Row
-      );
+      const list = await fetchMmsm07001Rows({ usrNm, usrGrpCd, deptCd, useYn });
       setRows(list);
+      setEditIndex(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -72,6 +79,21 @@ export default function MMSM07001E() {
       return next;
     });
   }
+
+  function markEditing(i: number) {
+    const shouldClose = editIndex === i && !rows[i]?.ISNEW;
+    setRows((prev) => {
+      const next = [...prev];
+      if (!next[i]) return prev;
+      next[i] = { ...next[i], CHECK: !shouldClose };
+      return next;
+    });
+    setEditIndex((prev) => {
+      if (prev === i && !rows[i]?.ISNEW) return null;
+      return i;
+    });
+  }
+
   function patch(i: number, patch: Partial<Row>) {
     setRows((prev) => {
       const next = [...prev];
@@ -79,35 +101,40 @@ export default function MMSM07001E() {
       return next;
     });
   }
+
   function onAdd() {
-    setRows((prev) => [
-      ...prev,
-      {
-        CHECK: true,
-        ISNEW: true,
-        SERL: prev.length + 1,
-        USR_ID: '',
-        USR_NM: '',
-        PWD: '',
-        DEPT_CD: '',
-        DEPT_NM: '',
-        USR_GRP_CD: '',
-        USE_YN: 'Y',
-      },
-    ]);
+    setRows((prev) => {
+      setEditIndex(prev.length);
+      return [...prev, createNewMmsm07001Row(prev.length)];
+    });
+    setError(null);
   }
 
   async function onDelete() {
-    const targets = rows
-      .filter((r) => r.CHECK && !r.ISNEW)
-      .map((r) => r.USR_ID)
-      .filter(Boolean) as string[];
+    const checkedRows = rows.filter((r) => r.CHECK);
+    const targets = checkedRows
+      .filter((r) => !r.ISNEW)
+      .map((r) => normalizeUserId(r.USR_ID))
+      .filter(Boolean);
+
+    if (checkedRows.length === 0) {
+      setError(null);
+      showWarning('삭제할 사용자를 선택하세요.');
+      return;
+    }
+
+    if (
+      targets.length > 0 &&
+      !window.confirm(`선택한 ${checkedRows.length}건의 사용자를 삭제하시겠습니까?`)
+    ) {
+      return;
+    }
+
     setError(null);
     if (targets.length > 0) {
       setLoading(true);
       try {
-        const payload = targets.map((id) => ({ USR_ID: id }));
-        await http(`/api/m07/mmsm07001/delete`, { method: 'POST', body: payload });
+        await deleteMmsm07001Rows(targets);
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {
@@ -115,30 +142,56 @@ export default function MMSM07001E() {
       }
     }
     setRows((prev) => prev.filter((r) => !r.CHECK));
+    setEditIndex(null);
   }
 
   async function onSave() {
     const targets = rows.filter((r) => r.CHECK || r.ISNEW);
     if (targets.length === 0) {
-      setError('저장할 대상이 없습니다.');
+      setError(null);
+      showWarning('저장할 대상이 없습니다.');
       return;
     }
+    if (targets.some((r) => !r.USR_ID?.trim())) {
+      setError(null);
+      showWarning('사용자 ID는 필수입니다.');
+      return;
+    }
+    if (targets.some((r) => !r.USR_NM?.trim())) {
+      setError(null);
+      showWarning('사용자 이름은 필수입니다.');
+      return;
+    }
+    if (targets.some((r) => !r.DEPT_CD?.trim())) {
+      setError(null);
+      showWarning('부서코드는 필수입니다.');
+      return;
+    }
+
+    const existingIds = new Set(
+      rows
+        .filter((r) => !r.ISNEW)
+        .map((r) => normalizeUserId(r.USR_ID))
+        .filter(Boolean)
+    );
+    const newIds = targets.filter((r) => r.ISNEW).map((r) => normalizeUserId(r.USR_ID));
+    const duplicatedExistingId = newIds.find((id) => existingIds.has(id));
+    const duplicatedNewId = newIds.find((id, index) => newIds.indexOf(id) !== index);
+
+    if (duplicatedExistingId || duplicatedNewId) {
+      const duplicatedId = duplicatedExistingId || duplicatedNewId;
+      setError(null);
+      showWarning(`사용자 ID ${duplicatedId}는 이미 존재합니다.`);
+      return;
+    }
+
     if (!window.confirm('저장 하시겠습니까?')) return;
     setLoading(true);
     setError(null);
     try {
-      const payload = targets.map((r) => ({
-        USR_ID: r.USR_ID ?? '',
-        USR_NM: r.USR_NM ?? '',
-        PWD: r.PWD ?? '',
-        DEPT_CD: r.DEPT_CD ?? '',
-        DEPT_NM: r.DEPT_NM ?? '',
-        USR_GRP_CD: r.USR_GRP_CD ?? '',
-        USE_YN: r.USE_YN ?? 'Y',
-        ISNEW: !!r.ISNEW,
-      }));
-      await http(`/api/m07/mmsm07001/save`, { method: 'POST', body: payload });
+      await saveMmsm07001Rows(targets);
       await onSearch();
+      setEditIndex(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -147,32 +200,7 @@ export default function MMSM07001E() {
   }
 
   function onExportCsv() {
-    const headers = [
-      'No.',
-      '사용자ID',
-      '사용자이름',
-      '패스워드',
-      '부서코드',
-      '부서명',
-      '사용자그룹',
-      '사용여부',
-    ];
-    const lines = rows.map((r, i) =>
-      [
-        r.SERL ?? i + 1,
-        r.USR_ID ?? '',
-        r.USR_NM ?? '',
-        r.PWD ?? '',
-        r.DEPT_CD ?? '',
-        r.DEPT_NM ?? '',
-        r.USR_GRP_CD ?? '',
-        r.USE_YN ?? '',
-      ]
-        .map((v) => (v ?? '').toString().replace(/"/g, '""'))
-        .map((v) => `"${v}"`)
-        .join(',')
-    );
-    const csv = [headers.join(','), ...lines].join('\n');
+    const csv = buildMmsm07001Csv(rows);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -185,175 +213,300 @@ export default function MMSM07001E() {
   }
 
   return (
-    <div className="p-3 space-y-3">
-      <div className="text-base font-semibold">사용자 관리</div>
+    <div className={pageShellClass}>
+      <div className={pageContentClass}>
+        <SectionCard span="full" padding="md">
+          <div className={searchGridClass}>
+            <div className={searchFieldClass}>
+              <span className={searchLabelTextClass}>사용자 이름</span>
+              <input
+                className={searchInputClass}
+                value={usrNm}
+                onChange={(event) => setUsrNm(event.target.value)}
+              />
+            </div>
+            <div className={searchFieldClass}>
+              <span className={searchLabelTextClass}>사용자그룹</span>
+              <input
+                className={searchInputClass}
+                value={usrGrpCd}
+                onChange={(event) => setUsrGrpCd(event.target.value)}
+              />
+            </div>
+            <div className={searchFieldClass}>
+              <span className={searchLabelTextClass}>부서</span>
+              <input
+                className={searchInputClass}
+                value={deptCd}
+                onChange={(event) => setDeptCd(event.target.value)}
+              />
+            </div>
+            <div className={searchFieldClass}>
+              <span className={searchLabelTextClass}>사용여부</span>
+              <select
+                className={searchSelectClass}
+                value={useYn}
+                onChange={(event) => setUseYn(event.target.value)}
+              >
+                <option value="">전체</option>
+                <option value="Y">Y</option>
+                <option value="N">N</option>
+              </select>
+            </div>
+            <div className="flex flex-wrap items-end justify-end gap-2">
+              <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
+                조회
+              </button>
+            </div>
+          </div>
+        </SectionCard>
 
-      {/* Filters & Buttons */}
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col text-sm">
-          <span className="mb-1">사용자 이름</span>
-          <input
-            className="h-8 border rounded px-2 w-40"
-            value={usrNm}
-            onChange={(e) => setUsrNm(e.target.value)}
-          />
-        </label>
-        <label className="flex flex-col text-sm">
-          <span className="mb-1">사용자그룹</span>
-          <input
-            className="h-8 border rounded px-2 w-32"
-            value={usrGrpCd}
-            onChange={(e) => setUsrGrpCd(e.target.value)}
-          />
-        </label>
-        <label className="flex flex-col text-sm">
-          <span className="mb-1">부서</span>
-          <input
-            className="h-8 border rounded px-2 w-32"
-            value={deptCd}
-            onChange={(e) => setDeptCd(e.target.value)}
-          />
-        </label>
-        <label className="flex flex-col text-sm">
-          <span className="mb-1">사용여부</span>
-          <select
-            className="h-8 border rounded px-2 w-28"
-            value={useYn}
-            onChange={(e) => setUseYn(e.target.value)}
-          >
-            <option value="">전체</option>
-            <option value="Y">Y</option>
-            <option value="N">N</option>
-          </select>
-        </label>
-        <div className="ml-auto flex gap-2">
-          <button
-            onClick={onSearch}
-            disabled={loading}
-            className="h-8 px-3 border rounded bg-primary text-primary-foreground disabled:opacity-50"
-          >
-            조회
-          </button>
-          <button onClick={onAdd} disabled={loading} className="h-8 px-3 border rounded">
-            추가
-          </button>
-          <button onClick={onSave} disabled={loading} className="h-8 px-3 border rounded">
-            저장
-          </button>
-          <button onClick={onDelete} disabled={loading} className="h-8 px-3 border rounded">
-            삭제
-          </button>
-          <button onClick={onExportCsv} className="h-8 px-3 border rounded">
-            엑셀
-          </button>
-        </div>
-      </div>
+        {error ? <AlertBox>{error}</AlertBox> : null}
 
-      {error && (
-        <div className="text-sm text-destructive border border-destructive/30 rounded p-2">
-          {error}
-        </div>
-      )}
-
-      {/* Grid */}
-      <div className="border rounded overflow-auto max-h-[70vh]">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-background">
-            <tr className="border-b">
-              <th className="w-12 p-2 text-center">선택</th>
-              <th className="w-12 p-2 text-center">No.</th>
-              <th className="w-32 p-2 text-center">사용자 ID</th>
-              <th className="w-40 p-2 text-left">사용자 이름</th>
-              <th className="w-40 p-2 text-left">패스워드</th>
-              <th className="w-32 p-2 text-left">부서코드</th>
-              <th className="w-40 p-2 text-left">부서명</th>
-              <th className="w-40 p-2 text-center">사용자그룹</th>
-              <th className="w-24 p-2 text-center">사용여부</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={i} className="border-b hover:bg-muted/30">
-                <td className="p-2 text-center">
-                  <input
-                    type="checkbox"
-                    checked={!!r.CHECK}
-                    onChange={(e) => toggle(i, e.target.checked)}
-                  />
-                </td>
-                <td className="p-2 text-center">{r.SERL ?? i + 1}</td>
-                <td className="p-1 text-center">
-                  <input
-                    className={`h-8 border rounded px-2 w-full ${!r.USR_ID ? 'border-destructive' : ''}`}
-                    value={r.USR_ID ?? ''}
-                    onChange={(e) => patch(i, { USR_ID: e.target.value })}
-                  />
-                </td>
-                <td className="p-1">
-                  <input
-                    className={`h-8 border rounded px-2 w-full ${!r.USR_NM ? 'border-destructive' : ''}`}
-                    value={r.USR_NM ?? ''}
-                    onChange={(e) => patch(i, { USR_NM: e.target.value })}
-                  />
-                </td>
-                <td className="p-1">
-                  <input
-                    type="password"
-                    className="h-8 border rounded px-2 w-full"
-                    value={r.PWD ?? ''}
-                    onChange={(e) => patch(i, { PWD: e.target.value })}
-                  />
-                </td>
-                <td className="p-1">
-                  <input
-                    className="h-8 border rounded px-2 w-full"
-                    value={r.DEPT_CD ?? ''}
-                    onChange={(e) => patch(i, { DEPT_CD: e.target.value })}
-                  />
-                </td>
-                <td className="p-1">
-                  <div className="flex gap-2">
+        <div className={registerSplitGridClass}>
+          <SectionCard span="full" width="full">
+            <SectionHeader
+              title="사용자"
+              right={
+                <span className={countBadgeClass}>
+                  {loading ? '조회중...' : `${rows.length}건`}
+                </span>
+              }
+            />
+            <div className="flex justify-end gap-2 px-4 py-3">
+              <button onClick={onAdd} disabled={loading} className={panelActionClass}>
+                추가
+              </button>
+              <button onClick={onSave} disabled={loading} className={saveButtonClass}>
+                저장
+              </button>
+              <button onClick={onDelete} disabled={loading} className={deleteButtonClass}>
+                삭제
+              </button>
+              <button onClick={onExportCsv} disabled={loading} className={exportCsvButtonClass}>
+                엑셀
+              </button>
+            </div>
+            <div className={gridScrollClass}>
+              <DataGrid<Row>
+                dataSource={rows}
+                rowKey={(row, index) =>
+                  row.ISNEW ? `new-${index}` : `${row.USR_ID || 'user'}-${index}`
+                }
+                showBorders
+                emptyText="사용자 목록이 없습니다. 조건을 입력하고 조회하세요."
+                classNames={{
+                  table: 'min-w-[1320px] w-full text-sm',
+                }}
+                getRowProps={(_, index) => ({
+                  onDoubleClick: () => markEditing(index),
+                  className: 'cursor-pointer',
+                })}
+              >
+                <Paging enabled={false} />
+                <Column<Row>
+                  dataField="CHECK"
+                  caption="선택"
+                  width={48}
+                  alignment="center"
+                  cellRender={(row, index) => (
                     <input
-                      className="h-8 border rounded px-2 w-full"
-                      value={r.DEPT_NM ?? ''}
-                      onChange={(e) => patch(i, { DEPT_NM: e.target.value })}
+                      type="checkbox"
+                      checked={!!row.CHECK}
+                      onClick={(event) => event.stopPropagation()}
+                      onChange={(event) => toggle(index, event.target.checked)}
                     />
-                    <button
-                      className="h-8 px-2 border rounded"
-                      onClick={() => alert('부서 검색 팝업은 추후 연동 예정입니다.')}
-                    >
-                      검색
-                    </button>
-                  </div>
-                </td>
-                <td className="p-1 text-center">
-                  <input
-                    className="h-8 border rounded px-2 w-full"
-                    value={r.USR_GRP_CD ?? ''}
-                    onChange={(e) => patch(i, { USR_GRP_CD: e.target.value })}
-                  />
-                </td>
-                <td className="p-1 text-center">
-                  <select
-                    className="h-8 border rounded px-2 w-full"
-                    value={r.USE_YN ?? 'Y'}
-                    onChange={(e) => patch(i, { USE_YN: e.target.value })}
-                  >
-                    <option value="Y">Y</option>
-                    <option value="N">N</option>
-                  </select>
-                </td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={9} className="p-3 text-center text-muted-foreground">
-                  데이터가 없습니다. 조건을 설정하고 조회하세요.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                  )}
+                />
+                <Column<Row>
+                  dataField="SERL"
+                  caption="No."
+                  width={60}
+                  alignment="center"
+                  cellRender={(row, index) => (
+                    <span className={readOnlyCellClass}>{row.SERL ?? index + 1}</span>
+                  )}
+                />
+                <Column<Row>
+                  dataField="USR_ID"
+                  caption="사용자 ID"
+                  width={150}
+                  alignment="center"
+                  cellRender={(row, index) => {
+                    const isEditing = row.ISNEW || editIndex === index;
+                    if (!isEditing) {
+                      return <span className={readOnlyCellClass}>{row.USR_ID ?? ''}</span>;
+                    }
+
+                    return (
+                      <input
+                        className={row.ISNEW ? editableInputClass : readonlyInputClass}
+                        value={row.USR_ID ?? ''}
+                        readOnly={!row.ISNEW}
+                        onClick={(event) => event.stopPropagation()}
+                        onChange={(event) => patch(index, { USR_ID: event.target.value })}
+                      />
+                    );
+                  }}
+                />
+                <Column<Row>
+                  dataField="USR_NM"
+                  caption="사용자 이름"
+                  width={180}
+                  cellRender={(row, index) => {
+                    const isEditing = row.ISNEW || editIndex === index;
+                    if (!isEditing) {
+                      return <span className={readOnlyCellClass}>{row.USR_NM ?? ''}</span>;
+                    }
+
+                    return (
+                      <input
+                        className={`${editableInputClass} ${!row.USR_NM ? 'border-rose-300' : ''}`}
+                        value={row.USR_NM ?? ''}
+                        onClick={(event) => event.stopPropagation()}
+                        onChange={(event) => patch(index, { USR_NM: event.target.value })}
+                      />
+                    );
+                  }}
+                />
+                <Column<Row>
+                  dataField="PWD"
+                  caption="패스워드"
+                  width={170}
+                  cellRender={(row, index) => {
+                    const isEditing = row.ISNEW || editIndex === index;
+                    if (!isEditing) {
+                      return <span className={readOnlyCellClass}>{row.PWD ? '********' : ''}</span>;
+                    }
+
+                    return (
+                      <input
+                        type="password"
+                        className={editableInputClass}
+                        value={row.PWD ?? ''}
+                        onClick={(event) => event.stopPropagation()}
+                        onChange={(event) => patch(index, { PWD: event.target.value })}
+                      />
+                    );
+                  }}
+                />
+                <Column<Row>
+                  dataField="DEPT_CD"
+                  caption="부서코드"
+                  width={130}
+                  cellRender={(row, index) => {
+                    const isEditing = row.ISNEW || editIndex === index;
+                    if (!isEditing) {
+                      return <span className={readOnlyCellClass}>{row.DEPT_CD ?? ''}</span>;
+                    }
+
+                    return (
+                      <input
+                        className={`${editableInputClass} ${!row.DEPT_CD ? 'border-rose-300' : ''}`}
+                        value={row.DEPT_CD ?? ''}
+                        onClick={(event) => event.stopPropagation()}
+                        onChange={(event) => patch(index, { DEPT_CD: event.target.value })}
+                      />
+                    );
+                  }}
+                />
+                <Column<Row>
+                  dataField="DEPT_NM"
+                  caption="부서명"
+                  width={160}
+                  cellRender={(row) => (
+                    <span className={readOnlyCellClass}>{row.DEPT_NM || row.DEPT_CD || ''}</span>
+                  )}
+                />
+                <Column<Row>
+                  dataField="USR_GRP_CD"
+                  caption="사용자그룹"
+                  width={150}
+                  alignment="center"
+                  cellRender={(row, index) => {
+                    const isEditing = row.ISNEW || editIndex === index;
+                    if (!isEditing) {
+                      return <span className={readOnlyCellClass}>{row.USR_GRP_CD ?? ''}</span>;
+                    }
+
+                    return (
+                      <input
+                        className={editableInputClass}
+                        value={row.USR_GRP_CD ?? ''}
+                        onClick={(event) => event.stopPropagation()}
+                        onChange={(event) => patch(index, { USR_GRP_CD: event.target.value })}
+                      />
+                    );
+                  }}
+                />
+                <Column<Row>
+                  dataField="PHONE"
+                  caption="전화번호"
+                  width={150}
+                  cellRender={(row, index) => {
+                    const isEditing = row.ISNEW || editIndex === index;
+                    if (!isEditing) {
+                      return <span className={readOnlyCellClass}>{row.PHONE ?? ''}</span>;
+                    }
+
+                    return (
+                      <input
+                        className={editableInputClass}
+                        value={row.PHONE ?? ''}
+                        onClick={(event) => event.stopPropagation()}
+                        onChange={(event) => patch(index, { PHONE: event.target.value })}
+                      />
+                    );
+                  }}
+                />
+                <Column<Row>
+                  dataField="EMAIL"
+                  caption="이메일"
+                  width={210}
+                  cellRender={(row, index) => {
+                    const isEditing = row.ISNEW || editIndex === index;
+                    if (!isEditing) {
+                      return <span className={readOnlyCellClass}>{row.EMAIL ?? ''}</span>;
+                    }
+
+                    return (
+                      <input
+                        className={editableInputClass}
+                        value={row.EMAIL ?? ''}
+                        onClick={(event) => event.stopPropagation()}
+                        onChange={(event) => patch(index, { EMAIL: event.target.value })}
+                      />
+                    );
+                  }}
+                />
+                <Column<Row>
+                  dataField="USE_YN"
+                  caption="사용여부"
+                  width={100}
+                  alignment="center"
+                  cellRender={(row, index) => {
+                    const isEditing = row.ISNEW || editIndex === index;
+                    if (!isEditing) {
+                      return <span className={readOnlyCellClass}>{row.USE_YN ?? 'Y'}</span>;
+                    }
+
+                    return (
+                      <select
+                        className={editableSelectClass}
+                        value={row.USE_YN ?? 'Y'}
+                        onClick={(event) => event.stopPropagation()}
+                        onChange={(event) => patch(index, { USE_YN: event.target.value })}
+                      >
+                        <option value="Y">Y</option>
+                        <option value="N">N</option>
+                      </select>
+                    );
+                  }}
+                />
+              </DataGrid>
+            </div>
+          </SectionCard>
+        </div>
       </div>
     </div>
   );
