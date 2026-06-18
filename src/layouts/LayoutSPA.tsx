@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Routes, Route, useNavigate, NavLink, Navigate, useLocation } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import {
   Panel,
   PanelGroup,
@@ -35,6 +35,12 @@ type RowItem = {
 
 type ResultList = PageResult<RowItem>;
 
+type PageTab = {
+  pageId: string;
+  title: string;
+  path?: string;
+};
+
 const fetchMe = getApiDataFetch<AuthFetchForm, UserPayload>({
   apiPath: '/api/v1/auth/me',
   mapParams: () => ({}),
@@ -44,6 +50,13 @@ const fetchMenuPgmInfoList = getApiDataFetch<AuthFetchForm, RowItem[]>({
   apiPath: '/api/v1/auth/menu/searchMenuPgmInfoList',
   mapParams: () => ({}),
 });
+
+function getPageIdFromPath(path?: string) {
+  return (path ?? '')
+    .replace(/^.*\//, '')
+    .replace(/\.tsx?$/i, '')
+    .trim();
+}
 
 export const LoadingBlock = ({ text = '불러오는 중...' }) => (
   <div className="flex items-center gap-2 text-muted-foreground text-sm p-3">
@@ -86,22 +99,25 @@ type MenuToggleButtonProps = {
 const MenuToggleButton = memo(function MenuToggleButton({ panelRef }: MenuToggleButtonProps) {
   const [collapsed, setCollapsed] = useState(false);
 
-  const handleToggle = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleToggle = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
 
-    const panel = panelRef.current;
-    if (!panel) return;
+      const panel = panelRef.current;
+      if (!panel) return;
 
-    if (panel.isCollapsed()) {
-      panel.expand();
-      setCollapsed(false);
-      return;
-    }
+      if (panel.isCollapsed()) {
+        panel.expand();
+        setCollapsed(false);
+        return;
+      }
 
-    panel.collapse();
-    setCollapsed(true);
-  }, [panelRef]);
+      panel.collapse();
+      setCollapsed(true);
+    },
+    [panelRef]
+  );
 
   const stopPointer = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -137,6 +153,7 @@ export default function LayoutSPA() {
   const [menuResult, setMenuResult] = useState<ResultList>(() => EmptyPageResult(0, PAGE_SIZE));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
+  const [tabs, setTabs] = useState<PageTab[]>([]);
   const navigate = useNavigate();
 
   const load = useCallback(async () => {
@@ -192,10 +209,44 @@ export default function LayoutSPA() {
     [nav]
   );
 
-  const onOpenPath = (path?: string) => {
-    if (!path) return;
-    const pageId = path.replace(/^.*\//, '').replace(/\.tsx?$/i, '');
+  const onOpenMenu = (node: TreeNode) => {
+    const pageId = getPageIdFromPath(node.path);
+    if (!pageId) return;
+
+    setTabs((prev) => {
+      if (prev.some((tab) => tab.pageId === pageId)) return prev;
+      return [
+        ...prev,
+        {
+          pageId,
+          title: String(node.menunm || pageId),
+          path: node.path,
+        },
+      ];
+    });
     setMaskedPage(pageId, navigate, { replace: false });
+  };
+
+  const openTab = (tab: PageTab) => {
+    setMaskedPage(tab.pageId, navigate, { replace: false });
+  };
+
+  const closeTab = (pageId: string) => {
+    setTabs((prev) => {
+      const index = prev.findIndex((tab) => tab.pageId === pageId);
+      if (index < 0) return prev;
+
+      const next = prev.filter((tab) => tab.pageId !== pageId);
+      if (maskedPage === pageId) {
+        const fallback = next[index] ?? next[index - 1];
+        if (fallback) {
+          setMaskedPage(fallback.pageId, navigate, { replace: false });
+        } else {
+          setMaskedPage('default', navigate, { replace: false });
+        }
+      }
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -241,6 +292,24 @@ export default function LayoutSPA() {
     return ((location.state as any)?.maskedPage as string | undefined) || getMaskedPage();
   }, [location.state, maskVersion]);
 
+  useEffect(() => {
+    if (!maskedPage || maskedPage === 'default' || tabs.some((tab) => tab.pageId === maskedPage)) {
+      return;
+    }
+
+    const matched = nav.menu.find((item) => getPageIdFromPath(item.path) === maskedPage);
+    if (!matched) return;
+
+    setTabs((prev) => [
+      ...prev,
+      {
+        pageId: maskedPage,
+        title: matched.menunm || maskedPage,
+        path: matched.path,
+      },
+    ]);
+  }, [maskedPage, nav.menu, tabs]);
+
   return (
     <div className="h-[100vh] w-full bg-background text-foreground">
       <header className="border-b">
@@ -279,13 +348,7 @@ export default function LayoutSPA() {
       </header>
 
       <PanelGroup direction="horizontal" className="h-[calc(100vh-88px)]">
-        <Panel
-          ref={leftPanelRef}
-          defaultSize={16}
-          minSize={8}
-          collapsible
-          collapsedSize={0}
-        >
+        <Panel ref={leftPanelRef} defaultSize={16} minSize={8} collapsible collapsedSize={0}>
           <div className="h-full bg-muted/30">
             <div className="p-1 h-full flex flex-col">
               <Separator />
@@ -297,31 +360,81 @@ export default function LayoutSPA() {
                 </div>
               ) : (
                 <ScrollArea className="flex-1">
-                  <TreeMenu nodes={toSafeTree(menuData)} onOpen={onOpenPath} masked={maskedPage ?? undefined} />
+                  <TreeMenu
+                    nodes={toSafeTree(menuData)}
+                    onOpen={onOpenMenu}
+                    masked={maskedPage ?? undefined}
+                  />
                 </ScrollArea>
               )}
             </div>
           </div>
         </Panel>
         <PanelResizeHandle className="relative flex w-3 items-center justify-center bg-border/70 transition hover:bg-border">
-<MenuToggleButton panelRef={leftPanelRef} />
+          <MenuToggleButton panelRef={leftPanelRef} />
         </PanelResizeHandle>
         <Panel minSize={40} defaultSize={84}>
-          <Routes>
-            <Route index element={<Navigate to="default.ts" replace />} />
-            <Route
-              path="*"
-              element={
-                <PageRenderer
-                  key={location.pathname.toLowerCase()}
-                  base="/app"
-                  pagesDir="/app/Default"
-                  fallback="default"
-                  maskVersion={maskVersion}
+          <div className="flex h-full flex-col bg-slate-50/50">
+            {tabs.length > 0 ? (
+              <div className="flex min-h-10 items-end gap-1 overflow-x-auto border-b border-slate-200 bg-white px-3 pt-2">
+                {tabs.map((tab) => {
+                  const active = maskedPage === tab.pageId;
+                  return (
+                    <button
+                      key={tab.pageId}
+                      type="button"
+                      onClick={() => openTab(tab)}
+                      className={[
+                        'group inline-flex h-9 max-w-[220px] shrink-0 items-center gap-2 rounded-t-md border px-3 text-sm transition',
+                        active
+                          ? 'border-slate-200 border-b-white bg-white font-semibold text-slate-900'
+                          : 'border-transparent bg-slate-100 text-slate-600 hover:bg-slate-200',
+                      ].join(' ')}
+                    >
+                      <span className="truncate">{tab.title}</span>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${tab.title} 닫기`}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          closeTab(tab.pageId);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            closeTab(tab.pageId);
+                          }
+                        }}
+                        className="inline-flex h-5 w-5 items-center justify-center rounded hover:bg-slate-200"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+            <div className="min-h-0 flex-1 overflow-auto bg-background">
+              <Routes>
+                <Route index element={<Navigate to="default.ts" replace />} />
+                <Route
+                  path="*"
+                  element={
+                    <PageRenderer
+                      key={location.pathname.toLowerCase()}
+                      base="/app"
+                      pagesDir="/app/Default"
+                      fallback="default"
+                      maskVersion={maskVersion}
+                    />
+                  }
                 />
-              }
-            />
-          </Routes>
+              </Routes>
+            </div>
+          </div>
         </Panel>
       </PanelGroup>
     </div>

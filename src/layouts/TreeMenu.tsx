@@ -5,13 +5,13 @@ import type { UINode } from '@/lib/menuInfo';
 
 type TreeMenuProps = {
   nodes?: UINode[];
-  onOpen?: (path?: string) => void;
+  onOpen?: (node: UINode) => void;
   masked?: string;
 };
 
 type TreeItemProps = {
   node: UINode;
-  onOpen?: (path?: string) => void;
+  onOpen?: (node: UINode) => void;
   masked?: string;
 };
 
@@ -27,7 +27,7 @@ function TreeItem({ node, onOpen, masked }: TreeItemProps) {
       setOpen((prev) => !prev);
       return;
     }
-    if (node.path) onOpen?.(node.path);
+    if (node.path) onOpen?.(node);
   };
 
   return (
