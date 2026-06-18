@@ -26,8 +26,12 @@ export default function MMSM00001S() {
     setSubmitting(true);
     const res = await login({ userId, password });
     setSubmitting(false);
-    if ('error' in res) {
-      setError(res.error || '로그인 처리 중 오류가 발생했습니다.');
+    if (!res.ok) {
+      setError(
+        'error' in res
+          ? res.error || '로그인 처리 중 오류가 발생했습니다.'
+          : '로그인 처리 중 오류가 발생했습니다.'
+      );
       return;
     }
     navigate(resolveRedirect(from), { replace: true });

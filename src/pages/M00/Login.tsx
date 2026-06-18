@@ -27,13 +27,25 @@ export default function LoginPage() {
   const from = (location.state as { from?: Location })?.from?.pathname; // optional
 
   const onLogin = async () => {
-    if (!userId || !password || submitting) return;
+    if (submitting) return;
+    if (!userId.trim()) {
+      setError('아이디를 입력하세요.');
+      return;
+    }
+    if (!password.trim()) {
+      setError('비밀번호를 입력하세요.');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     const res = await login({ userId, password });
     setSubmitting(false);
-    if ('error' in res) {
-      setError(res.error ?? '로그인 처리 중 오류가 발생했습니다.');
+    if (!res.ok) {
+      setError(
+        'error' in res
+          ? (res.error ?? '로그인 처리 중 오류가 발생했습니다.')
+          : '로그인 처리 중 오류가 발생했습니다.'
+      );
       return;
     }
 
