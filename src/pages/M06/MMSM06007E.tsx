@@ -3,7 +3,6 @@ import AlertBox from '@/components/AlertBox';
 import SectionCard from '@/components/SectionCard';
 import SectionHeader from '@/components/SectionHeader';
 import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
-import { http } from '@/lib/http';
 import {
   countBadgeClass,
   editableInputClass,
@@ -18,38 +17,20 @@ import {
   saveButtonClass,
   searchButtonClass,
 } from '@/lib/pageStyles';
+import {
+  buildMmsm06007Csv,
+  createNewMmsm06007Row,
+  deleteMmsm06007Rows,
+  fetchMmsm06007Rows,
+  normalizeLineCode,
+  onlyDigits,
+  saveMmsm06007Rows,
+  type Row,
+} from '@/services/m06/mmsm06007';
 
 // 작업장 관리 (MMSM06007E)
 // 단일 그리드: 조회/추가/저장/삭제/엑셀
 // 필터: 작업장명(line_nm)
-
-type Row = {
-  CHECK?: boolean;
-  ISNEW?: boolean;
-  DSP_SEQ?: string | number;
-  LINE_CD?: string;
-  LINE_NM?: string;
-  DESCRIPTION?: string;
-  USE_YN?: string; // 'Y' | 'N'
-  [k: string]: unknown;
-};
-
-type LineInfoResponse = {
-  lineCd?: string;
-  lineNm?: string;
-  dspSeq?: number;
-  description?: string;
-  status?: 'ACTIVE' | 'INACTIVE' | string;
-};
-
-type LineInfoRequest = {
-  method?: string;
-  lineCd: string;
-  lineNm?: string;
-  dspSeq?: number | null;
-  description?: string;
-  status?: 'ACTIVE' | 'INACTIVE';
-};
 
 const searchLabelClass = 'font-medium text-slate-700';
 const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
@@ -61,32 +42,6 @@ const deleteButtonClass =
   'h-9 rounded-lg border border-rose-200 bg-rose-50 px-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100 disabled:opacity-50';
 const readonlyInputClass = `${editableInputClass} bg-slate-100 text-slate-500`;
 const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
-
-function onlyDigits(value: string) {
-  return value.replace(/\D/g, '');
-}
-
-function toNumberOrNull(value: string | number | undefined) {
-  if (value === undefined || value === '') return null;
-  const nextValue = Number(value);
-  return Number.isFinite(nextValue) ? nextValue : null;
-}
-
-function mapLineInfoRow(row: LineInfoResponse, index: number): Row {
-  return {
-    CHECK: false,
-    ISNEW: false,
-    DSP_SEQ: row.dspSeq ?? index + 1,
-    LINE_CD: row.lineCd ?? '',
-    LINE_NM: row.lineNm ?? '',
-    DESCRIPTION: row.description ?? '',
-    USE_YN: row.status === 'INACTIVE' ? 'N' : 'Y',
-  };
-}
-
-function normalizeLineCode(value: string | undefined) {
-  return (value ?? '').trim().toUpperCase();
-}
 
 function showWarning(message: string) {
   window.alert(message);
@@ -106,12 +61,7 @@ export default function MMSM06007E() {
     setLoading(true);
     setError(null);
     try {
-      const data = await http<LineInfoResponse[]>(`/api/v1/mdm/line`);
-      const keyword = lineNm.trim();
-      const list = (Array.isArray(data) ? data : [])
-        .filter((row) => !keyword || (row.lineNm ?? '').includes(keyword))
-        .map(mapLineInfoRow);
-
+      const list = await fetchMmsm06007Rows(lineNm);
       setRows(list);
       setEditIndex(null);
     } catch (e) {
@@ -151,18 +101,7 @@ export default function MMSM06007E() {
   function onAdd() {
     setRows((prev) => {
       setEditIndex(prev.length);
-      return [
-        ...prev,
-        {
-          CHECK: true,
-          ISNEW: true,
-          DSP_SEQ: prev.length + 1,
-          LINE_CD: '',
-          LINE_NM: '',
-          DESCRIPTION: '',
-          USE_YN: 'Y',
-        },
-      ];
+      return [...prev, createNewMmsm06007Row(prev.length)];
     });
     setError(null);
   }
@@ -180,7 +119,10 @@ export default function MMSM06007E() {
       return;
     }
 
-    if (targets.length > 0 && !window.confirm(`선택한 ${checkedRows.length}건의 작업장을 삭제하시겠습니까?`)) {
+    if (
+      targets.length > 0 &&
+      !window.confirm(`선택한 ${checkedRows.length}건의 작업장을 삭제하시겠습니까?`)
+    ) {
       return;
     }
 
@@ -188,14 +130,7 @@ export default function MMSM06007E() {
     if (targets.length > 0) {
       setLoading(true);
       try {
-        await Promise.all(
-          targets.map((lineCd) =>
-            http(`/api/v1/mdm/line`, {
-              method: 'POST',
-              body: { method: 'D', lineCd },
-            })
-          )
-        );
+        await deleteMmsm06007Rows(targets);
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {
@@ -225,7 +160,10 @@ export default function MMSM06007E() {
     }
 
     const existingCodes = new Set(
-      rows.filter((r) => !r.ISNEW).map((r) => normalizeLineCode(r.LINE_CD)).filter(Boolean)
+      rows
+        .filter((r) => !r.ISNEW)
+        .map((r) => normalizeLineCode(r.LINE_CD))
+        .filter(Boolean)
     );
     const newCodes = targets.filter((r) => r.ISNEW).map((r) => normalizeLineCode(r.LINE_CD));
     const duplicatedExistingCode = newCodes.find((code) => existingCodes.has(code));
@@ -242,20 +180,7 @@ export default function MMSM06007E() {
     setLoading(true);
     setError(null);
     try {
-      await Promise.all(
-        targets.map((r) => {
-          const payload: LineInfoRequest = {
-            method: r.ISNEW ? 'I' : 'U',
-            lineCd: r.LINE_CD?.trim() ?? '',
-            lineNm: r.LINE_NM?.trim() ?? '',
-            dspSeq: toNumberOrNull(r.DSP_SEQ),
-            description: r.DESCRIPTION ?? '',
-            status: r.USE_YN === 'N' ? 'INACTIVE' : 'ACTIVE',
-          };
-
-          return http(`/api/v1/mdm/line`, { method: 'POST', body: payload });
-        })
-      );
+      await saveMmsm06007Rows(targets);
       await onSearch();
       setEditIndex(null);
     } catch (e) {
@@ -266,14 +191,7 @@ export default function MMSM06007E() {
   }
 
   function onExportCsv() {
-    const headers = ['표시순서', '작업장코드', '작업장명', '설명', '사용여부'];
-    const lines = rows.map((r) =>
-      [r.DSP_SEQ ?? '', r.LINE_CD ?? '', r.LINE_NM ?? '', r.DESCRIPTION ?? '', r.USE_YN ?? '']
-        .map((v) => (v ?? '').toString().replace(/"/g, '""'))
-        .map((v) => `"${v}"`)
-        .join(',')
-    );
-    const csv = [headers.join(','), ...lines].join('\n');
+    const csv = buildMmsm06007Csv(rows);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
