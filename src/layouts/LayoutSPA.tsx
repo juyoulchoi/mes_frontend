@@ -17,7 +17,6 @@ import { filterTreeByRole } from '@/lib/acl';
 import { ensureMaskedPage, setMaskedPage, getMaskedPage } from '@/app/routeMask';
 import { EmptyPageResult, PAGE_SIZE, toPageResult, type PageResult } from '@/lib/pagination';
 import { getApiDataFetch, type FetchRequest } from '@/services/common/getApiFetch';
-import TopMenu from './TopMenu';
 import TreeMenu from './TreeMenu';
 
 type AuthFetchForm = Record<string, never>;
@@ -195,20 +194,6 @@ export default function LayoutSPA() {
     return filterTreeByRole(tree, roles);
   }, [nav, user]);
 
-  const topMenuItems = useMemo(
-    () =>
-      nav.menu
-        .filter((item) => item.lvl === 1)
-        .sort((a, b) => a.dspSeq - b.dspSeq)
-        .map((item) => ({
-          ...item,
-          children: nav.menu
-            .filter((child) => child.topMenu === item.menuid)
-            .sort((a, b) => a.dspSeq - b.dspSeq),
-        })),
-    [nav]
-  );
-
   const onOpenMenu = (node: TreeNode) => {
     const pageId = getPageIdFromPath(node.path);
     if (!pageId) return;
@@ -335,9 +320,6 @@ export default function LayoutSPA() {
             </Button>
           </div>
         </div>
-        <div className="w-full flex justify-center">
-          <TopMenu items={topMenuItems} />
-        </div>
         {loading ? (
           <LoadingBlock text="메뉴 불러오는 중..." />
         ) : error ? (
@@ -347,7 +329,7 @@ export default function LayoutSPA() {
         ) : null}
       </header>
 
-      <PanelGroup direction="horizontal" className="h-[calc(100vh-88px)]">
+      <PanelGroup direction="horizontal" className="h-[calc(100vh-48px)]">
         <Panel ref={leftPanelRef} defaultSize={16} minSize={8} collapsible collapsedSize={0}>
           <div className="h-full bg-muted/30">
             <div className="p-1 h-full flex flex-col">
