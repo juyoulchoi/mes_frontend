@@ -10,6 +10,7 @@ import { CheckColumn, Column, DataGrid } from '@/components/table/DataGrid';
 import { patchCheckedRow, removeCheckedRows, updateCheckedRows } from '@/lib/gridRows';
 import { resolveApiUrl } from '@/lib/config';
 import { http } from '@/lib/http';
+import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import { EmptyPageResult, PAGE_SIZE } from '@/lib/pagination';
 import {
   addTransferButtonClass,
@@ -96,7 +97,8 @@ async function refreshAccessToken() {
   const payload = (await res.json()) as TokenRefreshResponse;
   if (payload.success === false) return '';
 
-  const token = payload.data?.accessToken || payload.data?.token || payload.accessToken || payload.token || '';
+  const token =
+    payload.data?.accessToken || payload.data?.token || payload.accessToken || payload.token || '';
   if (!token || getTokenExpiresAt(token) <= Date.now()) return '';
 
   localStorage.setItem('token', token);
@@ -109,7 +111,10 @@ async function resolveAccessToken() {
 }
 
 function isDuplicatePlanError(error: unknown) {
-  return error instanceof Error && /409|생산계획이 생성|Production Plan Already Exists/.test(error.message);
+  return (
+    error instanceof Error &&
+    /409|생산계획이 생성|Production Plan Already Exists/.test(error.message)
+  );
 }
 
 function isMissingPlanProcessError(error: unknown) {
@@ -120,6 +125,7 @@ const missingPlanProcessGuide =
   '제품 마스터에서 공정그룹 또는 대표공정을 등록하고, 공정그룹 라우팅에 공정을 매칭하세요.';
 
 export default function MMSM02001E() {
+  const { canSave, canDelete } = usePagePermissions();
   const [customerOpen, setCustomerOpen] = useState(false);
   const [cstNm, setCstNm] = useState('');
   const [masterRows, setMasterRows] = useState<MasterRow[]>([]);
@@ -561,13 +567,15 @@ export default function MMSM02001E() {
                   onChange={(event) => setPrdSchdYmd(event.target.value)}
                 />
               </label>
-              <button
-                onClick={() => void onCreatePlan()}
-                disabled={isSave || selectedDetailCount === 0}
-                className={saveButtonClass}
-              >
-                생산계획생성
-              </button>
+              {canSave && (
+                <button
+                  onClick={() => void onCreatePlan()}
+                  disabled={isSave || selectedDetailCount === 0}
+                  className={saveButtonClass}
+                >
+                  생산계획생성
+                </button>
+              )}
             </div>
           </div>
         </SectionCard>
@@ -605,18 +613,16 @@ export default function MMSM02001E() {
 
           <div className={transferColumnClass}>
             <div className={transferButtonGroupClass}>
-              <button
-                onClick={onAddFromMaster}
-                className={addTransferButtonClass}
-              >
-                추가
-              </button>
-              <button
-                onClick={onDeleteDetail}
-                className={deleteTransferButtonClass}
-              >
-                삭제
-              </button>
+              {canSave && (
+                <button onClick={onAddFromMaster} className={addTransferButtonClass}>
+                  추가
+                </button>
+              )}
+              {canDelete && (
+                <button onClick={onDeleteDetail} className={deleteTransferButtonClass}>
+                  삭제
+                </button>
+              )}
             </div>
           </div>
 

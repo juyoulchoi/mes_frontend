@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import AlertBox from '@/components/AlertBox';
+import CrudActionButtons from '@/components/CrudActionButtons';
 import SectionCard from '@/components/SectionCard';
 import SectionHeader from '@/components/SectionHeader';
 import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
+import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
   addTransferButtonClass,
   countBadgeClass,
   deleteTransferButtonClass,
-  exportCsvButtonClass,
   gridScrollClass,
   pageContentClass,
   pageShellClass,
@@ -38,6 +39,8 @@ const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 it
 const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
 
 export default function MMSM06005E() {
+  const permissions = usePagePermissions();
+
   const [groups, setGroups] = useState<GroupRow[]>([]);
   const [procs, setProcs] = useState<ProcRow[]>([]);
   const [grpProcs, setGrpProcs] = useState<ProcRow[]>([]);
@@ -114,7 +117,9 @@ export default function MMSM06005E() {
     }
 
     if (procs.length === 0) {
-      setError('등록 가능한 공정이 없습니다. 공정정보를 먼저 등록했거나 이미 모두 등록된 상태인지 확인하세요.');
+      setError(
+        '등록 가능한 공정이 없습니다. 공정정보를 먼저 등록했거나 이미 모두 등록된 상태인지 확인하세요.'
+      );
       return;
     }
 
@@ -208,12 +213,16 @@ export default function MMSM06005E() {
             </div>
             <div />
             <div className="flex flex-wrap items-end justify-end gap-2">
-              <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
-                조회
-              </button>
-              <button onClick={onExportCsv} disabled={loading} className={exportCsvButtonClass}>
-                엑셀
-              </button>
+              {permissions.canSearch ? (
+                <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
+                  조회
+                </button>
+              ) : null}
+              <CrudActionButtons
+                onExport={onExportCsv}
+                disabled={loading}
+                className="flex flex-wrap items-end justify-end gap-2"
+              />
             </div>
           </div>
         </SectionCard>
@@ -267,20 +276,24 @@ export default function MMSM06005E() {
 
           <div className={transferColumnClass}>
             <div className={transferButtonGroupClass}>
-              <button
-                onClick={onRemoveProcsFromGroup}
-                disabled={loading || !selectedGrp}
-                className={deleteTransferButtonClass}
-              >
-                해제
-              </button>
-              <button
-                onClick={onAddProcsToGroup}
-                disabled={loading || !selectedGrp || procs.length === 0}
-                className={addTransferButtonClass}
-              >
-                등록
-              </button>
+              {permissions.canDelete ? (
+                <button
+                  onClick={onRemoveProcsFromGroup}
+                  disabled={loading || !selectedGrp}
+                  className={deleteTransferButtonClass}
+                >
+                  해제
+                </button>
+              ) : null}
+              {permissions.canSave ? (
+                <button
+                  onClick={onAddProcsToGroup}
+                  disabled={loading || !selectedGrp || procs.length === 0}
+                  className={addTransferButtonClass}
+                >
+                  등록
+                </button>
+              ) : null}
             </div>
           </div>
 
@@ -289,7 +302,9 @@ export default function MMSM06005E() {
               title="공정그룹 라우팅"
               right={
                 <span className={countBadgeClass}>
-                  {loading ? '조회중...' : `등록가능공정 ${procs.length}건 / 등록공정 ${grpProcs.length}건`}
+                  {loading
+                    ? '조회중...'
+                    : `등록가능공정 ${procs.length}건 / 등록공정 ${grpProcs.length}건`}
                 </span>
               }
             />

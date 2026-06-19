@@ -7,6 +7,7 @@ import SectionHeader from '@/components/SectionHeader';
 import StatusActionButtons from '@/components/StatusActionButtons';
 import { CheckColumn, Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
 import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
+import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import { useCodes } from '@/lib/hooks/useCodes';
 import { toYmd } from '@/lib/excel';
 import { http } from '@/lib/http';
@@ -45,6 +46,7 @@ const detailInputClass = 'h-9 w-full rounded border border-slate-200 bg-white px
 const detailNumberInputClass = `${detailInputClass} text-right`;
 
 export default function MMSM02004E() {
+  const { canSave } = usePagePermissions();
   const [form, setForm] = useState<Mmsm02002SearchForm>(() => {
     const today = getTodayYmd();
 
@@ -245,9 +247,7 @@ export default function MMSM02004E() {
                 className={`${searchControlClass} w-[150px]`}
                 value={form.dateFrom}
                 max={form.dateTo || undefined}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, dateFrom: event.target.value }))
-                }
+                onChange={(event) => setForm((prev) => ({ ...prev, dateFrom: event.target.value }))}
               />
               <span className="flex h-10 items-center text-sm text-slate-500">~</span>
               <input
@@ -380,13 +380,15 @@ export default function MMSM02004E() {
                 <span className={countBadgeClass}>
                   {detailLoading ? '조회중...' : selectedPlan ? '1건 선택' : '미선택'}
                 </span>
-                <button
-                  className={saveButtonClass}
-                  disabled={!selectedPlan || saving || detailLoading}
-                  onClick={() => void onSaveWorkOrder()}
-                >
-                  {saving ? '등록중...' : '작업지시 등록'}
-                </button>
+                {canSave && (
+                  <button
+                    className={saveButtonClass}
+                    disabled={!selectedPlan || saving || detailLoading}
+                    onClick={() => void onSaveWorkOrder()}
+                  >
+                    {saving ? '등록중...' : '작업지시 등록'}
+                  </button>
+                )}
               </div>
             }
           />
@@ -472,7 +474,12 @@ export default function MMSM02004E() {
                 classNames={{ table: 'min-w-[620px] w-full text-sm' }}
               >
                 <Paging enabled={false} />
-                <Column dataField="originSoNo" caption="원 수주번호" width={130} alignment="center" />
+                <Column
+                  dataField="originSoNo"
+                  caption="원 수주번호"
+                  width={130}
+                  alignment="center"
+                />
                 <Column dataField="custDueYmd" caption="고객 납기" width={120} alignment="center" />
                 <Column dataField="cstNm" caption="거래처" width={150} />
                 <Column

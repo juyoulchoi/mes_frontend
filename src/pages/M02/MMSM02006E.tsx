@@ -7,6 +7,7 @@ import SectionHeader from '@/components/SectionHeader';
 import StatusActionButtons from '@/components/StatusActionButtons';
 import { CheckColumn, Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
 import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
+import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import { PAGE_SIZE } from '@/lib/pagination';
 import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
 import { getTodayYmd } from '@/lib/registerDetailUtils';
@@ -72,6 +73,7 @@ function ClickableCell({
 }
 
 export default function MMSM02006E() {
+  const { canSave } = usePagePermissions();
   const today = getTodayYmd();
   const [startDate, setStartDate] = useState(`${today.slice(0, 7)}-01`);
   const [endDate, setEndDate] = useState(today);
@@ -261,14 +263,16 @@ export default function MMSM02006E() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void onSaveDetail()}
-                    disabled={saving}
-                    className="h-9 rounded-lg border border-sky-200 bg-sky-50 px-4 text-sm font-medium text-sky-700 transition hover:bg-sky-100 disabled:opacity-50"
-                  >
-                    {saving ? '저장중...' : '저장'}
-                  </button>
+                  {canSave && (
+                    <button
+                      type="button"
+                      onClick={() => void onSaveDetail()}
+                      disabled={saving}
+                      className="h-9 rounded-lg border border-sky-200 bg-sky-50 px-4 text-sm font-medium text-sky-700 transition hover:bg-sky-100 disabled:opacity-50"
+                    >
+                      {saving ? '저장중...' : '저장'}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setDetailRow(null)}

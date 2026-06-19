@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import AlertBox from '@/components/AlertBox';
+import CrudActionButtons from '@/components/CrudActionButtons';
 import SectionCard from '@/components/SectionCard';
 import SectionHeader from '@/components/SectionHeader';
 import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
+import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
   countBadgeClass,
   editableInputClass,
   editableNumberInputClass,
-  exportCsvButtonClass,
   gridScrollClass,
   pageContentClass,
   pageShellClass,
   registerSplitGridClass,
-  saveButtonClass,
   searchButtonClass,
 } from '@/lib/pageStyles';
 import {
@@ -35,10 +35,6 @@ const searchLabelClass = 'font-medium text-slate-700';
 const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
 const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
 const searchInputClass = 'h-10 w-full rounded-lg border border-slate-200 px-3 text-sm';
-const panelActionClass =
-  'h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50';
-const deleteButtonClass =
-  'h-9 rounded-lg border border-rose-200 bg-rose-50 px-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100 disabled:opacity-50';
 const readonlyInputClass = `${editableInputClass} bg-slate-100 text-slate-500`;
 const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
 
@@ -47,6 +43,8 @@ function showWarning(message: string) {
 }
 
 export default function MMSM07003E() {
+  const permissions = usePagePermissions();
+
   const [keyword, setKeyword] = useState('');
   const [rows, setRows] = useState<MenuRow[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -216,9 +214,11 @@ export default function MMSM07003E() {
               />
             </div>
             <div className="flex flex-wrap items-end justify-end gap-2">
-              <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
-                조회
-              </button>
+              {permissions.canSearch ? (
+                <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
+                  조회
+                </button>
+              ) : null}
             </div>
           </div>
         </SectionCard>
@@ -235,14 +235,13 @@ export default function MMSM07003E() {
                 </span>
               }
             />
-            <div className="flex justify-end gap-2 px-4 py-3">
-              <button onClick={onAddSame} disabled={loading} className={panelActionClass}>
-                동일행추가
-              </button>
-              <button onClick={onAddChild} disabled={loading} className={panelActionClass}>
-                하위행추가
-              </button>
-            </div>
+            <CrudActionButtons
+              addActions={[
+                { label: '동일행추가', onClick: onAddSame },
+                { label: '하위행추가', onClick: onAddChild },
+              ]}
+              disabled={loading}
+            />
             <div className={gridScrollClass}>
               <DataGrid<MenuRow>
                 dataSource={filteredRows}
@@ -300,21 +299,14 @@ export default function MMSM07003E() {
                 ) : null
               }
             />
-            <div className="flex justify-end gap-2 px-4 py-3">
-              <button onClick={onSave} disabled={loading} className={saveButtonClass}>
-                저장
-              </button>
-              <button
-                onClick={onDelete}
-                disabled={loading || !selected}
-                className={deleteButtonClass}
-              >
-                삭제
-              </button>
-              <button onClick={onExportCsv} disabled={loading} className={exportCsvButtonClass}>
-                엑셀
-              </button>
-            </div>
+            <CrudActionButtons
+              onSave={onSave}
+              onDelete={onDelete}
+              onExport={onExportCsv}
+              disabled={loading}
+              deleteDisabled={!selected}
+              addActions={[]}
+            />
             <div className="grid grid-cols-1 gap-3 px-4 pb-4 text-sm md:grid-cols-2">
               {!selected ? (
                 <div className="col-span-full rounded-lg border border-dashed border-slate-200 p-6 text-center text-slate-500">

@@ -9,6 +9,7 @@ import { Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
 import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
 import StatusActionButtons from '@/components/StatusActionButtons';
 import { http } from '@/lib/http';
+import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import { PAGE_SIZE, type PageableResponse } from '@/lib/pagination';
 import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
 import {
@@ -129,6 +130,7 @@ function ClickableCell({
 }
 
 export default function MMSM01010E() {
+  const { canSave } = usePagePermissions();
   const [customerOpen, setCustomerOpen] = useState(false);
   const [cstCd, setCstCd] = useState('');
   const [cstNm, setCstNm] = useState('');
@@ -357,14 +359,16 @@ export default function MMSM01010E() {
                   ) : null}
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void onSaveCustomerDetail()}
-                    disabled={saving}
-                    className="h-9 rounded-lg border border-sky-200 bg-sky-50 px-4 text-sm font-medium text-sky-700 transition hover:bg-sky-100 disabled:opacity-50"
-                  >
-                    {saving ? '저장중...' : detailPopupRow.isRegister ? '등록' : '저장'}
-                  </button>
+                  {canSave && (
+                    <button
+                      type="button"
+                      onClick={() => void onSaveCustomerDetail()}
+                      disabled={saving}
+                      className="h-9 rounded-lg border border-sky-200 bg-sky-50 px-4 text-sm font-medium text-sky-700 transition hover:bg-sky-100 disabled:opacity-50"
+                    >
+                      {saving ? '저장중...' : detailPopupRow.isRegister ? '등록' : '저장'}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setDetailPopupRow(null)}

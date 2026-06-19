@@ -8,6 +8,7 @@ import SectionHeader from '@/components/SectionHeader';
 import { CheckColumn, Column, DataGrid } from '@/components/table/DataGrid';
 import { patchCheckedRow, removeCheckedRows, updateCheckedRows } from '@/lib/gridRows';
 import { http } from '@/lib/http';
+import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import { EmptyPageResult, PAGE_SIZE } from '@/lib/pagination';
 import {
   addTransferButtonClass,
@@ -51,6 +52,7 @@ function getSalesRowKey(row: {
 }
 
 export default function MMSM04002E() {
+  const { canSave, canDelete } = usePagePermissions();
   const [customerOpen, setCustomerOpen] = useState(false);
   const [cstNm, setCstNm] = useState('');
   const [masterRows, setMasterRows] = useState<MasterRow[]>([]);
@@ -213,9 +215,7 @@ export default function MMSM04002E() {
 
     const excessRowIndex = detailRows.findIndex(
       (row) =>
-        row.method === 'I' &&
-        row.remainingQty !== undefined &&
-        Number(row.qty) > row.remainingQty
+        row.method === 'I' && row.remainingQty !== undefined && Number(row.qty) > row.remainingQty
     );
     if (excessRowIndex >= 0) {
       setSaveError(`상세 ${excessRowIndex + 1}행의 출고수량이 출고가능수량을 초과했습니다.`);
@@ -337,9 +337,7 @@ export default function MMSM04002E() {
                 type="date"
                 className={issueDateInputClass}
                 value={form.giYmd}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, giYmd: event.target.value }))
-                }
+                onChange={(event) => setForm((prev) => ({ ...prev, giYmd: event.target.value }))}
               />
             </label>
           </div>
@@ -374,24 +372,23 @@ export default function MMSM04002E() {
                 <Column dataField="emNm" caption="긴급구분" width={100} alignment="center" />
                 <Column dataField="qty" caption="수주수량" width={100} alignment="right" />
                 <Column dataField="outQty" caption="기출고" width={90} alignment="right" />
-                <Column
-                  dataField="remainingQty"
-                  caption="출고가능"
-                  width={100}
-                  alignment="right"
-                />
+                <Column dataField="remainingQty" caption="출고가능" width={100} alignment="right" />
               </DataGrid>
             </div>
           </SectionCard>
 
           <div className={transferColumnClass}>
             <div className={transferButtonGroupClass}>
-              <button onClick={onAddFromMaster} className={addTransferButtonClass}>
-                추가
-              </button>
-              <button onClick={onDeleteDetail} className={deleteTransferButtonClass}>
-                삭제
-              </button>
+              {canSave && (
+                <button onClick={onAddFromMaster} className={addTransferButtonClass}>
+                  추가
+                </button>
+              )}
+              {canDelete && (
+                <button onClick={onDeleteDetail} className={deleteTransferButtonClass}>
+                  삭제
+                </button>
+              )}
             </div>
           </div>
 

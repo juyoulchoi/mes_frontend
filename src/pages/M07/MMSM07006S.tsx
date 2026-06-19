@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import AlertBox from '@/components/AlertBox';
+import CrudActionButtons from '@/components/CrudActionButtons';
 import SectionCard from '@/components/SectionCard';
 import SectionHeader from '@/components/SectionHeader';
 import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
+import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
   countBadgeClass,
-  exportCsvButtonClass,
   gridScrollClass,
   pageContentClass,
   pageShellClass,
@@ -25,6 +26,8 @@ const searchInputClass = 'h-10 w-full rounded-lg border border-slate-200 px-3 te
 const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
 
 export default function MMSM07006S() {
+  const permissions = usePagePermissions();
+
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [evtTp, setEvtTp] = useState('');
@@ -90,9 +93,11 @@ export default function MMSM07006S() {
               />
             </div>
             <div className="flex flex-wrap items-end justify-end gap-2">
-              <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
-                조회
-              </button>
+              {permissions.canSearch ? (
+                <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
+                  조회
+                </button>
+              ) : null}
             </div>
           </div>
         </SectionCard>
@@ -109,11 +114,7 @@ export default function MMSM07006S() {
                 </span>
               }
             />
-            <div className="flex justify-end gap-2 px-4 py-3">
-              <button onClick={onExportCsv} disabled={loading} className={exportCsvButtonClass}>
-                엑셀
-              </button>
-            </div>
+            <CrudActionButtons onExport={onExportCsv} disabled={loading} />
             <div className={gridScrollClass}>
               <DataGrid<Row>
                 dataSource={rows}

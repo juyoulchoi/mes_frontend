@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { http } from '@/lib/http';
+import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
   columns,
   exportHeaders,
@@ -14,6 +15,7 @@ import {
 // 필터 없음. 기능: 조회, 엑셀(CSV)
 
 export default function MMSM02005S() {
+  const { canSearch, canExport } = usePagePermissions();
   const [rows, setRows] = useState<RowItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,16 +61,20 @@ export default function MMSM02005S() {
       <div className="flex items-center justify-between">
         <div className="text-base font-semibold">모니터링</div>
         <div className="flex gap-2">
-          <button
-            onClick={onSearch}
-            disabled={loading}
-            className="h-8 px-3 border rounded bg-primary text-primary-foreground disabled:opacity-50"
-          >
-            조회
-          </button>
-          <button onClick={onExportCsv} className="h-8 px-3 border rounded">
-            엑셀
-          </button>
+          {canSearch && (
+            <button
+              onClick={onSearch}
+              disabled={loading}
+              className="h-8 px-3 border rounded bg-primary text-primary-foreground disabled:opacity-50"
+            >
+              조회
+            </button>
+          )}
+          {canExport && (
+            <button onClick={onExportCsv} className="h-8 px-3 border rounded">
+              엑셀
+            </button>
+          )}
         </div>
       </div>
 

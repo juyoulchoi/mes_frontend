@@ -9,6 +9,7 @@ import SectionHeader from '@/components/SectionHeader';
 import StatusActionButtons from '@/components/StatusActionButtons';
 import { Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
 import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
+import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import { http } from '@/lib/http';
 import { PAGE_SIZE, type PageableResponse } from '@/lib/pagination';
 import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
@@ -105,6 +106,7 @@ function ClickableCell({
 }
 
 export default function MMSM04005E() {
+  const { canSave, canDelete } = usePagePermissions();
   const [customerOpen, setCustomerOpen] = useState(false);
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
   const [detailItemPickerOpen, setDetailItemPickerOpen] = useState(false);
@@ -376,7 +378,7 @@ export default function MMSM04005E() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {!detailPopupRow.isRegister ? (
+                  {!detailPopupRow.isRegister && canDelete ? (
                     <button
                       type="button"
                       onClick={() => void onDeleteDetail()}
@@ -386,14 +388,16 @@ export default function MMSM04005E() {
                       삭제
                     </button>
                   ) : null}
-                  <button
-                    type="button"
-                    onClick={() => void onSaveDetail()}
-                    disabled={saving}
-                    className="h-9 rounded-lg border border-sky-200 bg-sky-50 px-4 text-sm font-medium text-sky-700 transition hover:bg-sky-100 disabled:opacity-50"
-                  >
-                    {saving ? '저장중...' : detailPopupRow.isRegister ? '등록' : '저장'}
-                  </button>
+                  {canSave && (
+                    <button
+                      type="button"
+                      onClick={() => void onSaveDetail()}
+                      disabled={saving}
+                      className="h-9 rounded-lg border border-sky-200 bg-sky-50 px-4 text-sm font-medium text-sky-700 transition hover:bg-sky-100 disabled:opacity-50"
+                    >
+                      {saving ? '저장중...' : detailPopupRow.isRegister ? '등록' : '저장'}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setDetailPopupRow(null)}

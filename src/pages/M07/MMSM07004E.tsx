@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import AlertBox from '@/components/AlertBox';
+import CrudActionButtons from '@/components/CrudActionButtons';
 import SectionCard from '@/components/SectionCard';
 import SectionHeader from '@/components/SectionHeader';
 import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
+import { clearPagePermissionCache, usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
   countBadgeClass,
   editableInputClass,
@@ -10,7 +12,6 @@ import {
   pageContentClass,
   pageShellClass,
   registerSplitGridClass,
-  saveButtonClass,
   searchButtonClass,
 } from '@/lib/pageStyles';
 import {
@@ -38,6 +39,8 @@ function showWarning(message: string) {
 }
 
 export default function MMSM07004E() {
+  const permissions = usePagePermissions();
+
   const [groupKeyword, setGroupKeyword] = useState('');
   const [menuKeyword, setMenuKeyword] = useState('');
 
@@ -134,6 +137,7 @@ export default function MMSM07004E() {
     setError(null);
     try {
       await saveMmsm07004Rights(selectedGroup, targets);
+      clearPagePermissionCache(selectedGroup);
       await loadRights(selectedGroup);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -173,15 +177,22 @@ export default function MMSM07004E() {
               />
             </div>
             <div className="flex flex-wrap items-end justify-end gap-2">
-              <button onClick={onSearchGroups} disabled={loading} className={panelActionClass}>
-                그룹조회
-              </button>
-              <button onClick={onSearchRights} disabled={loading} className={searchButtonClass}>
-                조회
-              </button>
-              <button onClick={onSave} disabled={loading} className={saveButtonClass}>
-                저장
-              </button>
+              {permissions.canSearch ? (
+                <>
+                  <button onClick={onSearchGroups} disabled={loading} className={panelActionClass}>
+                    그룹조회
+                  </button>
+                  <button onClick={onSearchRights} disabled={loading} className={searchButtonClass}>
+                    조회
+                  </button>
+                </>
+              ) : null}
+              <CrudActionButtons
+                onSave={onSave}
+                disabled={loading}
+                addActions={[]}
+                className="flex flex-wrap items-end justify-end gap-2"
+              />
             </div>
           </div>
         </SectionCard>

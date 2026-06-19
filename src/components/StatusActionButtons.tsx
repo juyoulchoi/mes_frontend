@@ -1,4 +1,5 @@
 import ExportCsvButton, { type ExportCsvButtonProps } from '@/components/ExportCsvButton';
+import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
   cancelButtonClass,
   exportCsvButtonClass,
@@ -39,33 +40,38 @@ export default function StatusActionButtons<T>({
   savingLabel = '저장중...',
 }: StatusActionButtonsProps<T>) {
   const busy = disabled || loading || canceling || saving;
+  const permissions = usePagePermissions();
 
   return (
     <div className={statusActionGroupClass}>
-      <button onClick={onSearch} className={searchButtonClass} disabled={busy}>
-        {loading ? '조회중...' : '조회'}
-      </button>
+      {permissions.canSearch ? (
+        <button onClick={onSearch} className={searchButtonClass} disabled={busy}>
+          {loading ? '조회중...' : '조회'}
+        </button>
+      ) : null}
 
-      {onCancel ? (
+      {onCancel && permissions.canDelete ? (
         <button onClick={onCancel} className={cancelButtonClass} disabled={busy}>
           {canceling ? cancelingLabel : cancelLabel}
         </button>
       ) : null}
 
-      {onSave ? (
+      {onSave && permissions.canSave ? (
         <button onClick={onSave} className={saveButtonClass} disabled={busy}>
           {saving ? savingLabel : saveLabel}
         </button>
       ) : null}
 
-      <ExportCsvButton
-        rows={exportProps.rows}
-        headers={exportProps.headers}
-        mapRow={exportProps.mapRow}
-        filename={exportProps.filename}
-        variant="outline"
-        className={exportCsvButtonClass}
-      />
+      {permissions.canExport ? (
+        <ExportCsvButton
+          rows={exportProps.rows}
+          headers={exportProps.headers}
+          mapRow={exportProps.mapRow}
+          filename={exportProps.filename}
+          variant="outline"
+          className={exportCsvButtonClass}
+        />
+      ) : null}
     </div>
   );
 }

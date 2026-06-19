@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import AlertBox from '@/components/AlertBox';
+import CrudActionButtons from '@/components/CrudActionButtons';
 import SectionCard from '@/components/SectionCard';
 import SectionHeader from '@/components/SectionHeader';
 import { CheckColumn, Column, DataGrid, Paging } from '@/components/table/DataGrid';
+import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
   countBadgeClass,
   editableInputClass,
@@ -13,7 +15,6 @@ import {
   pageShellClass,
   registerSearchGridClass,
   registerSplitGridClass,
-  saveButtonClass,
   searchButtonClass,
 } from '@/lib/pageStyles';
 import {
@@ -36,10 +37,6 @@ const searchLabelClass = 'font-medium text-slate-700';
 const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
 const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
 const searchInputClass = 'h-10 w-full rounded-lg border border-slate-200 px-3 text-sm';
-const panelActionClass =
-  'h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50';
-const deleteButtonClass =
-  'h-9 rounded-lg border border-rose-200 bg-rose-50 px-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100 disabled:opacity-50';
 const readonlyInputClass = `${editableInputClass} bg-slate-100 text-slate-500`;
 const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
 
@@ -48,6 +45,8 @@ function onlyDigits(value: string) {
 }
 
 export default function MMSM06001E() {
+  const permissions = usePagePermissions();
+
   // Filters
   const [grpCd, setGrpCd] = useState('');
   const [grpNm, setGrpNm] = useState('');
@@ -184,7 +183,9 @@ export default function MMSM06001E() {
 
     if (
       targets.length > 0 &&
-      !window.confirm('선택한 그룹을 삭제하시겠습니까? 하위 상세 코드가 있으면 함께 삭제되거나 삭제가 제한될 수 있습니다.')
+      !window.confirm(
+        '선택한 그룹을 삭제하시겠습니까? 하위 상세 코드가 있으면 함께 삭제되거나 삭제가 제한될 수 있습니다.'
+      )
     ) {
       return;
     }
@@ -404,9 +405,11 @@ export default function MMSM06001E() {
               />
             </div>
             <div className="flex flex-wrap items-end justify-end gap-2">
-              <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
-                조회
-              </button>
+              {permissions.canSearch ? (
+                <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
+                  조회
+                </button>
+              ) : null}
             </div>
           </div>
         </SectionCard>
@@ -417,19 +420,18 @@ export default function MMSM06001E() {
           <SectionCard span="wideLeft" width="full">
             <SectionHeader
               title="기초코드 그룹"
-              right={<span className={countBadgeClass}>{loading ? '조회중...' : `${master.length}건`}</span>}
+              right={
+                <span className={countBadgeClass}>
+                  {loading ? '조회중...' : `${master.length}건`}
+                </span>
+              }
             />
-            <div className="flex justify-end gap-2 px-4 py-3">
-              <button onClick={onMasterAdd} disabled={loading} className={panelActionClass}>
-                추가
-              </button>
-              <button onClick={onMasterSave} disabled={loading} className={saveButtonClass}>
-                저장
-              </button>
-              <button onClick={onMasterDelete} disabled={loading} className={deleteButtonClass}>
-                삭제
-              </button>
-            </div>
+            <CrudActionButtons
+              onAdd={onMasterAdd}
+              onSave={onMasterSave}
+              onDelete={onMasterDelete}
+              disabled={loading}
+            />
             <div className={gridScrollClass}>
               <DataGrid<MasterRow>
                 dataSource={master}
@@ -556,7 +558,11 @@ export default function MMSM06001E() {
           <SectionCard span="wideRight" width="full">
             <SectionHeader
               title="기초코드 상세"
-              right={<span className={countBadgeClass}>{loading ? '조회중...' : `${detail.length}건`}</span>}
+              right={
+                <span className={countBadgeClass}>
+                  {loading ? '조회중...' : `${detail.length}건`}
+                </span>
+              }
             />
             <div className="flex items-center justify-between gap-2 px-4 py-3">
               <div className="flex flex-col gap-1">
@@ -569,29 +575,13 @@ export default function MMSM06001E() {
                   </span>
                 ) : null}
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={onDetailAdd}
-                  disabled={loading || !canEditDetail}
-                  className={panelActionClass}
-                >
-                  추가
-                </button>
-                <button
-                  onClick={onDetailSave}
-                  disabled={loading || !canEditDetail}
-                  className={saveButtonClass}
-                >
-                  저장
-                </button>
-                <button
-                  onClick={onDetailDelete}
-                  disabled={loading || !canEditDetail}
-                  className={deleteButtonClass}
-                >
-                  삭제
-                </button>
-              </div>
+              <CrudActionButtons
+                onAdd={onDetailAdd}
+                onSave={onDetailSave}
+                onDelete={onDetailDelete}
+                disabled={loading || !canEditDetail}
+                className="flex gap-2"
+              />
             </div>
             <div className={gridScrollClass}>
               <DataGrid<DetailRow>

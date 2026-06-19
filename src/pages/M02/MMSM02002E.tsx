@@ -7,6 +7,7 @@ import SectionHeader from '@/components/SectionHeader';
 import { CheckColumn, Column, DataGrid } from '@/components/table/DataGrid';
 import { toYmd } from '@/lib/excel';
 import { http } from '@/lib/http';
+import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
   countBadgeClass,
   gridScrollClass,
@@ -17,10 +18,7 @@ import {
 } from '@/lib/pageStyles';
 import { useCodes } from '@/lib/hooks/useCodes';
 import { getTodayYmd } from '@/lib/registerDetailUtils';
-import {
-  exportMmsm02002PlanCsv,
-  normalizeMmsm02002MasterRow,
-} from '@/services/m02/mmsm02002';
+import { exportMmsm02002PlanCsv, normalizeMmsm02002MasterRow } from '@/services/m02/mmsm02002';
 import type {
   Mmsm02002BomMaterialRow,
   Mmsm02002MasterRow,
@@ -35,6 +33,7 @@ const searchLabelClass = 'font-medium text-slate-700';
 const searchControlClass = 'h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm';
 
 export default function MMSM02002E() {
+  const { canSearch, canExport } = usePagePermissions();
   const [form, setForm] = useState<Mmsm02002SearchForm>(() => {
     const today = getTodayYmd();
 
@@ -178,9 +177,7 @@ export default function MMSM02002E() {
                 className={`${searchControlClass} w-[150px]`}
                 value={form.dateFrom}
                 max={form.dateTo || undefined}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, dateFrom: event.target.value }))
-                }
+                onChange={(event) => setForm((prev) => ({ ...prev, dateFrom: event.target.value }))}
               />
               <span className="flex h-10 items-center text-sm text-slate-500">~</span>
               <input
@@ -188,9 +185,7 @@ export default function MMSM02002E() {
                 className={`${searchControlClass} w-[150px]`}
                 value={form.dateTo}
                 min={form.dateFrom || undefined}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, dateTo: event.target.value }))
-                }
+                onChange={(event) => setForm((prev) => ({ ...prev, dateTo: event.target.value }))}
               />
             </div>
             <CodeNameField
@@ -204,12 +199,20 @@ export default function MMSM02002E() {
               onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
             />
             <div className={statusActionGroupClass}>
-              <button onClick={() => void onSearch()} className={searchButtonClass} disabled={loading}>
-                {loading ? '조회중...' : '조회'}
-              </button>
-              <button onClick={onExportCsv} className={searchButtonClass}>
-                엑셀
-              </button>
+              {canSearch && (
+                <button
+                  onClick={() => void onSearch()}
+                  className={searchButtonClass}
+                  disabled={loading}
+                >
+                  {loading ? '조회중...' : '조회'}
+                </button>
+              )}
+              {canExport && (
+                <button onClick={onExportCsv} className={searchButtonClass}>
+                  엑셀
+                </button>
+              )}
             </div>
           </div>
 
@@ -301,7 +304,11 @@ export default function MMSM02002E() {
           <SectionCard span="full" width="full">
             <SectionHeader
               title="BOM 기준 필요 자재"
-              right={<span className={countBadgeClass}>{detailLoading ? '조회중...' : `${bomMaterials.length}건`}</span>}
+              right={
+                <span className={countBadgeClass}>
+                  {detailLoading ? '조회중...' : `${bomMaterials.length}건`}
+                </span>
+              }
             />
             <div className={gridScrollClass}>
               <DataGrid
@@ -322,7 +329,11 @@ export default function MMSM02002E() {
           <SectionCard span="full" width="full">
             <SectionHeader
               title="공정/작업 순서"
-              right={<span className={countBadgeClass}>{detailLoading ? '조회중...' : `${processRows.length}건`}</span>}
+              right={
+                <span className={countBadgeClass}>
+                  {detailLoading ? '조회중...' : `${processRows.length}건`}
+                </span>
+              }
             />
             <div className={gridScrollClass}>
               <DataGrid
@@ -342,7 +353,11 @@ export default function MMSM02002E() {
           <SectionCard span="full" width="full">
             <SectionHeader
               title="수주 연결 정보"
-              right={<span className={countBadgeClass}>{detailLoading ? '조회중...' : `${salesLinks.length}건`}</span>}
+              right={
+                <span className={countBadgeClass}>
+                  {detailLoading ? '조회중...' : `${salesLinks.length}건`}
+                </span>
+              }
             />
             <div className={gridScrollClass}>
               <DataGrid
@@ -351,7 +366,12 @@ export default function MMSM02002E() {
                 rowKey={(_row, index) => `sales-${index}`}
                 emptyText="수주 연결 정보 데이터가 없습니다."
               >
-                <Column dataField="originSoNo" caption="원 수주번호" width={130} alignment="center" />
+                <Column
+                  dataField="originSoNo"
+                  caption="원 수주번호"
+                  width={130}
+                  alignment="center"
+                />
                 <Column dataField="custDueYmd" caption="고객 납기" width={120} alignment="center" />
                 <Column dataField="cstNm" caption="거래처" width={140} />
                 <Column dataField="soQty" caption="수주수량" width={100} alignment="right" />

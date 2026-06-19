@@ -13,6 +13,7 @@ import {
 } from '@/lib/excelUpload';
 import { patchCheckedRow, removeCheckedRows, updateCheckedRows } from '@/lib/gridRows';
 import { http } from '@/lib/http';
+import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import { EmptyPageResult, PAGE_SIZE } from '@/lib/pagination';
 import {
   addTransferButtonClass,
@@ -58,6 +59,7 @@ type MasterRow = {
 };
 
 export default function MMSM01005E() {
+  const { canSave, canDelete } = usePagePermissions();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [customerOpen, setCustomerOpen] = useState(false);
   const [cstNm, setCstNm] = useState('');
@@ -393,11 +395,7 @@ export default function MMSM01005E() {
           <SectionCard span="left" width="full">
             <SectionHeader
               title="원자재"
-              right={
-                <span className={countBadgeClass}>
-                  {masterRows.length}건
-                </span>
-              }
+              right={<span className={countBadgeClass}>{masterRows.length}건</span>}
             />
             <div className={gridScrollClass}>
               <DataGrid
@@ -419,27 +417,24 @@ export default function MMSM01005E() {
 
           <div className={transferColumnClass}>
             <div className={transferButtonGroupClass}>
-              <button
-                onClick={onAddFromMaster}
-                className={addTransferButtonClass}
-              >
-                추가
-              </button>
-              <button
-                onClick={onDeleteDetail}
-                className={deleteTransferButtonClass}
-              >
-                삭제
-              </button>
+              {canSave && (
+                <button onClick={onAddFromMaster} className={addTransferButtonClass}>
+                  추가
+                </button>
+              )}
+              {canDelete && (
+                <button onClick={onDeleteDetail} className={deleteTransferButtonClass}>
+                  삭제
+                </button>
+              )}
             </div>
           </div>
 
           <SectionCard span="right" width="full">
-            <SectionHeader title="등록 상세" right={
-                <span className={countBadgeClass}>
-                  {detailRows.length}건
-                </span>
-              }/>
+            <SectionHeader
+              title="등록 상세"
+              right={<span className={countBadgeClass}>{detailRows.length}건</span>}
+            />
             <div className={gridScrollClass}>
               <DataGrid
                 dataSource={detailRows}
