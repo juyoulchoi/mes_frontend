@@ -147,6 +147,7 @@ export default function LayoutSPA() {
   const location = useLocation();
   const [maskVersion, setMaskVersion] = useState(0);
   const lastMaskedRef = useRef<string | undefined>(undefined);
+  const recentlyClosedTabRef = useRef<string | undefined>(undefined);
   const initLoadedRef = useRef(false);
   const leftPanelRef = useRef<ImperativePanelHandle | null>(null);
   const [user, setUser] = useState<UserPayload['user'] | null>(null);
@@ -218,21 +219,19 @@ export default function LayoutSPA() {
   };
 
   const closeTab = (pageId: string) => {
-    setTabs((prev) => {
-      const index = prev.findIndex((tab) => tab.pageId === pageId);
-      if (index < 0) return prev;
+    const index = tabs.findIndex((tab) => tab.pageId === pageId);
+    if (index < 0) return;
 
-      const next = prev.filter((tab) => tab.pageId !== pageId);
-      if (maskedPage === pageId) {
-        const fallback = next[index] ?? next[index - 1];
-        if (fallback) {
-          setMaskedPage(fallback.pageId, navigate, { replace: false });
-        } else {
-          setMaskedPage('default', navigate, { replace: false });
-        }
-      }
-      return next;
-    });
+    const next = tabs.filter((tab) => tab.pageId !== pageId);
+    const fallback = next[index] ?? next[index - 1];
+    const nextPageId = maskedPage === pageId ? (fallback?.pageId ?? 'default') : maskedPage;
+
+    recentlyClosedTabRef.current = pageId;
+    setTabs(next);
+
+    if (maskedPage === pageId && nextPageId) {
+      setMaskedPage(nextPageId, navigate, { replace: false });
+    }
   };
 
   useEffect(() => {
@@ -280,6 +279,9 @@ export default function LayoutSPA() {
 
   useEffect(() => {
     if (!maskedPage || maskedPage === 'default' || tabs.some((tab) => tab.pageId === maskedPage)) {
+      return;
+    }
+    if (recentlyClosedTabRef.current === maskedPage) {
       return;
     }
 
