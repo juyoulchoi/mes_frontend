@@ -13,6 +13,7 @@ type ActionButtonGroupProps = {
   showUpload?: boolean;
   showExport?: boolean;
   className?: string;
+  compact?: boolean;
 };
 
 export default function ActionButtonGroup({
@@ -26,9 +27,11 @@ export default function ActionButtonGroup({
   exportDisabled = false,
   showUpload = true,
   showExport = true,
-  className = 'flex flex-wrap items-end justify-end gap-2',
+  className = 'flex w-full flex-wrap items-end justify-end gap-2',
+  compact = false,
 }: ActionButtonGroupProps) {
   const permissions = usePagePermissions();
+  const buttonSizeClass = compact ? 'w-auto px-3' : 'w-auto min-w-20 px-3 sm:px-4';
 
   return (
     <div className={className}>
@@ -36,7 +39,7 @@ export default function ActionButtonGroup({
         <button
           onClick={onSearch}
           disabled={searchDisabled}
-          className="h-10 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
+          className={`h-10 rounded-lg bg-slate-900 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50 ${buttonSizeClass}`}
         >
           조회
         </button>
@@ -45,7 +48,7 @@ export default function ActionButtonGroup({
         <button
           onClick={onSave}
           disabled={saveDisabled}
-          className="h-10 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+          className={`h-10 rounded-lg bg-emerald-600 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50 ${buttonSizeClass}`}
         >
           저장
         </button>
@@ -54,7 +57,7 @@ export default function ActionButtonGroup({
         <button
           onClick={onUpload}
           disabled={uploadDisabled}
-          className="h-10 rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          className={`h-10 rounded-lg border border-slate-300 bg-white text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 ${buttonSizeClass}`}
         >
           엑셀 업로드
         </button>
@@ -63,7 +66,7 @@ export default function ActionButtonGroup({
         <button
           onClick={onExport}
           disabled={exportDisabled}
-          className="h-10 rounded-lg border border-emerald-200 bg-emerald-50 px-4 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
+          className={`h-10 rounded-lg border border-emerald-200 bg-emerald-50 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100 ${buttonSizeClass}`}
         >
           양식 다운로드
         </button>

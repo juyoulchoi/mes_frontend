@@ -92,7 +92,7 @@ function useControllableValue<T extends Primitive>(
 
 function SelectBoxInner<T extends Record<string, unknown>>(
   {
-    className = 'w-[170px]',
+    className = 'w-full',
     dataSource = [],
     value,
     defaultValue,
@@ -109,7 +109,7 @@ function SelectBoxInner<T extends Record<string, unknown>>(
     placeholder = 'Select',
     noDataText = 'No data',
     dropdownClassName,
-    triggerClassName = 'h-9 w-[170px] rounded-lg',
+    triggerClassName = 'h-9 w-full rounded-lg',
     name,
     disabled = false,
     showAllOption = false,

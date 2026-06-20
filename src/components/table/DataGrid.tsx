@@ -79,17 +79,19 @@ type DataGridProps<T> = {
 
 const dataGridClassNames: BaseTableClassNames = {
   ...tableClassNames,
-  wrapper: 'overflow-auto',
-  table: 'w-full text-sm',
+  wrapper: 'w-full overflow-auto',
+  table: 'min-w-[760px] w-full text-sm sm:min-w-[900px]',
   thead: 'sticky top-0 bg-background z-10',
   headerRow: 'border-b',
   headerCell: 'p-2 border-r border-slate-200 last:border-r-0',
   bodyRow: 'border-b hover:bg-muted/30',
   bodyCell: 'p-2',
   emptyCell: 'p-3 text-center text-muted-foreground',
-  paginationBar: 'flex items-center justify-between border-t px-4 py-2 text-sm text-gray-600',
-  paginationControls: 'flex items-center gap-2',
-  paginationButton: 'rounded border px-3 py-1 disabled:cursor-not-allowed disabled:opacity-50',
+  paginationBar:
+    'flex flex-col gap-2 border-t px-3 py-2 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between sm:px-4',
+  paginationControls: 'flex flex-wrap items-center justify-between gap-2 sm:justify-end',
+  paginationButton:
+    'min-w-14 rounded border px-3 py-1 disabled:cursor-not-allowed disabled:opacity-50',
   paginationSelect: 'h-8 rounded border px-2 text-sm outline-none',
 };
 
@@ -150,7 +152,10 @@ function formatCellValue<T>(
   return String(value ?? '');
 }
 
-function toTableColumn<T>(element: ReactElement<DataGridColumnProps<T>>, index: number): TableColumn<T> {
+function toTableColumn<T>(
+  element: ReactElement<DataGridColumnProps<T>>,
+  index: number
+): TableColumn<T> {
   const {
     dataField,
     caption,
@@ -325,7 +330,3 @@ export function DataGrid<T>({
     />
   );
 }
-
-
-
-

@@ -70,7 +70,7 @@ function CommonCodeSelectBox({
   }, [apiPath, autoLoad, codeGroup, extraParamsKey, resolvedFallbackItems]);
 
   return (
-    <div className="grid w-full grid-cols-[100px_minmax(0,1fr)] items-center gap-2">
+    <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-[100px_minmax(0,1fr)] sm:items-center">
       {label ? <div className="text-sm text-gray-600">{label}</div> : null}
       <SelectBox
         dataSource={items}
@@ -90,5 +90,3 @@ function CommonCodeSelectBox({
 
 export default CommonCodeSelectBox;
 export { CommonCodeSelectBox };
-
-

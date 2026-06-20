@@ -37,9 +37,11 @@ export interface BaseTableClassNames {
 }
 
 export const tableClassNames: BaseTableClassNames = {
-  table: 'min-w-[1000px] w-full text-sm',
+  wrapper: 'w-full overflow-auto',
+  table: 'min-w-[760px] w-full text-sm sm:min-w-[900px]',
   thead: 'sticky top-0 bg-gray-100 z-10',
-  headerCell: 'py-2 px-2 text-gray-700 text-xs font-semibold border-b border-r border-slate-200 last:border-r-0',
+  headerCell:
+    'py-2 px-2 text-gray-700 text-xs font-semibold border-b border-r border-slate-200 last:border-r-0',
   bodyRow: 'border-b last:border-b-0 hover:bg-gray-50',
   bodyCell: 'py-2 px-2',
   emptyCell: 'py-10 text-center text-gray-400',
@@ -120,13 +122,18 @@ function TablePaginationBar<T>({
     <div
       className={
         toClassName(classNames?.paginationBar) ||
-        'flex items-center justify-between border-t px-4 py-2 text-sm text-gray-600'
+        'flex flex-col gap-2 border-t px-3 py-2 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between sm:px-4'
       }
     >
       <span className={toClassName(classNames?.paginationInfo) || ''}>
         총 {result.totalElements.toLocaleString()}건
       </span>
-      <div className={toClassName(classNames?.paginationControls) || 'flex items-center gap-2'}>
+      <div
+        className={
+          toClassName(classNames?.paginationControls) ||
+          'flex flex-wrap items-center justify-between gap-2 sm:justify-end'
+        }
+      >
         {pagination.showPageSizeSelector && pagination.onPageSizeChange && (
           <select
             value={String(result.size)}
@@ -152,7 +159,7 @@ function TablePaginationBar<T>({
           disabled={!canGoPrev}
           className={
             toClassName(classNames?.paginationButton) ||
-            'rounded border px-3 py-1 disabled:cursor-not-allowed disabled:opacity-50'
+            'min-w-14 rounded border px-3 py-1 disabled:cursor-not-allowed disabled:opacity-50'
           }
         >
           이전
@@ -163,7 +170,7 @@ function TablePaginationBar<T>({
           disabled={!canGoNext}
           className={
             toClassName(classNames?.paginationButton) ||
-            'rounded border px-3 py-1 disabled:cursor-not-allowed disabled:opacity-50'
+            'min-w-14 rounded border px-3 py-1 disabled:cursor-not-allowed disabled:opacity-50'
           }
         >
           다음
@@ -336,6 +343,3 @@ export function Td({
     </td>
   );
 }
-
-
-

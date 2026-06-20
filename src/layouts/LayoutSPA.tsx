@@ -332,8 +332,8 @@ export default function LayoutSPA() {
         ) : null}
       </header>
 
-      <PanelGroup direction="horizontal" className="h-[calc(100vh-48px)]">
-        <Panel ref={leftPanelRef} defaultSize={16} minSize={8} collapsible collapsedSize={0}>
+      <PanelGroup direction="horizontal" className="h-[calc(100vh-48px)] min-w-0">
+        <Panel ref={leftPanelRef} defaultSize={18} minSize={12} collapsible collapsedSize={0}>
           <div className="h-full bg-muted/30">
             <div className="p-1 h-full flex flex-col">
               <Separator />
@@ -358,10 +358,10 @@ export default function LayoutSPA() {
         <PanelResizeHandle className="relative flex w-3 items-center justify-center bg-border/70 transition hover:bg-border">
           <MenuToggleButton panelRef={leftPanelRef} />
         </PanelResizeHandle>
-        <Panel minSize={40} defaultSize={84}>
+        <Panel minSize={45} defaultSize={82}>
           <div className="flex h-full flex-col bg-slate-50/50">
             {tabs.length > 0 ? (
-              <div className="flex min-h-10 items-end gap-1 overflow-x-auto border-b border-slate-200 bg-white px-3 pt-2">
+              <div className="flex min-h-10 items-end gap-1 overflow-x-auto border-b border-slate-200 bg-white px-2 pt-2 sm:px-3">
                 {tabs.map((tab) => {
                   const active = maskedPage === tab.pageId;
                   return (

@@ -15,13 +15,13 @@ export default function FromToDateField({
 }: FromToDateFieldProps) {
   const hasRange = Boolean(fromValue && toValue);
   const isRangeInvalid = hasRange && fromValue > toValue;
-  const inputBaseClass = 'h-9 w-[150px] rounded-lg border px-2';
+  const inputBaseClass = 'h-9 w-full rounded-lg border px-2';
   const inputErrorClass = isRangeInvalid ? 'border-red-500 bg-red-50' : '';
 
   return (
-    <div className="w-[446px]">
-      <div className="grid grid-cols-[96px_150px_30px_150px] items-center gap-3">
-        <label className="text-sm text-gray-600">{label}</label>
+    <div className="w-full min-w-0 max-w-[446px]">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[96px_minmax(130px,150px)_30px_minmax(130px,150px)] sm:items-center sm:gap-3">
+        <label className="text-sm text-gray-600 sm:whitespace-nowrap">{label}</label>
         <input
           type="date"
           value={fromValue}
@@ -29,7 +29,7 @@ export default function FromToDateField({
           onChange={(e) => onFromChange(e.target.value)}
           className={`${inputBaseClass} ${inputErrorClass}`}
         />
-        <div className="text-center text-sm text-gray-600">~</div>
+        <div className="hidden text-center text-sm text-gray-600 sm:block">~</div>
         <input
           type="date"
           value={toValue}

@@ -13,10 +13,10 @@ type SectionCardProps = {
 
 const spanClassNames: Record<SectionCardSpan, string> = {
   full: 'col-span-12',
-  left: 'col-span-12 md:col-span-3',
-  right: 'col-span-12 md:col-span-8',
-  wideLeft: 'col-span-12 md:col-span-4',
-  wideRight: 'col-span-12 md:col-span-8',
+  left: 'col-span-12 xl:col-span-3',
+  right: 'col-span-12 xl:col-span-8',
+  wideLeft: 'col-span-12 xl:col-span-4',
+  wideRight: 'col-span-12 xl:col-span-8',
 };
 
 const widthClassNames: Record<SectionCardWidth, string> = {
@@ -26,7 +26,7 @@ const widthClassNames: Record<SectionCardWidth, string> = {
 
 const paddingClassNames: Record<SectionCardPadding, string> = {
   none: '',
-  md: 'p-4',
+  md: 'p-3 sm:p-4',
 };
 
 export default function SectionCard({
@@ -35,7 +35,7 @@ export default function SectionCard({
   width = 'auto',
   padding = 'none',
 }: SectionCardProps) {
-  const baseClassName = 'rounded-2xl border border-slate-200 bg-white shadow-sm';
+  const baseClassName = 'min-w-0 rounded-lg border border-slate-200 bg-white shadow-sm';
 
   return (
     <div
