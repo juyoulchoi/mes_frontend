@@ -1,3 +1,4 @@
+import { clearMaskedPage } from '@/app/routeMask';
 import { CONFIG } from '@/lib/config';
 import { http } from '@/lib/http';
 
@@ -30,8 +31,8 @@ export function resolveRedirect(from?: string): string {
   // 공개/인증 분리 설계라면 필요시 '/auth' 차단
   if (from.startsWith('/auth')) return CONFIG.defaultRedirect;
 
-  // 우리 앱의 보호 영역만 허용
-  if (from.startsWith('/app/')) return from;
+  // 로그인 후에는 이전 메뉴/탭 상태를 복원하지 않고 기본 화면으로 시작한다.
+  if (from.startsWith('/app/')) return CONFIG.defaultRedirect;
 
   // 과거 호환: /pages/* 사용 중이면 그대로 허용
   // if (from.startsWith('/pages/')) return from;
@@ -73,11 +74,13 @@ export async function login({
       const refreshToken = payload.data?.refreshToken || payload.refreshToken;
       if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('token_expiry', String(Date.now() + 60 * 60 * 1000));
+      clearMaskedPage();
       return { ok: true, token };
     }
 
     // session 모드: 쿠키로 인증됨
     localStorage.setItem('token', 'session_ok'); // PrivateRoute 호환용 마커Promise
+    clearMaskedPage();
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };

@@ -20,6 +20,15 @@ export function getMaskedPage(): string | null {
   }
 }
 
+export function clearMaskedPage() {
+  try {
+    sessionStorage.removeItem(MASK_KEY);
+  } catch {
+    /* no-op: sessionStorage unavailable */
+  }
+  notifyMaskedChange(DEFAULT_MASK);
+}
+
 export function setMaskedPage(
   pageId: string,
   navigate: NavigateFunction,

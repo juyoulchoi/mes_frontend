@@ -19,7 +19,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 // index → /login, 로그인 성공 → /app
 function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('token');
-  return token ? <Navigate to="/app/Default" replace /> : <>{children}</>;
+  return token ? <Navigate to="/app/default.ts" replace /> : <>{children}</>;
 }
 
 export default function App() {

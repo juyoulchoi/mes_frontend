@@ -1,3 +1,5 @@
+import { clearMaskedPage } from '@/app/routeMask';
+
 const INVALID_TOKEN_MESSAGE = '인증 토큰이 유효하지 않습니다. 다시 로그인해주세요.';
 
 let handlingInvalidToken = false;
@@ -10,6 +12,7 @@ export function clearAuthStorage() {
   localStorage.removeItem('token');
   localStorage.removeItem('token_expiry');
   localStorage.removeItem('refreshToken');
+  clearMaskedPage();
 }
 
 export function handleInvalidToken() {

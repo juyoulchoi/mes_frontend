@@ -15,6 +15,7 @@ import type { UserPayload, TreeNode } from '@/lib/menuInfo';
 import { sanitizeNavPayload, sanitizeUserPayload, toSafeTree } from '@/lib/guards';
 import { filterTreeByRole } from '@/lib/acl';
 import { ensureMaskedPage, setMaskedPage, getMaskedPage } from '@/app/routeMask';
+import { clearAuthStorage } from '@/lib/authSession';
 import { EmptyPageResult, PAGE_SIZE, toPageResult, type PageResult } from '@/lib/pagination';
 import { getApiDataFetch, type FetchRequest } from '@/services/common/getApiFetch';
 import TreeMenu from './TreeMenu';
@@ -167,7 +168,7 @@ export default function LayoutSPA() {
       setMenuResult(toPageResult<RowItem>(menuRows, 0, menuRows.length || PAGE_SIZE));
     } catch (e) {
       if (e instanceof Error && /\b(401|403)\b/.test(e.message)) {
-        localStorage.removeItem('token');
+        clearAuthStorage();
         navigate('/login', { replace: true });
         return;
       }
@@ -312,7 +313,7 @@ export default function LayoutSPA() {
               variant="outline"
               size="sm"
               onClick={() => {
-                localStorage.removeItem('token');
+                clearAuthStorage();
                 navigate('/login', { replace: true });
               }}
             >
