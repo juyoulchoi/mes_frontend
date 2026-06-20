@@ -27,6 +27,9 @@ import {
   type SearchForm,
 } from '@/services/m01/mmsm01008';
 
+const stockAdjustSearchGridClass =
+  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2';
+
 export default function MMSM01008E() {
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
   const [rows, setRows] = useState<RowItem[]>([]);
@@ -126,46 +129,50 @@ export default function MMSM01008E() {
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[450px_546px_1fr]">
-            <DateEdit
-              label="조정일자"
-              value={form.adjustDate}
-              onChange={(value) => setForm((prev) => ({ ...prev, adjustDate: value }))}
-            />
+          <div className="overflow-x-auto pb-1">
+            <div className={stockAdjustSearchGridClass}>
+              <DateEdit
+                label="조정일자"
+                value={form.adjustDate}
+                onChange={(value) => setForm((prev) => ({ ...prev, adjustDate: value }))}
+              />
 
-            <CodeNameField
-              label="원자재"
-              id="item"
-              code={form.itemCd}
-              name={form.itemNm}
-              codePlaceholder="코드"
-              namePlaceholder="원자재명"
-              onSearch={() => setItemPickerOpen(true)}
-              onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
-            />
+              <div className="col-start-1 row-start-2">
+                <CodeNameField
+                  label="원자재"
+                  id="item"
+                  code={form.itemCd}
+                  name={form.itemNm}
+                  codePlaceholder="코드"
+                  namePlaceholder="원자재명"
+                  onSearch={() => setItemPickerOpen(true)}
+                  onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
+                />
+              </div>
 
-            <StatusActionButtons
-              loading={loading}
-              saving={saving}
-              disabled={busy}
-              onSearch={() => void fetchList()}
-              onSave={() => void onSave()}
-              exportProps={{
-                rows,
-                headers: exportHeaders,
-                mapRow: mapExportRow,
-                filename: () => `원자재재고조정_${form.adjustDate.split('-').join('')}.csv`,
-              }}
-            />
+              <div className="col-start-3 row-start-2">
+                <StatusActionButtons
+                  loading={loading}
+                  saving={saving}
+                  disabled={busy}
+                  onSearch={() => void fetchList()}
+                  onSave={() => void onSave()}
+                  exportProps={{
+                    rows,
+                    headers: exportHeaders,
+                    mapRow: mapExportRow,
+                    filename: () => `원자재재고조정_${form.adjustDate.split('-').join('')}.csv`,
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </SectionCard>
 
         {error && <AlertBox tone="error">{error}</AlertBox>}
 
         <SectionCard span="full" width="full">
-          <SectionHeader
-            title="재고 조정"
-          />
+          <SectionHeader title="재고 조정" />
           <div className={gridScrollClass} style={{ height: tableHeight }}>
             <DataGrid
               dataSource={rows}

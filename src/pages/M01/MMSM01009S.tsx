@@ -10,7 +10,12 @@ import { Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
 import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
 import { http } from '@/lib/http';
 import { PAGE_SIZE } from '@/lib/pagination';
-import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
+import {
+  gridScrollClass,
+  pageContentClass,
+  pageShellClass,
+  registerSearchGridClass,
+} from '@/lib/pageStyles';
 import {
   columns,
   exportHeaders,
@@ -54,37 +59,39 @@ export default function MMSM01009S() {
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-[546px_1fr]">
-            <CodeNameField
-              label="원자재"
-              id="item"
-              code={form.itemCd}
-              name={form.itemNm}
-              codePlaceholder="코드"
-              namePlaceholder="원자재명"
-              onSearch={() => setItemPickerOpen(true)}
-              onClear={() => setForm({ itemCd: '', itemNm: '' })}
-            />
+          <div className="overflow-x-auto pb-1">
+            <div className={registerSearchGridClass}>
+              <CodeNameField
+                label="원자재"
+                id="item"
+                code={form.itemCd}
+                name={form.itemNm}
+                codePlaceholder="코드"
+                namePlaceholder="원자재명"
+                onSearch={() => setItemPickerOpen(true)}
+                onClear={() => setForm({ itemCd: '', itemNm: '' })}
+              />
 
-            <StatusActionButtons
-              loading={loading}
-              onSearch={() => void onSearch()}
-              exportProps={{
-                rows,
-                headers: exportHeaders,
-                mapRow: mapExportRow,
-                filename: '투입이력현황.csv',
-              }}
-            />
+              <div className="col-start-3">
+                <StatusActionButtons
+                  loading={loading}
+                  onSearch={() => void onSearch()}
+                  exportProps={{
+                    rows,
+                    headers: exportHeaders,
+                    mapRow: mapExportRow,
+                    filename: '투입이력현황.csv',
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </SectionCard>
 
         {error && <AlertBox tone="error">{error}</AlertBox>}
 
         <SectionCard span="full" width="full">
-          <SectionHeader
-            title="투입 이력 현황"
-          />
+          <SectionHeader title="투입 이력 현황" />
           <div className={gridScrollClass} style={{ height: tableHeight }}>
             <DataGrid
               dataSource={rows}

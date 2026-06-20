@@ -9,12 +9,7 @@ import StatusActionButtons from '@/components/StatusActionButtons';
 import { CheckColumn, Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
 import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
 import { http } from '@/lib/http';
-import {
-  gridScrollClass,
-  pageContentClass,
-  pageShellClass,
-  statusSearchGridClass,
-} from '@/lib/pageStyles';
+import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
 import { usePageApiFetch } from '@/services/common/getApiFetch';
 import { PAGE_SIZE } from '@/lib/pagination';
 import {
@@ -27,6 +22,9 @@ import {
 } from '@/services/m01/mmsm01002';
 import { updateCheckedRows } from '@/lib/gridRows';
 import type { AuthMeResponse } from '@/services/m01/mmsm01003';
+
+const purchaseStatusSearchGridClass =
+  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2';
 
 const MMSM01002S: React.FC = () => {
   const today = useMemo(() => new Date(), []);
@@ -129,70 +127,74 @@ const MMSM01002S: React.FC = () => {
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className={statusSearchGridClass}>
-            <FromToDateField
-              label="발주일자"
-              fromValue={form.startDate}
-              toValue={form.endDate}
-              onFromChange={(value) => setForm({ ...form, startDate: value })}
-              onToChange={(value) => setForm({ ...form, endDate: value })}
-            />
+          <div className="overflow-x-auto pb-1">
+            <div className={purchaseStatusSearchGridClass}>
+              <FromToDateField
+                label="발주일자"
+                fromValue={form.startDate}
+                toValue={form.endDate}
+                onFromChange={(value) => setForm({ ...form, startDate: value })}
+                onToChange={(value) => setForm({ ...form, endDate: value })}
+              />
 
-            <CodeNameField
-              label="거래처"
-              id="cust"
-              code={form.cstCd}
-              name={form.cstNm}
-              codePlaceholder="코드"
-              namePlaceholder="거래처명"
-              onSearch={() => setCustomerOpen(true)}
-              onClear={() =>
-                setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))
-              }
-            />
+              <div className="col-start-3">
+                <CodeNameField
+                  label="거래처"
+                  id="cust"
+                  code={form.cstCd}
+                  name={form.cstNm}
+                  codePlaceholder="코드"
+                  namePlaceholder="거래처명"
+                  onSearch={() => setCustomerOpen(true)}
+                  onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
+                />
+              </div>
 
-            <StatusActionButtons
-              loading={loading}
-              canceling={canceling}
-              onSearch={() => void fetchList(0)}
-              onCancel={() => void onCancelPurchase()}
-              cancelLabel="발주취소"
-              exportProps={{
-                rows,
-                headers: exportHeaders,
-                mapRow: mapExportRow,
-                filename: () => `원자재발주현황_${form.endDate.split('-').join('')}.csv`,
-              }}
-            />
-          </div>
+              <div className="col-start-3 row-start-2">
+                <StatusActionButtons
+                  loading={loading}
+                  canceling={canceling}
+                  onSearch={() => void fetchList(0)}
+                  onCancel={() => void onCancelPurchase()}
+                  cancelLabel="발주취소"
+                  exportProps={{
+                    rows,
+                    headers: exportHeaders,
+                    mapRow: mapExportRow,
+                    filename: () => `원자재발주현황_${form.endDate.split('-').join('')}.csv`,
+                  }}
+                />
+              </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[546px_1fr]">
-            <CodeNameField
-              label="원자재"
-              id="item"
-              code={form.itemCd}
-              name={form.itemNm}
-              codePlaceholder="코드"
-              namePlaceholder="원자재명"
-              onSearch={() => setItemPickerOpen(true)}
-              onClear={() =>
-                setForm((prev) => ({ ...prev, itemGb: '', itemCd: '', itemNm: '' }))
-              }
-            />
+              <div className="col-start-1 row-start-2">
+                <CodeNameField
+                  label="원자재"
+                  id="item"
+                  code={form.itemCd}
+                  name={form.itemNm}
+                  codePlaceholder="코드"
+                  namePlaceholder="원자재명"
+                  onSearch={() => setItemPickerOpen(true)}
+                  onClear={() =>
+                    setForm((prev) => ({ ...prev, itemGb: '', itemCd: '', itemNm: '' }))
+                  }
+                />
+              </div>
+            </div>
           </div>
         </SectionCard>
 
         {error && <AlertBox tone="error">{error}</AlertBox>}
 
         <SectionCard span="full" width="full">
-          <SectionHeader
-            title="발주 현황"
-          />
+          <SectionHeader title="발주 현황" />
           <div className={gridScrollClass} style={{ height: tableHeight }}>
             <DataGrid
               dataSource={rows}
               pageResult={displayResult}
-              rowKey={(row, index) => `${row.poYmd ?? 'po'}-${row.poSeq ?? 'seq'}-${row.poSubSeq ?? 'sub'}-${row.itemCd ?? 'item'}-${index}`}
+              rowKey={(row, index) =>
+                `${row.poYmd ?? 'po'}-${row.poSeq ?? 'seq'}-${row.poSubSeq ?? 'sub'}-${row.itemCd ?? 'item'}-${index}`
+              }
               showBorders={true}
               loading={loading}
               remoteOperations={true}

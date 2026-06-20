@@ -8,12 +8,7 @@ import SearchCodePickers from '@/components/SearchCodePickers';
 import { CheckColumn, Column, DataGrid } from '@/components/table/DataGrid';
 import { patchCheckedRow } from '@/lib/gridRows';
 import { http } from '@/lib/http';
-import {
-  gridScrollClass,
-  pageContentClass,
-  pageShellClass,
-  registerSearchGridClass,
-} from '@/lib/pageStyles';
+import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
 import { formatNumber } from '@/lib/utils';
 import { updateCheckedRows } from '@/lib/gridRows';
 import { getTodayYmd } from '@/lib/registerDetailUtils';
@@ -52,6 +47,9 @@ type ReceivableDetailRow = DetailRow & {
   ivQty?: number | string;
   remQty?: number | string;
 };
+
+const receiptRegisterSearchGridClass =
+  'grid min-w-[920px] grid-cols-[minmax(260px,420px)_minmax(300px,420px)_minmax(16px,1fr)_minmax(160px,220px)] items-end gap-2';
 
 const PURCHASE_SEARCH_START_DATE = '19000101';
 
@@ -137,8 +135,9 @@ function normalizePurchaseRow(row: PurchaseRow): PurchaseRow {
 
 function formatPurchaseDate(row: PurchaseRow | ReceivableDetailRow) {
   const ymd = String(row.poYmd ?? '');
-  const date =
-    /^\d{8}$/.test(ymd) ? `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}` : ymd;
+  const date = /^\d{8}$/.test(ymd)
+    ? `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}`
+    : ymd;
   const seq = [row.poSeq, row.poSubSeq].filter(Boolean).join('-');
 
   return { date, seq };
@@ -283,47 +282,49 @@ export default function MMSM01003E() {
     <div className={pageShellClass}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className={registerSearchGridClass}>
-            <DateEdit
-              label="입고일자"
-              value={form.ivDate}
-              onChange={(value) => setForm((prev) => ({ ...prev, ivDate: value }))}
-            />
-            <CodeNameField
-              label="거래처"
-              id="cust"
-              code={form.cstCd}
-              name={cstNm}
-              codePlaceholder="코드"
-              namePlaceholder="거래처명"
-              onSearch={() => setCustomerOpen(true)}
-              onClear={() => {
-                setCstNm('');
-                setForm((prev) => ({ ...prev, cstCd: '' }));
-              }}
-            />
-            <ActionButtonGroup
-              onSearch={onSearch}
-              onSave={() => onSave()}
-              onUpload={() => undefined}
-              onExport={() => undefined}
-              searchDisabled={isSearch}
-              saveDisabled={isSave}
-              showUpload={false}
-              showExport={false}
-            />
+          <div className="overflow-x-auto pb-1">
+            <div className={receiptRegisterSearchGridClass}>
+              <DateEdit
+                label="입고일자"
+                value={form.ivDate}
+                onChange={(value) => setForm((prev) => ({ ...prev, ivDate: value }))}
+              />
+              <CodeNameField
+                label="거래처"
+                id="cust"
+                code={form.cstCd}
+                name={cstNm}
+                codePlaceholder="코드"
+                namePlaceholder="거래처명"
+                onSearch={() => setCustomerOpen(true)}
+                onClear={() => {
+                  setCstNm('');
+                  setForm((prev) => ({ ...prev, cstCd: '' }));
+                }}
+              />
+              <div className="col-start-4">
+                <ActionButtonGroup
+                  onSearch={onSearch}
+                  onSave={() => onSave()}
+                  onUpload={() => undefined}
+                  onExport={() => undefined}
+                  searchDisabled={isSearch}
+                  saveDisabled={isSave}
+                  showUpload={false}
+                  showExport={false}
+                  compact
+                  className="flex flex-wrap content-end items-end justify-end gap-2 self-end"
+                />
+              </div>
+            </div>
           </div>
         </SectionCard>
 
-        {(masterError || saveError) && (
-          <AlertBox tone="error">{masterError ?? saveError}</AlertBox>
-        )}
+        {(masterError || saveError) && <AlertBox tone="error">{masterError ?? saveError}</AlertBox>}
 
         <div className="grid grid-cols-12 gap-4">
           <SectionCard span="full" width="full">
-            <SectionHeader
-              title="입고 등록"
-            />
+            <SectionHeader title="입고 등록" />
             <div className={gridScrollClass}>
               <DataGrid
                 dataSource={detailRows}
@@ -360,18 +361,34 @@ export default function MMSM01003E() {
                 <Column dataField="itemCd" caption="원자재코드" width={90} alignment="center" />
                 <Column dataField="itemNm" caption="원자재명" width={220} />
                 <Column dataField="unitCd" caption="단위" width={60} alignment="center" />
-                <Column dataField="qty" caption="발주수량" width={90} alignment="right"
+                <Column
+                  dataField="qty"
+                  caption="발주수량"
+                  width={90}
+                  alignment="right"
                   cellRender={(row: ReceivableDetailRow) => formatQty(row.orderQty)}
                 />
-                <Column dataField="preIvQty" caption="기입고" width={80} alignment="right"
+                <Column
+                  dataField="preIvQty"
+                  caption="기입고"
+                  width={80}
+                  alignment="right"
                   cellRender={(row: ReceivableDetailRow) => formatNumber(getReceivedQty(row))}
                 />
-                <Column dataField="remQty" caption="잔량" width={80} alignment="right"
+                <Column
+                  dataField="remQty"
+                  caption="잔량"
+                  width={80}
+                  alignment="right"
                   cellRender={(row: ReceivableDetailRow) => (
                     <span className="font-semibold text-emerald-700">{formatQty(row.remQty)}</span>
                   )}
                 />
-                <Column dataField="qty" caption="입고수량" width={120} alignment="right"
+                <Column
+                  dataField="qty"
+                  caption="입고수량"
+                  width={120}
+                  alignment="right"
                   cellRender={(row: DetailRow, rowIndex) => (
                     <input
                       className="h-8 w-full rounded border border-slate-200 px-2 text-right"

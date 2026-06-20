@@ -11,7 +11,12 @@ import StatusActionButtons from '@/components/StatusActionButtons';
 import { http } from '@/lib/http';
 import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import { PAGE_SIZE, type PageableResponse } from '@/lib/pagination';
-import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
+import {
+  gridScrollClass,
+  pageContentClass,
+  pageShellClass,
+  registerSearchGridClass,
+} from '@/lib/pageStyles';
 import {
   formatRegNo,
   formatStatus,
@@ -42,7 +47,7 @@ function DetailInput({
   onChange?: (value: string) => void;
 }) {
   return (
-    <label className="grid grid-cols-[120px_1fr] items-center gap-3 text-sm">
+    <label className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-[120px_minmax(0,1fr)] sm:items-center sm:gap-3">
       <span className="text-slate-500">{label}</span>
       <input
         value={value ?? ''}
@@ -69,7 +74,7 @@ function DetailTextarea({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="grid grid-cols-[120px_1fr] gap-3 text-sm">
+    <label className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-3">
       <span className="pt-2 text-slate-500">{label}</span>
       <textarea
         value={value ?? ''}
@@ -90,7 +95,7 @@ function DetailSelect({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="grid grid-cols-[120px_1fr] items-center gap-3 text-sm">
+    <label className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-[120px_minmax(0,1fr)] sm:items-center sm:gap-3">
       <span className="text-slate-500">{label}</span>
       <select
         value={value || 'ACTIVE'}
@@ -252,33 +257,37 @@ export default function MMSM01010E() {
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[546px_1fr] xl:gap-12">
-            <CodeNameField
-              label="거래처"
-              id="cust"
-              code={cstCd}
-              name={cstNm}
-              codePlaceholder="코드"
-              namePlaceholder="거래처명"
-              onSearch={() => setCustomerOpen(true)}
-              onClear={() => {
-                setCstCd('');
-                setCstNm('');
-              }}
-            />
+          <div className="overflow-x-auto pb-1">
+            <div className={registerSearchGridClass}>
+              <CodeNameField
+                label="거래처"
+                id="cust"
+                code={cstCd}
+                name={cstNm}
+                codePlaceholder="코드"
+                namePlaceholder="거래처명"
+                onSearch={() => setCustomerOpen(true)}
+                onClear={() => {
+                  setCstCd('');
+                  setCstNm('');
+                }}
+              />
 
-            <StatusActionButtons
-              loading={loading}
-              onSearch={() => void onSearch()}
-              onSave={() => void openRegisterPopup()}
-              saveLabel="등록"
-              exportProps={{
-                rows: master,
-                headers: exportHeaders,
-                mapRow: mapExportRow,
-                filename: () => `거래처관리.csv`,
-              }}
-            />
+              <div className="col-start-3 min-w-[300px]">
+                <StatusActionButtons
+                  loading={loading}
+                  onSearch={() => void onSearch()}
+                  onSave={() => void openRegisterPopup()}
+                  saveLabel="등록"
+                  exportProps={{
+                    rows: master,
+                    headers: exportHeaders,
+                    mapRow: mapExportRow,
+                    filename: () => `거래처관리.csv`,
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </SectionCard>
 

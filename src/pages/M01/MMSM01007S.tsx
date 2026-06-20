@@ -10,12 +10,7 @@ import StatusActionButtons from '@/components/StatusActionButtons';
 import { Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
 import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
 import { PAGE_SIZE } from '@/lib/pagination';
-import {
-  gridScrollClass,
-  pageContentClass,
-  pageShellClass,
-  statusSearchGridClass,
-} from '@/lib/pageStyles';
+import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
 import { usePageApiFetch } from '@/services/common/getApiFetch';
 import {
   columns,
@@ -25,6 +20,9 @@ import {
   type RowItem,
   type SearchForm,
 } from '@/services/m01/mmsm01007';
+
+const stockStatusSearchGridClass =
+  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2';
 
 const MMSM01007S: React.FC = () => {
   const today = useMemo(() => new Date(), []);
@@ -71,58 +69,62 @@ const MMSM01007S: React.FC = () => {
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className={statusSearchGridClass}>
-            <FromToDateField
-              label="출고일자"
-              fromValue={form.startDate}
-              toValue={form.endDate}
-              onFromChange={(value) => setForm({ ...form, startDate: value })}
-              onToChange={(value) => setForm({ ...form, endDate: value })}
-            />
+          <div className="overflow-x-auto pb-1">
+            <div className={stockStatusSearchGridClass}>
+              <FromToDateField
+                label="출고일자"
+                fromValue={form.startDate}
+                toValue={form.endDate}
+                onFromChange={(value) => setForm({ ...form, startDate: value })}
+                onToChange={(value) => setForm({ ...form, endDate: value })}
+              />
 
-            <CodeNameField
-              label="거래처"
-              id="cust"
-              code={form.cstCd}
-              name={form.cstNm}
-              codePlaceholder="코드"
-              namePlaceholder="거래처명"
-              onSearch={() => setCustomerOpen(true)}
-              onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
-            />
+              <div className="col-start-3">
+                <CodeNameField
+                  label="거래처"
+                  id="cust"
+                  code={form.cstCd}
+                  name={form.cstNm}
+                  codePlaceholder="코드"
+                  namePlaceholder="거래처명"
+                  onSearch={() => setCustomerOpen(true)}
+                  onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
+                />
+              </div>
 
-            <StatusActionButtons
-              loading={loading}
-              onSearch={() => void fetchList(0)}
-              exportProps={{
-                rows: latestRows,
-                headers: exportHeaders,
-                mapRow: mapExportRow,
-                filename: () => `원자재재고현황_${form.endDate.split('-').join('')}.csv`,
-              }}
-            />
-          </div>
+              <div className="col-start-3 row-start-2">
+                <StatusActionButtons
+                  loading={loading}
+                  onSearch={() => void fetchList(0)}
+                  exportProps={{
+                    rows: latestRows,
+                    headers: exportHeaders,
+                    mapRow: mapExportRow,
+                    filename: () => `원자재재고현황_${form.endDate.split('-').join('')}.csv`,
+                  }}
+                />
+              </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[546px_1fr]">
-            <CodeNameField
-              label="원자재"
-              id="item"
-              code={form.itemCd}
-              name={form.itemNm}
-              codePlaceholder="코드"
-              namePlaceholder="원자재명"
-              onSearch={() => setItemPickerOpen(true)}
-              onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
-            />
+              <div className="col-start-1 row-start-2">
+                <CodeNameField
+                  label="원자재"
+                  id="item"
+                  code={form.itemCd}
+                  name={form.itemNm}
+                  codePlaceholder="코드"
+                  namePlaceholder="원자재명"
+                  onSearch={() => setItemPickerOpen(true)}
+                  onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
+                />
+              </div>
+            </div>
           </div>
         </SectionCard>
 
         {error && <AlertBox tone="error">{error}</AlertBox>}
 
         <SectionCard span="full" width="full">
-          <SectionHeader
-            title="재고 현황"
-          />
+          <SectionHeader title="재고 현황" />
           <div className={gridScrollClass} style={{ height: tableHeight }}>
             <DataGrid
               dataSource={latestRows}

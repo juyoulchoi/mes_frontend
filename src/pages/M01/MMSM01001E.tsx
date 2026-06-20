@@ -25,7 +25,6 @@ import {
   gridScrollClass,
   pageContentClass,
   pageShellClass,
-  registerSearchGridClass,
   registerSplitGridClass,
   transferButtonGroupClass,
   transferColumnClass,
@@ -48,6 +47,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useCodes } from '@/lib/hooks/useCodes';
 
 const DEFAULT_EM_GB = 'N';
+const purchaseRegisterSearchGridClass =
+  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2';
+
 type MasterApiRow = MasterRow & {
   ITEM_CD?: string;
   ITEM_NM?: string;
@@ -403,48 +405,54 @@ export default function MMSM01001E() {
         />
 
         <SectionCard span="full" padding="md">
-          <div className={registerSearchGridClass}>
-            <DateEdit
-              label="발주일자"
-              value={form.poYmd}
-              min={minPoYmd}
-              onChange={(value) => {
-                if (value < minPoYmd) {
-                  window.alert('발주일자는 오늘 이전으로 선택할 수 없습니다.');
-                  return;
-                }
+          <div className="overflow-x-auto pb-1">
+            <div className={purchaseRegisterSearchGridClass}>
+              <DateEdit
+                label="발주일자"
+                value={form.poYmd}
+                min={minPoYmd}
+                onChange={(value) => {
+                  if (value < minPoYmd) {
+                    window.alert('발주일자는 오늘 이전으로 선택할 수 없습니다.');
+                    return;
+                  }
 
-                setForm((prev) => ({ ...prev, poYmd: value }));
-                setDetailRows((prev) =>
-                  prev.map((row) => ({
-                    ...row,
-                    reqYmd: row.reqYmd && row.reqYmd >= value ? row.reqYmd : value,
-                  }))
-                );
-              }}
-            />
-            <CodeNameField
-              label="거래처"
-              id="cust"
-              code={form.cstCd}
-              name={cstNm}
-              codePlaceholder="코드"
-              namePlaceholder="거래처명"
-              onSearch={() => setCustomerOpen(true)}
-              onClear={() => {
-                setCstNm('');
-                setForm((prev) => ({ ...prev, cstCd: '' }));
-              }}
-            />
-            <ActionButtonGroup
-              onSearch={onSearch}
-              onSave={() => onSave()}
-              onUpload={onUploadCsv}
-              onExport={onExportCsv}
-              searchDisabled={isSearch}
-              saveDisabled={isSave}
-              uploadDisabled={isUpload}
-            />
+                  setForm((prev) => ({ ...prev, poYmd: value }));
+                  setDetailRows((prev) =>
+                    prev.map((row) => ({
+                      ...row,
+                      reqYmd: row.reqYmd && row.reqYmd >= value ? row.reqYmd : value,
+                    }))
+                  );
+                }}
+              />
+              <div className="col-start-3">
+                <CodeNameField
+                  label="거래처"
+                  id="cust"
+                  code={form.cstCd}
+                  name={cstNm}
+                  codePlaceholder="코드"
+                  namePlaceholder="거래처명"
+                  onSearch={() => setCustomerOpen(true)}
+                  onClear={() => {
+                    setCstNm('');
+                    setForm((prev) => ({ ...prev, cstCd: '' }));
+                  }}
+                />
+              </div>
+              <ActionButtonGroup
+                onSearch={onSearch}
+                onSave={() => onSave()}
+                onUpload={onUploadCsv}
+                onExport={onExportCsv}
+                searchDisabled={isSearch}
+                saveDisabled={isSave}
+                uploadDisabled={isUpload}
+                compact
+                className="col-start-3 row-start-2 flex flex-wrap content-end items-end justify-end gap-2 self-end"
+              />
+            </div>
           </div>
         </SectionCard>
 

@@ -9,7 +9,12 @@ import { Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
 import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
 import { http } from '@/lib/http';
 import { PAGE_SIZE } from '@/lib/pagination';
-import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
+import {
+  gridScrollClass,
+  pageContentClass,
+  pageShellClass,
+  registerSearchGridClass,
+} from '@/lib/pageStyles';
 import { getTodayYmd } from '@/lib/registerDetailUtils';
 import {
   columns,
@@ -61,34 +66,37 @@ export default function MMSM01011S() {
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[450px_1fr]">
-            <FromToDateField
-              label="실사일자"
-              fromValue={form.startDate}
-              toValue={form.endDate}
-              onFromChange={(value) => setForm((prev) => ({ ...prev, startDate: value }))}
-              onToChange={(value) => setForm((prev) => ({ ...prev, endDate: value }))}
-            />
+          <div className="overflow-x-auto pb-1">
+            <div className={registerSearchGridClass}>
+              <FromToDateField
+                label="실사일자"
+                fromValue={form.startDate}
+                toValue={form.endDate}
+                onFromChange={(value) => setForm((prev) => ({ ...prev, startDate: value }))}
+                onToChange={(value) => setForm((prev) => ({ ...prev, endDate: value }))}
+              />
 
-            <StatusActionButtons
-              loading={loading}
-              onSearch={() => void onSearch()}
-              exportProps={{
-                rows,
-                headers: exportHeaders,
-                mapRow: mapExportRow,
-                filename: () => `재고조정내역_${toYmd(form.startDate)}_${toYmd(form.endDate)}.csv`,
-              }}
-            />
+              <div className="col-start-3">
+                <StatusActionButtons
+                  loading={loading}
+                  onSearch={() => void onSearch()}
+                  exportProps={{
+                    rows,
+                    headers: exportHeaders,
+                    mapRow: mapExportRow,
+                    filename: () =>
+                      `재고조정내역_${toYmd(form.startDate)}_${toYmd(form.endDate)}.csv`,
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </SectionCard>
 
         {error && <AlertBox tone="error">{error}</AlertBox>}
 
         <SectionCard span="full" width="full">
-          <SectionHeader
-            title="재고조정 내역"
-          />
+          <SectionHeader title="재고조정 내역" />
           <div className={gridScrollClass} style={{ height: tableHeight }}>
             <DataGrid
               dataSource={rows}

@@ -22,9 +22,9 @@ import {
   editableInputClass,
   editableNumberInputClass,
   gridScrollClass,
+  materialRegisterSearchGridClass,
   pageContentClass,
   pageShellClass,
-  registerSearchGridClass,
   registerSplitGridClass,
   transferButtonGroupClass,
   transferColumnClass,
@@ -348,34 +348,38 @@ export default function MMSM01005E() {
         />
 
         <SectionCard span="full" padding="md">
-          <div className={registerSearchGridClass}>
-            <DateEdit
-              label="출고일자"
-              value={form.giDate}
-              onChange={(value) => setForm((prev) => ({ ...prev, giDate: value }))}
-            />
-            <CodeNameField
-              label="거래처"
-              id="cust"
-              code={form.cstCd}
-              name={cstNm}
-              codePlaceholder="코드"
-              namePlaceholder="거래처명"
-              onSearch={() => setCustomerOpen(true)}
-              onClear={() => {
-                setCstNm('');
-                setForm((prev) => ({ ...prev, cstCd: '' }));
-              }}
-            />
-            <ActionButtonGroup
-              onSearch={onSearch}
-              onSave={() => onSave()}
-              onUpload={onUploadCsv}
-              onExport={onExportCsv}
-              searchDisabled={isSearch}
-              saveDisabled={isSave}
-              uploadDisabled={isUpload}
-            />
+          <div className="overflow-x-auto pb-1">
+            <div className={materialRegisterSearchGridClass}>
+              <DateEdit
+                label="출고일자"
+                value={form.giDate}
+                onChange={(value) => setForm((prev) => ({ ...prev, giDate: value }))}
+              />
+              <CodeNameField
+                label="거래처"
+                id="cust"
+                code={form.cstCd}
+                name={cstNm}
+                codePlaceholder="코드"
+                namePlaceholder="거래처명"
+                onSearch={() => setCustomerOpen(true)}
+                onClear={() => {
+                  setCstNm('');
+                  setForm((prev) => ({ ...prev, cstCd: '' }));
+                }}
+              />
+              <ActionButtonGroup
+                onSearch={onSearch}
+                onSave={() => onSave()}
+                onUpload={onUploadCsv}
+                onExport={onExportCsv}
+                searchDisabled={isSearch}
+                saveDisabled={isSave}
+                uploadDisabled={isUpload}
+                compact
+                className="flex flex-wrap items-end justify-end gap-2"
+              />
+            </div>
           </div>
         </SectionCard>
 
