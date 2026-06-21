@@ -49,7 +49,7 @@ type ReceivableDetailRow = DetailRow & {
 };
 
 const receiptRegisterSearchGridClass =
-  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] xl:gap-x-[30px]';
+  'grid min-w-[920px] grid-cols-[296px_150px_minmax(0,1fr)_max-content] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[296px_446px_minmax(0,1fr)_max-content] xl:gap-x-[30px]';
 
 const PURCHASE_SEARCH_START_DATE = '19000101';
 
@@ -289,7 +289,7 @@ export default function MMSM01003E() {
                 value={form.ivDate}
                 onChange={(value) => setForm((prev) => ({ ...prev, ivDate: value }))}
               />
-              <div className="col-start-1 row-start-2 xl:col-start-2 xl:row-start-1">
+              <div className="col-span-2 col-start-1 row-start-2 xl:col-span-1 xl:col-start-2 xl:row-start-1">
                 <CodeNameField
                   label="거래처"
                   id="cust"
@@ -304,7 +304,7 @@ export default function MMSM01003E() {
                   }}
                 />
               </div>
-              <div className="col-start-3 row-start-1 xl:col-start-4">
+              <div className="col-start-4 row-start-1">
                 <ActionButtonGroup
                   onSearch={onSearch}
                   onSave={() => onSave()}
