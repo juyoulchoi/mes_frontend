@@ -112,7 +112,7 @@ export default function MMSM04006E() {
           <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
             <DateEdit label="입고일자" value={inDate} onChange={setInDate} />
 
-            <label className="grid w-[240px] grid-cols-[80px_150px] items-center gap-3">
+            <label className="grid w-full max-w-[240px] grid-cols-1 gap-2 sm:grid-cols-[80px_minmax(130px,150px)] sm:items-center sm:gap-3">
               <span className="text-sm text-gray-600">순번</span>
               <input
                 value={seq}

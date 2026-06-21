@@ -17,6 +17,9 @@ import {
   type Row,
 } from '@/services/m04/mmsm04007';
 
+const productionInputHistorySearchGridClass =
+  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)]';
+
 export default function MMSM04007S() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
@@ -47,17 +50,21 @@ export default function MMSM04007S() {
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className="flex justify-end">
-            <StatusActionButtons
-              loading={loading}
-              onSearch={() => void onSearch()}
-              exportProps={{
-                rows,
-                headers: exportHeaders,
-                mapRow: mapExportRow,
-                filename: 'MMSM04007S.csv',
-              }}
-            />
+          <div className="overflow-x-auto pb-1">
+            <div className={productionInputHistorySearchGridClass}>
+              <div className="col-start-3 row-start-1">
+                <StatusActionButtons
+                  loading={loading}
+                  onSearch={() => void onSearch()}
+                  exportProps={{
+                    rows,
+                    headers: exportHeaders,
+                    mapRow: mapExportRow,
+                    filename: 'MMSM04007S.csv',
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </SectionCard>
 

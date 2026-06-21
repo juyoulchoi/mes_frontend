@@ -39,7 +39,7 @@ import { useEffect, useState } from 'react';
 const editableTextInputClass =
   'h-9 w-full min-w-[140px] rounded-md border border-slate-200 bg-white px-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100';
 const issueDateInputClass =
-  'h-10 w-[150px] rounded-lg border border-slate-200 bg-white px-3 text-sm';
+  'h-10 w-full max-w-[150px] rounded-lg border border-slate-200 bg-white px-3 text-sm';
 const issueDateLabelClass = 'flex h-10 items-center gap-2 text-sm';
 const issueDateTextClass = 'w-[72px] shrink-0 font-medium text-slate-700';
 

@@ -120,7 +120,7 @@ export default function MMSM04004E() {
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[450px_546px_1fr]">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(320px,450px)_minmax(360px,546px)_1fr]">
             <DateEdit
               label="조정일자"
               value={form.adjustDate}
@@ -215,9 +215,7 @@ export default function MMSM04004E() {
                 cellRender={(row, rowIndex) => (
                   <input
                     value={row.description ?? ''}
-                    onChange={(event) =>
-                      updateRow(rowIndex, { description: event.target.value })
-                    }
+                    onChange={(event) => updateRow(rowIndex, { description: event.target.value })}
                     className="h-8 w-full rounded-md border border-slate-200 px-2 text-sm outline-none focus:border-slate-400"
                   />
                 )}

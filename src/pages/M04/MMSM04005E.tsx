@@ -40,7 +40,7 @@ function DetailInput({
   onChange?: (value: string) => void;
 }) {
   return (
-    <label className="grid grid-cols-[110px_1fr] items-center gap-3 text-sm">
+    <label className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-[110px_minmax(0,1fr)] sm:items-center sm:gap-3">
       <span className="text-slate-500">{label}</span>
       <input
         value={value ?? ''}
@@ -66,7 +66,7 @@ function DetailSelect({
   onChange: (value: 'Y' | 'N') => void;
 }) {
   return (
-    <label className="grid grid-cols-[110px_1fr] items-center gap-3 text-sm">
+    <label className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-[110px_minmax(0,1fr)] sm:items-center sm:gap-3">
       <span className="text-slate-500">{label}</span>
       <select
         value={value || 'N'}
@@ -243,7 +243,7 @@ export default function MMSM04005E() {
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[546px_546px_1fr] xl:gap-6">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(360px,546px)_minmax(360px,546px)_1fr] xl:gap-6">
             <CodeNameField
               label="거래처"
               id="cust"
