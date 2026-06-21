@@ -48,7 +48,7 @@ import { useCodes } from '@/lib/hooks/useCodes';
 
 const DEFAULT_EM_GB = 'N';
 const purchaseRegisterSearchGridClass =
-  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,420px)_minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)]';
+  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] xl:gap-x-[30px]';
 
 type MasterApiRow = MasterRow & {
   ITEM_CD?: string;
@@ -134,6 +134,21 @@ export default function MMSM01001E() {
 
     setDetailError(null);
     await Promise.all([fetchMasterList(0), fetchDetailList(0)]);
+  }
+
+  function onPurchaseDateChange(value: string) {
+    if (value < minPoYmd) {
+      window.alert('발주일자는 오늘 이전으로 선택할 수 없습니다.');
+      return;
+    }
+
+    setForm((prev) => ({ ...prev, poYmd: value }));
+    setDetailRows((prev) =>
+      prev.map((row) => ({
+        ...row,
+        reqYmd: row.reqYmd && row.reqYmd >= value ? row.reqYmd : value,
+      }))
+    );
   }
 
   const isSearch = masterLoading || detailLoading || saving || uploading;
@@ -411,20 +426,7 @@ export default function MMSM01001E() {
                 label="발주일자"
                 value={form.poYmd}
                 min={minPoYmd}
-                onChange={(value) => {
-                  if (value < minPoYmd) {
-                    window.alert('발주일자는 오늘 이전으로 선택할 수 없습니다.');
-                    return;
-                  }
-
-                  setForm((prev) => ({ ...prev, poYmd: value }));
-                  setDetailRows((prev) =>
-                    prev.map((row) => ({
-                      ...row,
-                      reqYmd: row.reqYmd && row.reqYmd >= value ? row.reqYmd : value,
-                    }))
-                  );
-                }}
+                onChange={onPurchaseDateChange}
               />
               <div className="col-start-1 row-start-2 xl:col-start-2 xl:row-start-1">
                 <CodeNameField

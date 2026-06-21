@@ -29,7 +29,7 @@ import {
 } from '@/services/m01/mmsm01010';
 
 const customerOnlySearchGridClass =
-  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2';
+  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2';
 
 function DetailInput({
   label,

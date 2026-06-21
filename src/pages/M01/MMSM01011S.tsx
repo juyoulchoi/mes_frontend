@@ -23,7 +23,7 @@ import {
 } from '@/services/m01/mmsm01011';
 
 const stockTakingStatusSearchGridClass =
-  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2';
+  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)]';
 
 function getFirstDayOfMonthYmd() {
   const today = new Date();
@@ -74,7 +74,7 @@ export default function MMSM01011S() {
                 onToChange={(value) => setForm((prev) => ({ ...prev, endDate: value }))}
               />
 
-              <div className="col-start-3">
+              <div className="col-start-3 row-start-1">
                 <StatusActionButtons
                   loading={loading}
                   onSearch={() => void onSearch()}

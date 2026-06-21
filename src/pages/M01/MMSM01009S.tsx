@@ -20,7 +20,7 @@ import {
 } from '@/services/m01/mmsm01009';
 
 const itemOnlySearchGridClass =
-  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2';
+  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2';
 
 export default function MMSM01009S() {
   const [itemPickerOpen, setItemPickerOpen] = useState(false);

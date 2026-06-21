@@ -25,7 +25,7 @@ import { updateCheckedRows } from '@/lib/gridRows';
 import type { AuthMeResponse } from '@/services/m01/mmsm01003';
 
 const issueStatusSearchGridClass =
-  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2 xl:min-w-[1280px] xl:grid-cols-[minmax(300px,420px)_minmax(300px,420px)_minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)]';
+  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,446px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)]';
 
 const MMSM01006S: React.FC = () => {
   const today = useMemo(() => new Date(), []);
@@ -144,7 +144,7 @@ const MMSM01006S: React.FC = () => {
                 />
               </div>
 
-              <div className="col-start-3 row-start-1 xl:col-start-5">
+              <div className="col-start-3 row-start-1 xl:col-start-4">
                 <StatusActionButtons
                   loading={loading}
                   canceling={canceling}
@@ -161,7 +161,7 @@ const MMSM01006S: React.FC = () => {
                 />
               </div>
 
-              <div className="col-start-3 row-start-2 xl:col-start-3 xl:row-start-1">
+              <div className="col-start-3 row-start-2 xl:col-start-1 xl:row-start-2">
                 <CodeNameField
                   label="원자재"
                   id="item"
