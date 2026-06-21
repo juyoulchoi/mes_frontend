@@ -49,7 +49,7 @@ type ReceivableDetailRow = DetailRow & {
 };
 
 const receiptRegisterSearchGridClass =
-  'grid min-w-[920px] grid-cols-[minmax(260px,420px)_minmax(300px,420px)_minmax(16px,1fr)_minmax(160px,220px)] items-end gap-2';
+  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,420px)_minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)]';
 
 const PURCHASE_SEARCH_START_DATE = '19000101';
 
@@ -289,20 +289,22 @@ export default function MMSM01003E() {
                 value={form.ivDate}
                 onChange={(value) => setForm((prev) => ({ ...prev, ivDate: value }))}
               />
-              <CodeNameField
-                label="거래처"
-                id="cust"
-                code={form.cstCd}
-                name={cstNm}
-                codePlaceholder="코드"
-                namePlaceholder="거래처명"
-                onSearch={() => setCustomerOpen(true)}
-                onClear={() => {
-                  setCstNm('');
-                  setForm((prev) => ({ ...prev, cstCd: '' }));
-                }}
-              />
-              <div className="col-start-4">
+              <div className="col-start-1 row-start-2 xl:col-start-2 xl:row-start-1">
+                <CodeNameField
+                  label="거래처"
+                  id="cust"
+                  code={form.cstCd}
+                  name={cstNm}
+                  codePlaceholder="코드"
+                  namePlaceholder="거래처명"
+                  onSearch={() => setCustomerOpen(true)}
+                  onClear={() => {
+                    setCstNm('');
+                    setForm((prev) => ({ ...prev, cstCd: '' }));
+                  }}
+                />
+              </div>
+              <div className="col-start-3 row-start-1 xl:col-start-4">
                 <ActionButtonGroup
                   onSearch={onSearch}
                   onSave={() => onSave()}

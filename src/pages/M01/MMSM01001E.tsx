@@ -48,7 +48,7 @@ import { useCodes } from '@/lib/hooks/useCodes';
 
 const DEFAULT_EM_GB = 'N';
 const purchaseRegisterSearchGridClass =
-  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2';
+  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,420px)_minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)]';
 
 type MasterApiRow = MasterRow & {
   ITEM_CD?: string;
@@ -426,7 +426,7 @@ export default function MMSM01001E() {
                   );
                 }}
               />
-              <div className="col-start-3">
+              <div className="col-start-1 row-start-2 xl:col-start-2 xl:row-start-1">
                 <CodeNameField
                   label="거래처"
                   id="cust"
@@ -450,7 +450,7 @@ export default function MMSM01001E() {
                 saveDisabled={isSave}
                 uploadDisabled={isUpload}
                 compact
-                className="col-start-3 row-start-2 flex flex-wrap content-end items-end justify-end gap-2 self-end"
+                className="col-start-3 row-start-1 flex flex-wrap content-end items-end justify-end gap-2 self-end xl:col-start-4"
               />
             </div>
           </div>

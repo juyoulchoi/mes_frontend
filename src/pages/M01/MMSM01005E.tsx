@@ -22,7 +22,6 @@ import {
   editableInputClass,
   editableNumberInputClass,
   gridScrollClass,
-  materialRegisterSearchGridClass,
   pageContentClass,
   pageShellClass,
   registerSplitGridClass,
@@ -47,6 +46,9 @@ import {
   type SearchForm,
 } from '@/services/m01/mmsm01005';
 import { useEffect, useRef, useState } from 'react';
+
+const issueRegisterSearchGridClass =
+  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,420px)_minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)]';
 
 type MasterRow = {
   CHECK?: boolean;
@@ -349,25 +351,27 @@ export default function MMSM01005E() {
 
         <SectionCard span="full" padding="md">
           <div className="overflow-x-auto pb-1">
-            <div className={materialRegisterSearchGridClass}>
+            <div className={issueRegisterSearchGridClass}>
               <DateEdit
                 label="출고일자"
                 value={form.giDate}
                 onChange={(value) => setForm((prev) => ({ ...prev, giDate: value }))}
               />
-              <CodeNameField
-                label="거래처"
-                id="cust"
-                code={form.cstCd}
-                name={cstNm}
-                codePlaceholder="코드"
-                namePlaceholder="거래처명"
-                onSearch={() => setCustomerOpen(true)}
-                onClear={() => {
-                  setCstNm('');
-                  setForm((prev) => ({ ...prev, cstCd: '' }));
-                }}
-              />
+              <div className="col-start-1 row-start-2 xl:col-start-2 xl:row-start-1">
+                <CodeNameField
+                  label="거래처"
+                  id="cust"
+                  code={form.cstCd}
+                  name={cstNm}
+                  codePlaceholder="코드"
+                  namePlaceholder="거래처명"
+                  onSearch={() => setCustomerOpen(true)}
+                  onClear={() => {
+                    setCstNm('');
+                    setForm((prev) => ({ ...prev, cstCd: '' }));
+                  }}
+                />
+              </div>
               <ActionButtonGroup
                 onSearch={onSearch}
                 onSave={() => onSave()}
@@ -377,7 +381,7 @@ export default function MMSM01005E() {
                 saveDisabled={isSave}
                 uploadDisabled={isUpload}
                 compact
-                className="flex flex-wrap items-end justify-end gap-2"
+                className="col-start-3 row-start-1 flex flex-wrap content-end items-end justify-end gap-2 self-end xl:col-start-4"
               />
             </div>
           </div>

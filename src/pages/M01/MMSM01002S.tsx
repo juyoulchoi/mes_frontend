@@ -24,7 +24,7 @@ import { updateCheckedRows } from '@/lib/gridRows';
 import type { AuthMeResponse } from '@/services/m01/mmsm01003';
 
 const purchaseStatusSearchGridClass =
-  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2';
+  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2 xl:min-w-[1280px] xl:grid-cols-[minmax(300px,420px)_minmax(300px,420px)_minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)]';
 
 const MMSM01002S: React.FC = () => {
   const today = useMemo(() => new Date(), []);
@@ -137,7 +137,7 @@ const MMSM01002S: React.FC = () => {
                 onToChange={(value) => setForm({ ...form, endDate: value })}
               />
 
-              <div className="col-start-3">
+              <div className="col-start-1 row-start-2 xl:col-start-2 xl:row-start-1">
                 <CodeNameField
                   label="거래처"
                   id="cust"
@@ -150,7 +150,7 @@ const MMSM01002S: React.FC = () => {
                 />
               </div>
 
-              <div className="col-start-3 row-start-2">
+              <div className="col-start-3 row-start-1 xl:col-start-5">
                 <StatusActionButtons
                   loading={loading}
                   canceling={canceling}
@@ -166,7 +166,7 @@ const MMSM01002S: React.FC = () => {
                 />
               </div>
 
-              <div className="col-start-1 row-start-2">
+              <div className="col-start-3 row-start-2 xl:col-start-3 xl:row-start-1">
                 <CodeNameField
                   label="원자재"
                   id="item"

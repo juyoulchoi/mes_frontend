@@ -9,12 +9,7 @@ import { Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
 import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
 import { http } from '@/lib/http';
 import { PAGE_SIZE } from '@/lib/pagination';
-import {
-  gridScrollClass,
-  pageContentClass,
-  pageShellClass,
-  registerSearchGridClass,
-} from '@/lib/pageStyles';
+import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
 import { getTodayYmd } from '@/lib/registerDetailUtils';
 import {
   columns,
@@ -26,6 +21,9 @@ import {
   type RowItem,
   type SearchForm,
 } from '@/services/m01/mmsm01011';
+
+const stockTakingStatusSearchGridClass =
+  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2';
 
 function getFirstDayOfMonthYmd() {
   const today = new Date();
@@ -67,7 +65,7 @@ export default function MMSM01011S() {
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
           <div className="overflow-x-auto pb-1">
-            <div className={registerSearchGridClass}>
+            <div className={stockTakingStatusSearchGridClass}>
               <FromToDateField
                 label="실사일자"
                 fromValue={form.startDate}

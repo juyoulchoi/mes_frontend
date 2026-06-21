@@ -10,12 +10,7 @@ import { Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
 import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
 import { http } from '@/lib/http';
 import { PAGE_SIZE } from '@/lib/pagination';
-import {
-  gridScrollClass,
-  pageContentClass,
-  pageShellClass,
-  registerSearchGridClass,
-} from '@/lib/pageStyles';
+import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
 import {
   columns,
   exportHeaders,
@@ -23,6 +18,9 @@ import {
   type RowItem,
   type SearchForm,
 } from '@/services/m01/mmsm01009';
+
+const itemOnlySearchGridClass =
+  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2';
 
 export default function MMSM01009S() {
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
@@ -60,7 +58,7 @@ export default function MMSM01009S() {
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
           <div className="overflow-x-auto pb-1">
-            <div className={registerSearchGridClass}>
+            <div className={itemOnlySearchGridClass}>
               <CodeNameField
                 label="원자재"
                 id="item"
@@ -72,7 +70,7 @@ export default function MMSM01009S() {
                 onClear={() => setForm({ itemCd: '', itemNm: '' })}
               />
 
-              <div className="col-start-3">
+              <div className="col-start-3 row-start-1">
                 <StatusActionButtons
                   loading={loading}
                   onSearch={() => void onSearch()}

@@ -28,7 +28,7 @@ import {
 } from '@/services/m01/mmsm01008';
 
 const stockAdjustSearchGridClass =
-  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2';
+  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,420px)_minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)]';
 
 export default function MMSM01008E() {
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
@@ -137,7 +137,7 @@ export default function MMSM01008E() {
                 onChange={(value) => setForm((prev) => ({ ...prev, adjustDate: value }))}
               />
 
-              <div className="col-start-1 row-start-2">
+              <div className="col-start-1 row-start-2 xl:col-start-2 xl:row-start-1">
                 <CodeNameField
                   label="원자재"
                   id="item"
@@ -150,7 +150,7 @@ export default function MMSM01008E() {
                 />
               </div>
 
-              <div className="col-start-3 row-start-2">
+              <div className="col-start-3 row-start-1 xl:col-start-4">
                 <StatusActionButtons
                   loading={loading}
                   saving={saving}

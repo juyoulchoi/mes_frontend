@@ -11,12 +11,7 @@ import StatusActionButtons from '@/components/StatusActionButtons';
 import { http } from '@/lib/http';
 import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import { PAGE_SIZE, type PageableResponse } from '@/lib/pagination';
-import {
-  gridScrollClass,
-  pageContentClass,
-  pageShellClass,
-  registerSearchGridClass,
-} from '@/lib/pageStyles';
+import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
 import {
   formatRegNo,
   formatStatus,
@@ -32,6 +27,9 @@ import {
   type DetailRow,
   type MasterRow,
 } from '@/services/m01/mmsm01010';
+
+const customerOnlySearchGridClass =
+  'grid min-w-[920px] grid-cols-[minmax(300px,420px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2';
 
 function DetailInput({
   label,
@@ -258,7 +256,7 @@ export default function MMSM01010E() {
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
           <div className="overflow-x-auto pb-1">
-            <div className={registerSearchGridClass}>
+            <div className={customerOnlySearchGridClass}>
               <CodeNameField
                 label="거래처"
                 id="cust"
@@ -273,7 +271,7 @@ export default function MMSM01010E() {
                 }}
               />
 
-              <div className="col-start-3 min-w-[300px]">
+              <div className="col-start-3 row-start-1 min-w-[300px]">
                 <StatusActionButtons
                   loading={loading}
                   onSearch={() => void onSearch()}
