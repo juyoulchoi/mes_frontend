@@ -25,7 +25,7 @@ import { updateCheckedRows } from '@/lib/gridRows';
 import type { AuthMeResponse } from '@/services/m01/mmsm01003';
 
 const issueStatusSearchGridClass =
-  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,446px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)]';
+  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,446px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] xl:gap-x-[30px]';
 
 const MMSM01006S: React.FC = () => {
   const today = useMemo(() => new Date(), []);
