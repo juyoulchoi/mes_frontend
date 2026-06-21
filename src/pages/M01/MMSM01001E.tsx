@@ -48,7 +48,7 @@ import { useCodes } from '@/lib/hooks/useCodes';
 
 const DEFAULT_EM_GB = 'N';
 const purchaseRegisterSearchGridClass =
-  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] xl:gap-x-[30px]';
+  'grid min-w-[920px] grid-cols-[296px_150px_minmax(0,1fr)_max-content] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[296px_446px_minmax(0,1fr)_max-content] xl:gap-x-[30px]';
 
 type MasterApiRow = MasterRow & {
   ITEM_CD?: string;
@@ -428,7 +428,7 @@ export default function MMSM01001E() {
                 min={minPoYmd}
                 onChange={onPurchaseDateChange}
               />
-              <div className="col-start-1 row-start-2 xl:col-start-2 xl:row-start-1">
+              <div className="col-span-2 col-start-1 row-start-2 xl:col-span-1 xl:col-start-2 xl:row-start-1">
                 <CodeNameField
                   label="거래처"
                   id="cust"
@@ -452,7 +452,7 @@ export default function MMSM01001E() {
                 saveDisabled={isSave}
                 uploadDisabled={isUpload}
                 compact
-                className="col-start-3 row-start-1 flex flex-wrap content-end items-end justify-end gap-2 self-end xl:col-start-4"
+                className="col-start-4 row-start-1 flex flex-wrap content-end items-end justify-end gap-2 self-end"
               />
             </div>
           </div>
