@@ -22,6 +22,9 @@ import {
   type OutsourceIoRow,
 } from '@/services/m02/mmsm02006';
 
+const outsourceIoSearchGridClass =
+  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] xl:gap-x-[30px]';
+
 function DetailInput({
   label,
   value,
@@ -30,7 +33,7 @@ function DetailInput({
   onChange,
 }: DetailInputProps) {
   return (
-    <label className="grid grid-cols-[120px_1fr] items-center gap-3 text-sm">
+    <label className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-[120px_minmax(0,1fr)] sm:items-center sm:gap-3">
       <span className="text-slate-500">{label}</span>
       <input
         type={type}
@@ -141,49 +144,53 @@ export default function MMSM02006E() {
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[470px_260px_1fr] xl:gap-6">
-            <FromToDateField
-              label="수주일자"
-              fromValue={startDate}
-              toValue={endDate}
-              onFromChange={setStartDate}
-              onToChange={setEndDate}
-            />
+          <div className="overflow-x-auto pb-1">
+            <div className={outsourceIoSearchGridClass}>
+              <FromToDateField
+                label="수주일자"
+                fromValue={startDate}
+                toValue={endDate}
+                onFromChange={setStartDate}
+                onToChange={setEndDate}
+              />
 
-            <label className="grid grid-cols-[80px_160px] items-center gap-3">
-              <span className="text-sm text-gray-600">외주구분</span>
-              <select
-                value={outGb}
-                onChange={(event) => setOutGb(event.target.value)}
-                className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-slate-400"
-              >
-                <option value="">전체</option>
-                <option value="Y">외주출고</option>
-                <option value="N">입고출고</option>
-              </select>
-            </label>
+              <label className="col-start-1 row-start-2 grid max-w-[446px] grid-cols-1 gap-2 sm:grid-cols-[100px_minmax(0,1fr)] sm:items-center sm:gap-2 xl:col-start-2 xl:row-start-1">
+                <span className="text-sm text-gray-600 sm:whitespace-nowrap">외주구분</span>
+                <select
+                  value={outGb}
+                  onChange={(event) => setOutGb(event.target.value)}
+                  className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-slate-400"
+                >
+                  <option value="">전체</option>
+                  <option value="Y">외주출고</option>
+                  <option value="N">입고출고</option>
+                </select>
+              </label>
 
-            <StatusActionButtons
-              loading={loading}
-              saving={saving}
-              disabled={busy}
-              onSearch={() => void onSearch()}
-              onSave={() => {
-                const selected = rows.find((row) => row.check);
-                if (!selected) {
-                  setError('저장할 외주 입출고 데이터를 선택하세요.');
-                  return;
-                }
-                setDetailRow({ ...selected });
-              }}
-              saveLabel="상세"
-              exportProps={{
-                rows,
-                headers: exportHeaders,
-                mapRow: mapExportRow,
-                filename: '외주입출고관리.csv',
-              }}
-            />
+              <div className="col-start-3 row-start-1 xl:col-start-4">
+                <StatusActionButtons
+                  loading={loading}
+                  saving={saving}
+                  disabled={busy}
+                  onSearch={() => void onSearch()}
+                  onSave={() => {
+                    const selected = rows.find((row) => row.check);
+                    if (!selected) {
+                      setError('저장할 외주 입출고 데이터를 선택하세요.');
+                      return;
+                    }
+                    setDetailRow({ ...selected });
+                  }}
+                  saveLabel="상세"
+                  exportProps={{
+                    rows,
+                    headers: exportHeaders,
+                    mapRow: mapExportRow,
+                    filename: '외주입출고관리.csv',
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </SectionCard>
 
@@ -315,7 +322,7 @@ export default function MMSM02006E() {
                   onChange={(value) => updateDetail({ inQty: value })}
                 />
 
-                <label className="grid grid-cols-[120px_1fr] items-center gap-3 text-sm">
+                <label className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-[120px_minmax(0,1fr)] sm:items-center sm:gap-3">
                   <span className="text-slate-500">직접출고여부</span>
                   <select
                     value={detailRow.outDirYn ?? ''}

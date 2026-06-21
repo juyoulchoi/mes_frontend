@@ -29,6 +29,8 @@ function getFirstDayOfMonthYmd() {
 
 const searchLabelClass = 'font-medium text-slate-700';
 const searchControlClass = 'h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm';
+const productionStatusSearchGridClass =
+  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] xl:gap-x-[30px]';
 
 export default function MMSM02003S() {
   const [form, setForm] = useState<SearchForm>({
@@ -66,35 +68,41 @@ export default function MMSM02003S() {
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[450px_260px_1fr]">
-            <FromToDateField
-              label="수주일자"
-              fromValue={form.startDate}
-              toValue={form.endDate}
-              onFromChange={(value) => setForm((prev) => ({ ...prev, startDate: value }))}
-              onToChange={(value) => setForm((prev) => ({ ...prev, endDate: value }))}
-            />
-
-            <label className="flex h-10 items-center gap-2 text-sm">
-              <span className={`${searchLabelClass} w-[72px] shrink-0`}>공정</span>
-              <input
-                className={`${searchControlClass} w-full`}
-                value={form.proc}
-                onChange={(event) => setForm((prev) => ({ ...prev, proc: event.target.value }))}
-                placeholder="공정코드/명"
+          <div className="overflow-x-auto pb-1">
+            <div className={productionStatusSearchGridClass}>
+              <FromToDateField
+                label="수주일자"
+                fromValue={form.startDate}
+                toValue={form.endDate}
+                onFromChange={(value) => setForm((prev) => ({ ...prev, startDate: value }))}
+                onToChange={(value) => setForm((prev) => ({ ...prev, endDate: value }))}
               />
-            </label>
 
-            <StatusActionButtons
-              loading={loading}
-              onSearch={() => void onSearch()}
-              exportProps={{
-                rows,
-                headers: exportHeaders,
-                mapRow: mapExportRow,
-                filename: () => `생산현황_${toYmd(form.startDate)}_${toYmd(form.endDate)}.csv`,
-              }}
-            />
+              <label className="col-start-1 row-start-2 grid max-w-[446px] grid-cols-1 gap-2 text-sm sm:grid-cols-[100px_minmax(0,1fr)] sm:items-center sm:gap-2 xl:col-start-2 xl:row-start-1">
+                <span className={`${searchLabelClass} text-gray-600 sm:whitespace-nowrap`}>
+                  공정
+                </span>
+                <input
+                  className={`${searchControlClass} w-full`}
+                  value={form.proc}
+                  onChange={(event) => setForm((prev) => ({ ...prev, proc: event.target.value }))}
+                  placeholder="공정코드/명"
+                />
+              </label>
+
+              <div className="col-start-3 row-start-1 xl:col-start-4">
+                <StatusActionButtons
+                  loading={loading}
+                  onSearch={() => void onSearch()}
+                  exportProps={{
+                    rows,
+                    headers: exportHeaders,
+                    mapRow: mapExportRow,
+                    filename: () => `생산현황_${toYmd(form.startDate)}_${toYmd(form.endDate)}.csv`,
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </SectionCard>
 

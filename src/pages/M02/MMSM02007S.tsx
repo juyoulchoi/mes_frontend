@@ -11,12 +11,7 @@ import StatusActionButtons from '@/components/StatusActionButtons';
 import { Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
 import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
 import { PAGE_SIZE } from '@/lib/pagination';
-import {
-  gridScrollClass,
-  pageContentClass,
-  pageShellClass,
-  statusSearchGridClass,
-} from '@/lib/pageStyles';
+import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
 import { usePageApiFetch } from '@/services/common/getApiFetch';
 import {
   columns,
@@ -25,6 +20,9 @@ import {
   type RowItem,
   type SearchForm,
 } from '@/services/m02/mmsm02007';
+
+const salesStatusSearchGridClass =
+  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,446px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] xl:gap-x-[30px]';
 
 export default function MMSM02007S() {
   const navigate = useNavigate();
@@ -61,51 +59,57 @@ export default function MMSM02007S() {
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className={statusSearchGridClass}>
-            <FromToDateField
-              label="수주일자"
-              fromValue={form.startDate}
-              toValue={form.endDate}
-              onFromChange={(value) => setForm((prev) => ({ ...prev, startDate: value }))}
-              onToChange={(value) => setForm((prev) => ({ ...prev, endDate: value }))}
-            />
+          <div className="overflow-x-auto pb-1">
+            <div className={salesStatusSearchGridClass}>
+              <FromToDateField
+                label="수주일자"
+                fromValue={form.startDate}
+                toValue={form.endDate}
+                onFromChange={(value) => setForm((prev) => ({ ...prev, startDate: value }))}
+                onToChange={(value) => setForm((prev) => ({ ...prev, endDate: value }))}
+              />
 
-            <CodeNameField
-              label="거래처"
-              id="customer"
-              code={form.cstCd}
-              name={form.cstNm}
-              codePlaceholder="코드"
-              namePlaceholder="거래처명"
-              onSearch={() => setCustomerOpen(true)}
-              onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
-            />
+              <div className="col-start-1 row-start-2 xl:col-start-2 xl:row-start-1">
+                <CodeNameField
+                  label="거래처"
+                  id="customer"
+                  code={form.cstCd}
+                  name={form.cstNm}
+                  codePlaceholder="코드"
+                  namePlaceholder="거래처명"
+                  onSearch={() => setCustomerOpen(true)}
+                  onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
+                />
+              </div>
 
-            <StatusActionButtons
-              loading={loading}
-              onSearch={() => void fetchList(0)}
-              onSave={() => navigate('/app/m02/MMSM02001E')}
-              saveLabel="수주등록"
-              exportProps={{
-                rows: result.content,
-                headers: exportHeaders,
-                mapRow: mapExportRow,
-                filename: () => `수주현황_${form.endDate.split('-').join('')}.csv`,
-              }}
-            />
-          </div>
+              <div className="col-start-3 row-start-1 xl:col-start-4">
+                <StatusActionButtons
+                  loading={loading}
+                  onSearch={() => void fetchList(0)}
+                  onSave={() => navigate('/app/m02/MMSM02001E')}
+                  saveLabel="수주등록"
+                  exportProps={{
+                    rows: result.content,
+                    headers: exportHeaders,
+                    mapRow: mapExportRow,
+                    filename: () => `수주현황_${form.endDate.split('-').join('')}.csv`,
+                  }}
+                />
+              </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[546px_1fr]">
-            <CodeNameField
-              label="제품"
-              id="item"
-              code={form.itemCd}
-              name={form.itemNm}
-              codePlaceholder="코드"
-              namePlaceholder="제품명"
-              onSearch={() => setItemPickerOpen(true)}
-              onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
-            />
+              <div className="col-start-3 row-start-2 xl:col-start-1 xl:row-start-2">
+                <CodeNameField
+                  label="제품"
+                  id="item"
+                  code={form.itemCd}
+                  name={form.itemNm}
+                  codePlaceholder="코드"
+                  namePlaceholder="제품명"
+                  onSearch={() => setItemPickerOpen(true)}
+                  onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
+                />
+              </div>
+            </div>
           </div>
         </SectionCard>
 

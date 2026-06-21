@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
+import AlertBox from '@/components/AlertBox';
+import SectionCard from '@/components/SectionCard';
+import SectionHeader from '@/components/SectionHeader';
 import { http } from '@/lib/http';
 import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
+import {
+  gridScrollClass,
+  pageContentClass,
+  pageShellClass,
+  searchButtonClass,
+  statusActionGroupClass,
+} from '@/lib/pageStyles';
 import {
   columns,
   exportHeaders,
@@ -57,63 +67,59 @@ export default function MMSM02005S() {
   }
 
   return (
-    <div className="p-3 space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="text-base font-semibold">모니터링</div>
-        <div className="flex gap-2">
-          {canSearch && (
-            <button
-              onClick={onSearch}
-              disabled={loading}
-              className="h-8 px-3 border rounded bg-primary text-primary-foreground disabled:opacity-50"
-            >
-              조회
-            </button>
-          )}
-          {canExport && (
-            <button onClick={onExportCsv} className="h-8 px-3 border rounded">
-              엑셀
-            </button>
-          )}
-        </div>
-      </div>
-
-      {error && (
-        <div className="text-sm text-destructive border border-destructive/30 rounded p-2">
-          {error}
-        </div>
-      )}
-
-      <div className="border rounded overflow-auto max-h-[75vh]">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-background">
-            <tr className="border-b">
-              {columns.map((column) => (
-                <th key={column.dataField} className={column.headerClassName}>
-                  {column.caption}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={i} className="border-b hover:bg-muted/30">
-                {columns.map((column) => (
-                  <td key={column.dataField} className={column.cellClassName}>
-                    {formatCellValue(r, column)}
-                  </td>
-                ))}
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={columns.length} className="p-3 text-center text-muted-foreground">
-                  데이터가 없습니다. 조회 버튼을 눌러 갱신하세요.
-                </td>
-              </tr>
+    <div className={pageShellClass}>
+      <div className={pageContentClass}>
+        <SectionCard span="full" padding="md">
+          <div className={statusActionGroupClass}>
+            {canSearch && (
+              <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
+                {loading ? '조회중...' : '조회'}
+              </button>
             )}
-          </tbody>
-        </table>
+            {canExport && (
+              <button onClick={onExportCsv} className={searchButtonClass}>
+                엑셀
+              </button>
+            )}
+          </div>
+        </SectionCard>
+
+        {error && <AlertBox tone="error">{error}</AlertBox>}
+
+        <SectionCard span="full" width="full">
+          <SectionHeader title="모니터링" />
+          <div className={gridScrollClass}>
+            <table className="w-full min-w-[1280px] text-sm">
+              <thead className="sticky top-0 bg-background">
+                <tr className="border-b">
+                  {columns.map((column) => (
+                    <th key={column.dataField} className={column.headerClassName}>
+                      {column.caption}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={i} className="border-b hover:bg-muted/30">
+                    {columns.map((column) => (
+                      <td key={column.dataField} className={column.cellClassName}>
+                        {formatCellValue(r, column)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+                {rows.length === 0 && (
+                  <tr>
+                    <td colSpan={columns.length} className="p-3 text-center text-muted-foreground">
+                      데이터가 없습니다. 조회 버튼을 눌러 갱신하세요.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </SectionCard>
       </div>
     </div>
   );

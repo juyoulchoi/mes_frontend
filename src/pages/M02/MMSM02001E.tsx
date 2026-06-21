@@ -21,7 +21,6 @@ import {
   gridScrollClass,
   pageContentClass,
   pageShellClass,
-  registerSearchGridClass,
   registerSplitGridClass,
   saveButtonClass,
   transferButtonGroupClass,
@@ -42,10 +41,13 @@ import {
 } from '@/services/m02/mmsm02001';
 import { useEffect, useState } from 'react';
 
+const salesRegisterSearchGridClass =
+  'grid min-w-[920px] grid-cols-[296px_150px_minmax(0,1fr)_max-content] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[296px_446px_minmax(0,1fr)_max-content] xl:gap-x-[30px]';
+
 const DEFAULT_EM_GB = 'N';
 const planDateInputClass =
   'h-10 w-[150px] rounded-lg border border-slate-200 bg-white px-3 text-sm';
-const planDateLabelClass = 'flex h-10 items-center gap-2 text-sm';
+const planDateLabelClass = 'flex h-10 shrink-0 items-center gap-2 text-sm';
 const planDateTextClass = 'w-[92px] shrink-0 font-medium text-slate-700';
 
 type TokenRefreshResponse = {
@@ -510,72 +512,78 @@ export default function MMSM02001E() {
     <div className={pageShellClass}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className={registerSearchGridClass}>
-            <DateEdit
-              label="수주일자"
-              value={form.soYmd}
-              onChange={(value) => setForm((prev) => ({ ...prev, soYmd: value }))}
-            />
-            <CodeNameField
-              label="거래처"
-              id="cust"
-              code={form.cstCd}
-              name={cstNm}
-              codePlaceholder="코드"
-              namePlaceholder="거래처명"
-              onSearch={() => setCustomerOpen(true)}
-              onClear={() => {
-                setCstNm('');
-                setForm((prev) => ({ ...prev, cstCd: '' }));
-              }}
-            />
-            <div className="flex flex-wrap items-end justify-end gap-2">
-              <ActionButtonGroup
-                onSearch={() => void onSearch()}
-                onSave={() => void onSave()}
-                onUpload={() => undefined}
-                onExport={onExportCsv}
-                searchDisabled={isSearch}
-                saveDisabled={isSave}
-                showUpload={false}
-                className="flex flex-wrap items-end justify-end gap-2"
+          <div className="overflow-x-auto pb-1">
+            <div className={salesRegisterSearchGridClass}>
+              <DateEdit
+                label="수주일자"
+                value={form.soYmd}
+                onChange={(value) => setForm((prev) => ({ ...prev, soYmd: value }))}
               />
+              <div className="col-span-2 col-start-1 row-start-2 xl:col-span-1 xl:col-start-2 xl:row-start-1">
+                <CodeNameField
+                  label="거래처"
+                  id="cust"
+                  code={form.cstCd}
+                  name={cstNm}
+                  codePlaceholder="코드"
+                  namePlaceholder="거래처명"
+                  onSearch={() => setCustomerOpen(true)}
+                  onClear={() => {
+                    setCstNm('');
+                    setForm((prev) => ({ ...prev, cstCd: '' }));
+                  }}
+                />
+              </div>
+              <div className="col-start-4 row-start-1 flex flex-wrap content-end items-end justify-end gap-2 self-end">
+                <ActionButtonGroup
+                  onSearch={() => void onSearch()}
+                  onSave={() => void onSave()}
+                  onUpload={() => undefined}
+                  onExport={onExportCsv}
+                  searchDisabled={isSearch}
+                  saveDisabled={isSave}
+                  showUpload={false}
+                  className="flex flex-wrap items-end justify-end gap-2"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-slate-800">생산계획 생성</span>
-              <span className={countBadgeClass}>{selectedDetailCount}건 선택</span>
-            </div>
-            <div className="flex flex-wrap items-end justify-end gap-2">
-              <label className={planDateLabelClass}>
-                <span className={planDateTextClass}>생산계획일자</span>
-                <input
-                  type="date"
-                  className={planDateInputClass}
-                  value={planYmd}
-                  onChange={(event) => setPlanYmd(event.target.value)}
-                />
-              </label>
-              <label className={planDateLabelClass}>
-                <span className={planDateTextClass}>생산예정일</span>
-                <input
-                  type="date"
-                  className={planDateInputClass}
-                  value={prdSchdYmd}
-                  onChange={(event) => setPrdSchdYmd(event.target.value)}
-                />
-              </label>
-              {canSave && (
-                <button
-                  onClick={() => void onCreatePlan()}
-                  disabled={isSave || selectedDetailCount === 0}
-                  className={saveButtonClass}
-                >
-                  생산계획생성
-                </button>
-              )}
+          <div className="mt-4 overflow-x-auto border-t border-slate-200 pt-4">
+            <div className="flex min-w-[820px] items-center justify-between gap-3">
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="text-sm font-semibold text-slate-800">생산계획 생성</span>
+                <span className={countBadgeClass}>{selectedDetailCount}건 선택</span>
+              </div>
+              <div className="flex shrink-0 items-end justify-end gap-2">
+                <label className={planDateLabelClass}>
+                  <span className={planDateTextClass}>생산계획일자</span>
+                  <input
+                    type="date"
+                    className={planDateInputClass}
+                    value={planYmd}
+                    onChange={(event) => setPlanYmd(event.target.value)}
+                  />
+                </label>
+                <label className={planDateLabelClass}>
+                  <span className={planDateTextClass}>생산예정일</span>
+                  <input
+                    type="date"
+                    className={planDateInputClass}
+                    value={prdSchdYmd}
+                    onChange={(event) => setPrdSchdYmd(event.target.value)}
+                  />
+                </label>
+                {canSave && (
+                  <button
+                    onClick={() => void onCreatePlan()}
+                    disabled={isSave || selectedDetailCount === 0}
+                    className={saveButtonClass}
+                  >
+                    생산계획생성
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </SectionCard>
@@ -599,6 +607,7 @@ export default function MMSM02001E() {
                 dataSource={masterRows}
                 showBorders={true}
                 rowKey={(row, index) => row.itemCd || index}
+                classNames={{ table: 'min-w-[420px] w-full text-sm' }}
               >
                 <CheckColumn
                   checked={(row) => !!row.CHECK}

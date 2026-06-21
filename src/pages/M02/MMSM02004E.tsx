@@ -40,6 +40,8 @@ import {
 
 const searchLabelClass = 'font-medium text-slate-700';
 const searchControlClass = 'h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm';
+const workOrderSearchGridClass =
+  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,446px)] items-end gap-2 xl:min-w-[1560px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(300px,446px)_minmax(260px,360px)_minmax(300px,420px)] xl:gap-x-[30px]';
 const detailLabelClass =
   'flex w-28 shrink-0 items-center bg-slate-50 px-3 font-medium text-slate-700';
 const detailInputClass = 'h-9 w-full rounded border border-slate-200 bg-white px-2 text-sm';
@@ -221,105 +223,116 @@ export default function MMSM02004E() {
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[650px_546px_1fr]">
-            <div className="flex flex-wrap items-end gap-2">
-              <span className={`${searchLabelClass} flex h-10 w-[96px] items-center text-sm`}>
-                검색일자
-              </span>
-              <select
-                className={`${searchControlClass} w-[150px]`}
-                value={form.dateType}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    dateType: event.target.value,
-                  }))
-                }
-              >
-                {dateTypeCodes.map((code) => (
-                  <option key={code.code} value={code.code}>
-                    {code.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="date"
-                className={`${searchControlClass} w-[150px]`}
-                value={form.dateFrom}
-                max={form.dateTo || undefined}
-                onChange={(event) => setForm((prev) => ({ ...prev, dateFrom: event.target.value }))}
-              />
-              <span className="flex h-10 items-center text-sm text-slate-500">~</span>
-              <input
-                type="date"
-                className={`${searchControlClass} w-[150px]`}
-                value={form.dateTo}
-                min={form.dateFrom || undefined}
-                onChange={(event) => setForm((prev) => ({ ...prev, dateTo: event.target.value }))}
-              />
+          <div className="overflow-x-auto pb-1">
+            <div className={workOrderSearchGridClass}>
+              <div className="flex max-w-[446px] flex-wrap items-end gap-2">
+                <span className={`${searchLabelClass} flex h-10 w-[96px] items-center text-sm`}>
+                  검색일자
+                </span>
+                <select
+                  className={`${searchControlClass} w-full max-w-[150px]`}
+                  value={form.dateType}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      dateType: event.target.value,
+                    }))
+                  }
+                >
+                  {dateTypeCodes.map((code) => (
+                    <option key={code.code} value={code.code}>
+                      {code.name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="date"
+                  className={`${searchControlClass} w-full max-w-[150px]`}
+                  value={form.dateFrom}
+                  max={form.dateTo || undefined}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, dateFrom: event.target.value }))
+                  }
+                />
+                <span className="flex h-10 items-center text-sm text-slate-500">~</span>
+                <input
+                  type="date"
+                  className={`${searchControlClass} w-full max-w-[150px]`}
+                  value={form.dateTo}
+                  min={form.dateFrom || undefined}
+                  onChange={(event) => setForm((prev) => ({ ...prev, dateTo: event.target.value }))}
+                />
+              </div>
+              <div className="col-start-1 row-start-2 xl:col-start-2 xl:row-start-1">
+                <CodeNameField
+                  label="거래처"
+                  id="cust"
+                  code={form.cstCd}
+                  name={form.cstNm}
+                  codePlaceholder="코드"
+                  namePlaceholder="거래처명"
+                  onSearch={() => undefined}
+                  onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
+                />
+              </div>
+              <div className="col-start-3 row-start-1 xl:col-start-5">
+                <StatusActionButtons
+                  loading={loading}
+                  onSearch={() => void onSearch()}
+                  exportProps={{
+                    rows: plans,
+                    headers: exportHeaders,
+                    mapRow: mapExportRow,
+                    filename: () => `작업지시서_${toYmd(form.dateFrom)}_${toYmd(form.dateTo)}.csv`,
+                  }}
+                />
+              </div>
+              <div className="col-start-3 row-start-2 xl:col-start-3 xl:row-start-1">
+                <CodeNameField
+                  label="제품"
+                  id="item"
+                  code={form.itemCd}
+                  name={form.itemNm}
+                  codePlaceholder="코드"
+                  namePlaceholder="제품명"
+                  onSearch={() => undefined}
+                  onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
+                />
+              </div>
+              <div className="col-start-2 row-start-2 flex flex-wrap items-end gap-2 xl:col-start-4 xl:row-start-1">
+                <label className="flex h-10 items-center gap-2 text-sm">
+                  <span className={`${searchLabelClass} w-[100px] shrink-0`}>계획상태</span>
+                  <select
+                    className={`${searchControlClass} w-full max-w-[110px]`}
+                    value={form.planStatus}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        planStatus: event.target.value as Mmsm02002PlanStatus,
+                      }))
+                    }
+                  >
+                    <option value="">전체</option>
+                    {planStatusCodes.map((code) => (
+                      <option key={code.code} value={code.code}>
+                        {code.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex h-10 items-center gap-2 text-sm">
+                  <span className={`${searchLabelClass} w-[56px] shrink-0`}>공정</span>
+                  <input
+                    className={`${searchControlClass} w-full max-w-[170px]`}
+                    placeholder="공정코드"
+                    value={form.procCd}
+                    onChange={(event) =>
+                      setForm((prev) => ({ ...prev, procCd: event.target.value }))
+                    }
+                  />
+                </label>
+              </div>
             </div>
-            <CodeNameField
-              label="거래처"
-              id="cust"
-              code={form.cstCd}
-              name={form.cstNm}
-              codePlaceholder="코드"
-              namePlaceholder="거래처명"
-              onSearch={() => undefined}
-              onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
-            />
-            <StatusActionButtons
-              loading={loading}
-              onSearch={() => void onSearch()}
-              exportProps={{
-                rows: plans,
-                headers: exportHeaders,
-                mapRow: mapExportRow,
-                filename: () => `작업지시서_${toYmd(form.dateFrom)}_${toYmd(form.dateTo)}.csv`,
-              }}
-            />
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[546px_230px_300px_1fr]">
-            <CodeNameField
-              label="제품"
-              id="item"
-              code={form.itemCd}
-              name={form.itemNm}
-              codePlaceholder="코드"
-              namePlaceholder="제품명"
-              onSearch={() => undefined}
-              onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
-            />
-            <label className="flex h-10 items-center gap-2 text-sm">
-              <span className={`${searchLabelClass} w-[96px] shrink-0`}>계획상태</span>
-              <select
-                className={`${searchControlClass} w-[110px]`}
-                value={form.planStatus}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    planStatus: event.target.value as Mmsm02002PlanStatus,
-                  }))
-                }
-              >
-                <option value="">전체</option>
-                {planStatusCodes.map((code) => (
-                  <option key={code.code} value={code.code}>
-                    {code.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex h-10 items-center gap-2 text-sm">
-              <span className={`${searchLabelClass} w-[96px] shrink-0`}>공정</span>
-              <input
-                className={`${searchControlClass} w-[170px]`}
-                placeholder="공정코드"
-                value={form.procCd}
-                onChange={(event) => setForm((prev) => ({ ...prev, procCd: event.target.value }))}
-              />
-            </label>
           </div>
         </SectionCard>
 
