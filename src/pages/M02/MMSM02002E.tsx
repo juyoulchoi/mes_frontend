@@ -32,7 +32,7 @@ import type {
 const searchLabelClass = 'font-medium text-slate-700';
 const searchControlClass = 'h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm';
 const productionPlanSearchGridClass =
-  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,446px)] items-end gap-2 xl:min-w-[1560px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(300px,446px)_minmax(260px,360px)_minmax(300px,420px)] xl:gap-x-[30px]';
+  'grid min-w-[920px] grid-cols-[minmax(300px,586px)_minmax(16px,1fr)_minmax(300px,446px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,586px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] xl:gap-x-[30px]';
 
 export default function MMSM02002E() {
   const { canSearch, canExport } = usePagePermissions();
@@ -155,12 +155,14 @@ export default function MMSM02002E() {
         <SectionCard span="full" padding="md">
           <div className="overflow-x-auto pb-1">
             <div className={productionPlanSearchGridClass}>
-              <div className="flex max-w-[446px] flex-wrap items-end gap-2">
-                <span className={`${searchLabelClass} flex h-10 w-[96px] items-center text-sm`}>
+              <div className="flex max-w-[586px] flex-nowrap items-end gap-2">
+                <span
+                  className={`${searchLabelClass} flex h-10 w-[100px] shrink-0 items-center text-sm`}
+                >
                   검색일자
                 </span>
                 <select
-                  className={`${searchControlClass} w-full max-w-[150px]`}
+                  className={`${searchControlClass} w-[104px] shrink-0`}
                   value={form.dateType}
                   onChange={(event) =>
                     setForm((prev) => ({
@@ -177,17 +179,17 @@ export default function MMSM02002E() {
                 </select>
                 <input
                   type="date"
-                  className={`${searchControlClass} w-full max-w-[150px]`}
+                  className={`${searchControlClass} w-[150px] shrink-0`}
                   value={form.dateFrom}
                   max={form.dateTo || undefined}
                   onChange={(event) =>
                     setForm((prev) => ({ ...prev, dateFrom: event.target.value }))
                   }
                 />
-                <span className="flex h-10 items-center text-sm text-slate-500">~</span>
+                <span className="flex h-10 shrink-0 items-center text-sm text-slate-500">~</span>
                 <input
                   type="date"
-                  className={`${searchControlClass} w-full max-w-[150px]`}
+                  className={`${searchControlClass} w-[150px] shrink-0`}
                   value={form.dateTo}
                   min={form.dateFrom || undefined}
                   onChange={(event) => setForm((prev) => ({ ...prev, dateTo: event.target.value }))}
@@ -205,7 +207,7 @@ export default function MMSM02002E() {
                   onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
                 />
               </div>
-              <div className="col-start-3 row-start-1 xl:col-start-5">
+              <div className="col-start-3 row-start-1 xl:col-start-4">
                 <div className={statusActionGroupClass}>
                   {canSearch && (
                     <button
@@ -223,7 +225,7 @@ export default function MMSM02002E() {
                   )}
                 </div>
               </div>
-              <div className="col-start-3 row-start-2 xl:col-start-3 xl:row-start-1">
+              <div className="col-start-3 row-start-2 xl:col-start-1 xl:row-start-2">
                 <CodeNameField
                   label="제품"
                   id="item"
@@ -235,7 +237,7 @@ export default function MMSM02002E() {
                   onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
                 />
               </div>
-              <div className="col-start-2 row-start-2 flex flex-wrap items-end gap-2 xl:col-start-4 xl:row-start-1">
+              <div className="col-span-3 col-start-1 row-start-3 flex flex-wrap items-end gap-2 xl:col-span-2 xl:col-start-2 xl:row-start-2">
                 <label className="flex h-10 items-center gap-2 text-sm">
                   <span className={`${searchLabelClass} w-[100px] shrink-0`}>계획상태</span>
                   <select

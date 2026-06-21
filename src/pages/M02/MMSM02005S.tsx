@@ -5,6 +5,7 @@ import SectionHeader from '@/components/SectionHeader';
 import { http } from '@/lib/http';
 import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
+  exportCsvButtonClass,
   gridScrollClass,
   pageContentClass,
   pageShellClass,
@@ -20,6 +21,9 @@ import {
   type ApiRow,
   type RowItem,
 } from '@/services/m02/mmsm02005';
+
+const monitoringSearchGridClass =
+  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)]';
 
 // 모니터링 (MMSM02005S)
 // 필터 없음. 기능: 조회, 엑셀(CSV)
@@ -70,17 +74,21 @@ export default function MMSM02005S() {
     <div className={pageShellClass}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className={statusActionGroupClass}>
-            {canSearch && (
-              <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
-                {loading ? '조회중...' : '조회'}
-              </button>
-            )}
-            {canExport && (
-              <button onClick={onExportCsv} className={searchButtonClass}>
-                엑셀
-              </button>
-            )}
+          <div className="overflow-x-auto pb-1">
+            <div className={monitoringSearchGridClass}>
+              <div className={`${statusActionGroupClass} col-start-3 row-start-1`}>
+                {canSearch && (
+                  <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
+                    {loading ? '조회중...' : '조회'}
+                  </button>
+                )}
+                {canExport && (
+                  <button onClick={onExportCsv} className={exportCsvButtonClass}>
+                    엑셀
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </SectionCard>
 
