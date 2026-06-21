@@ -20,7 +20,7 @@ export default function FromToDateField({
 
   return (
     <div className="w-full min-w-0 max-w-[446px]">
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[96px_minmax(130px,150px)_30px_minmax(130px,150px)] sm:items-center sm:gap-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[100px_minmax(130px,150px)_30px_minmax(130px,150px)] sm:items-center sm:gap-3">
         <label className="text-sm text-gray-600 sm:whitespace-nowrap">{label}</label>
         <input
           type="date"

@@ -10,7 +10,7 @@ export default function DateEdit({ label, value, onChange, min, max }: DateEditP
   const inputBaseClass = 'h-9 w-full rounded-lg border px-2';
 
   return (
-    <div className="w-full min-w-0 max-w-[450px]">
+    <div className="w-full min-w-0 max-w-[446px]">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-[100px_minmax(130px,150px)] sm:items-center">
         <label className="text-sm text-gray-600 sm:whitespace-nowrap">{label}</label>
         <input

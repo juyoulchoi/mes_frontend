@@ -12,6 +12,8 @@ type CodeNameFieldProps = {
   namePlaceholder?: string;
   searchLabel?: string;
   clearLabel?: string;
+  equalInputWidths?: boolean;
+  compactCodeFixedName?: boolean;
 };
 
 export default function CodeNameField({
@@ -25,12 +27,23 @@ export default function CodeNameField({
   namePlaceholder = '',
   searchLabel = '검색',
   clearLabel = '초기화',
+  equalInputWidths = false,
+  compactCodeFixedName = false,
 }: CodeNameFieldProps) {
   const hasValue = Boolean(code || name);
+  const fixedNameInputWidths = equalInputWidths || compactCodeFixedName;
+  const wrapperClass = fixedNameInputWidths
+    ? 'w-full min-w-0 max-w-[446px]'
+    : 'w-full min-w-0 max-w-[446px]';
+  const gridClass = compactCodeFixedName
+    ? 'grid grid-cols-1 gap-2 sm:grid-cols-[100px_minmax(88px,104px)_minmax(130px,150px)] sm:items-center sm:gap-3'
+    : equalInputWidths
+      ? 'grid grid-cols-1 gap-2 sm:grid-cols-[100px_minmax(130px,150px)_minmax(130px,150px)] sm:items-center sm:gap-3'
+      : 'grid grid-cols-1 gap-2 sm:grid-cols-[100px_minmax(88px,104px)_minmax(0,1fr)] sm:items-center sm:gap-2';
 
   return (
-    <div className="w-full min-w-0 max-w-[420px]">
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[80px_minmax(88px,104px)_minmax(0,1fr)] sm:items-center sm:gap-2">
+    <div className={wrapperClass}>
+      <div className={gridClass}>
         <Label className="text-sm text-gray-600 sm:whitespace-nowrap">{label}</Label>
         <Input
           id={`${id}-code`}
