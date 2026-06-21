@@ -28,6 +28,9 @@ import {
   type ProductCustomerRow,
 } from '@/services/m04/mmsm04005';
 
+const productCustomerSearchGridClass =
+  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,446px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] xl:gap-x-[30px]';
+
 function DetailInput({
   label,
   value,
@@ -243,47 +246,55 @@ export default function MMSM04005E() {
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(360px,546px)_minmax(360px,546px)_1fr] xl:gap-6">
-            <CodeNameField
-              label="거래처"
-              id="cust"
-              code={cstCd}
-              name={cstNm}
-              codePlaceholder="코드"
-              namePlaceholder="거래처명"
-              onSearch={() => setCustomerOpen(true)}
-              onClear={() => {
-                setCstCd('');
-                setCstNm('');
-              }}
-            />
-            <CodeNameField
-              label="제품"
-              id="item"
-              code={itemCd}
-              name={itemNm}
-              codePlaceholder="코드"
-              namePlaceholder="제품명"
-              onSearch={() => setItemPickerOpen(true)}
-              onClear={() => {
-                setItemCd('');
-                setItemNm('');
-              }}
-            />
-            <StatusActionButtons
-              loading={loading}
-              saving={saving}
-              disabled={busy}
-              onSearch={() => void onSearch()}
-              onSave={() => void openRegisterPopup()}
-              saveLabel="등록"
-              exportProps={{
-                rows,
-                headers: exportHeaders,
-                mapRow: mapExportRow,
-                filename: () => `제품거래처관리.csv`,
-              }}
-            />
+          <div className="overflow-x-auto pb-1">
+            <div className={productCustomerSearchGridClass}>
+              <CodeNameField
+                label="거래처"
+                id="cust"
+                code={cstCd}
+                name={cstNm}
+                codePlaceholder="코드"
+                namePlaceholder="거래처명"
+                onSearch={() => setCustomerOpen(true)}
+                onClear={() => {
+                  setCstCd('');
+                  setCstNm('');
+                }}
+              />
+
+              <div className="col-start-3 row-start-1 xl:col-start-4">
+                <StatusActionButtons
+                  loading={loading}
+                  saving={saving}
+                  disabled={busy}
+                  onSearch={() => void onSearch()}
+                  onSave={() => void openRegisterPopup()}
+                  saveLabel="등록"
+                  exportProps={{
+                    rows,
+                    headers: exportHeaders,
+                    mapRow: mapExportRow,
+                    filename: () => `제품거래처관리.csv`,
+                  }}
+                />
+              </div>
+
+              <div className="col-start-1 row-start-2 xl:col-start-2 xl:row-start-1">
+                <CodeNameField
+                  label="제품"
+                  id="item"
+                  code={itemCd}
+                  name={itemNm}
+                  codePlaceholder="코드"
+                  namePlaceholder="제품명"
+                  onSearch={() => setItemPickerOpen(true)}
+                  onClear={() => {
+                    setItemCd('');
+                    setItemNm('');
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </SectionCard>
 

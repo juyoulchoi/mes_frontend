@@ -27,6 +27,9 @@ import {
   type SearchForm,
 } from '@/services/m04/mmsm04004';
 
+const productStockAdjustSearchGridClass =
+  'grid min-w-[920px] grid-cols-[296px_150px_minmax(0,1fr)_max-content] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[296px_446px_minmax(0,1fr)_max-content] xl:gap-x-[30px]';
+
 export default function MMSM04004E() {
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
   const [rows, setRows] = useState<RowItem[]>([]);
@@ -120,35 +123,41 @@ export default function MMSM04004E() {
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(320px,450px)_minmax(360px,546px)_1fr]">
-            <DateEdit
-              label="조정일자"
-              value={form.adjustDate}
-              onChange={(value) => setForm((prev) => ({ ...prev, adjustDate: value }))}
-            />
-            <CodeNameField
-              label="제품"
-              id="item"
-              code={form.itemCd}
-              name={form.itemNm}
-              codePlaceholder="코드"
-              namePlaceholder="제품명"
-              onSearch={() => setItemPickerOpen(true)}
-              onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
-            />
-            <StatusActionButtons
-              loading={loading}
-              saving={saving}
-              disabled={busy}
-              onSearch={() => void fetchList()}
-              onSave={() => void onSave()}
-              exportProps={{
-                rows,
-                headers: exportHeaders,
-                mapRow: mapExportRow,
-                filename: () => `제품재고조정_${form.adjustDate.split('-').join('')}.csv`,
-              }}
-            />
+          <div className="overflow-x-auto pb-1">
+            <div className={productStockAdjustSearchGridClass}>
+              <DateEdit
+                label="조정일자"
+                value={form.adjustDate}
+                onChange={(value) => setForm((prev) => ({ ...prev, adjustDate: value }))}
+              />
+              <div className="col-span-2 col-start-1 row-start-2 xl:col-span-1 xl:col-start-2 xl:row-start-1">
+                <CodeNameField
+                  label="제품"
+                  id="item"
+                  code={form.itemCd}
+                  name={form.itemNm}
+                  codePlaceholder="코드"
+                  namePlaceholder="제품명"
+                  onSearch={() => setItemPickerOpen(true)}
+                  onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
+                />
+              </div>
+              <div className="col-start-4 row-start-1">
+                <StatusActionButtons
+                  loading={loading}
+                  saving={saving}
+                  disabled={busy}
+                  onSearch={() => void fetchList()}
+                  onSave={() => void onSave()}
+                  exportProps={{
+                    rows,
+                    headers: exportHeaders,
+                    mapRow: mapExportRow,
+                    filename: () => `제품재고조정_${form.adjustDate.split('-').join('')}.csv`,
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </SectionCard>
 

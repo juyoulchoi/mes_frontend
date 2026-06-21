@@ -24,6 +24,11 @@ import {
   type Row,
 } from '@/services/m04/mmsm04006';
 
+const productIssueSearchGridClass =
+  'grid min-w-[920px] grid-cols-[446px_30px_minmax(300px,1fr)] items-end gap-y-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] xl:gap-x-[30px]';
+const sequenceInputClass =
+  'h-10 w-[150px] rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-400';
+
 function GridInput({ value, type = 'text', align = 'left', onChange }: GridInputProps) {
   return (
     <input
@@ -109,46 +114,50 @@ export default function MMSM04006E() {
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
-            <DateEdit label="입고일자" value={inDate} onChange={setInDate} />
+          <div className="overflow-x-auto pb-1">
+            <div className={productIssueSearchGridClass}>
+              <DateEdit label="입고일자" value={inDate} onChange={setInDate} />
 
-            <label className="grid w-full max-w-[240px] grid-cols-1 gap-2 sm:grid-cols-[80px_minmax(130px,150px)] sm:items-center sm:gap-3">
-              <span className="text-sm text-gray-600">순번</span>
-              <input
-                value={seq}
-                onChange={(event) => setSeq(event.target.value)}
-                className="h-9 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-400"
-              />
-            </label>
+              <div className="col-start-1 row-start-2 xl:col-start-2 xl:row-start-1">
+                <CodeNameField
+                  label="거래처"
+                  id="cust"
+                  code={cstCd}
+                  name={cstNm}
+                  codePlaceholder="코드"
+                  namePlaceholder="거래처명"
+                  onSearch={() => setCustomerOpen(true)}
+                  onClear={() => {
+                    setCstCd('');
+                    setCstNm('');
+                  }}
+                />
+              </div>
 
-            <CodeNameField
-              label="거래처"
-              id="cust"
-              code={cstCd}
-              name={cstNm}
-              codePlaceholder="코드"
-              namePlaceholder="거래처명"
-              onSearch={() => setCustomerOpen(true)}
-              onClear={() => {
-                setCstCd('');
-                setCstNm('');
-              }}
-            />
+              <div className="col-start-3 row-start-1 xl:col-start-4">
+                <StatusActionButtons
+                  loading={loading}
+                  saving={saving}
+                  disabled={busy}
+                  onSearch={() => void onSearch()}
+                  onSave={() => void onSave()}
+                  exportProps={{
+                    rows,
+                    headers: exportHeaders,
+                    mapRow: mapExportRow,
+                    filename: () => `제품출고지시_${toYmd(inDate)}.csv`,
+                  }}
+                />
+              </div>
 
-            <div className="ml-auto">
-              <StatusActionButtons
-                loading={loading}
-                saving={saving}
-                disabled={busy}
-                onSearch={() => void onSearch()}
-                onSave={() => void onSave()}
-                exportProps={{
-                  rows,
-                  headers: exportHeaders,
-                  mapRow: mapExportRow,
-                  filename: () => `제품출고지시_${toYmd(inDate)}.csv`,
-                }}
-              />
+              <label className="col-start-3 row-start-2 flex h-10 items-center justify-start gap-2 xl:col-start-1 xl:row-start-2">
+                <span className="w-[100px] shrink-0 text-sm font-medium text-slate-700">순번</span>
+                <input
+                  value={seq}
+                  onChange={(event) => setSeq(event.target.value)}
+                  className={sequenceInputClass}
+                />
+              </label>
             </div>
           </div>
         </SectionCard>

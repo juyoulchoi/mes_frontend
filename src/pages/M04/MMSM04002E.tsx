@@ -18,7 +18,6 @@ import {
   gridScrollClass,
   pageContentClass,
   pageShellClass,
-  registerSearchGridClass,
   registerSplitGridClass,
   transferButtonGroupClass,
   transferColumnClass,
@@ -42,6 +41,8 @@ const issueDateInputClass =
   'h-10 w-full max-w-[150px] rounded-lg border border-slate-200 bg-white px-3 text-sm';
 const issueDateLabelClass = 'flex h-10 items-center gap-2 text-sm';
 const issueDateTextClass = 'w-[72px] shrink-0 font-medium text-slate-700';
+const productIssueRegisterSearchGridClass =
+  'grid min-w-[920px] grid-cols-[296px_150px_minmax(0,1fr)_max-content] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[296px_446px_minmax(0,1fr)_max-content] xl:gap-x-[30px]';
 
 function getSalesRowKey(row: {
   soYmd?: string;
@@ -291,26 +292,28 @@ export default function MMSM04002E() {
     <div className={pageShellClass}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className={registerSearchGridClass}>
-            <DateEdit
-              label="수주일자"
-              value={form.soYmd}
-              onChange={(value) => setForm((prev) => ({ ...prev, soYmd: value }))}
-            />
-            <CodeNameField
-              label="거래처"
-              id="cust"
-              code={form.cstCd}
-              name={cstNm}
-              codePlaceholder="코드"
-              namePlaceholder="거래처명"
-              onSearch={() => setCustomerOpen(true)}
-              onClear={() => {
-                setCstNm('');
-                setForm((prev) => ({ ...prev, cstCd: '' }));
-              }}
-            />
-            <div className="flex flex-wrap items-end justify-end gap-2">
+          <div className="overflow-x-auto pb-1">
+            <div className={productIssueRegisterSearchGridClass}>
+              <DateEdit
+                label="수주일자"
+                value={form.soYmd}
+                onChange={(value) => setForm((prev) => ({ ...prev, soYmd: value }))}
+              />
+              <div className="col-span-2 col-start-1 row-start-2 xl:col-span-1 xl:col-start-2 xl:row-start-1">
+                <CodeNameField
+                  label="거래처"
+                  id="cust"
+                  code={form.cstCd}
+                  name={cstNm}
+                  codePlaceholder="코드"
+                  namePlaceholder="거래처명"
+                  onSearch={() => setCustomerOpen(true)}
+                  onClear={() => {
+                    setCstNm('');
+                    setForm((prev) => ({ ...prev, cstCd: '' }));
+                  }}
+                />
+              </div>
               <ActionButtonGroup
                 onSearch={() => void onSearch()}
                 onSave={() => void onSave()}
@@ -319,7 +322,8 @@ export default function MMSM04002E() {
                 searchDisabled={isBusy}
                 saveDisabled={isBusy}
                 showUpload={false}
-                className="flex flex-wrap items-end justify-end gap-2"
+                compact
+                className="col-start-4 row-start-1 flex flex-wrap content-end items-end justify-end gap-2 self-end"
               />
             </div>
           </div>
