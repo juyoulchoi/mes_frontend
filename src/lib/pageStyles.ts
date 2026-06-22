@@ -14,6 +14,12 @@ export const statusSearchGridClass =
 export const materialStatusSearchGridClass =
   'grid min-w-[1240px] grid-cols-[minmax(300px,420px)_minmax(260px,360px)_minmax(260px,360px)_minmax(16px,1fr)_minmax(260px,300px)] items-end gap-2';
 
+export const basicInfoSearchGridClass =
+  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] xl:gap-x-[30px]';
+
+export const basicInfoInlineSearchGridClass =
+  'grid min-w-[920px] grid-cols-[minmax(260px,300px)_minmax(260px,300px)_minmax(16px,1fr)_minmax(120px,220px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] xl:gap-x-[30px]';
+
 export const registerSplitGridClass = 'grid grid-cols-12 gap-4';
 
 export const transferColumnClass = 'col-span-12 flex items-center justify-center xl:col-span-1';
