@@ -1,24 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AlertBox from '@/components/AlertBox';
-import CrudActionButtons from '@/components/CrudActionButtons';
 import SectionCard from '@/components/SectionCard';
 import SectionHeader from '@/components/SectionHeader';
 import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
 import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
   addTransferButtonClass,
-  basicInfoSearchGridClass,
   countBadgeClass,
   deleteTransferButtonClass,
   gridScrollClass,
   pageContentClass,
   pageShellClass,
-  searchButtonClass,
   transferButtonGroupClass,
 } from '@/lib/pageStyles';
 import {
   addMmsm06005GroupProcs,
-  buildMmsm06005Csv,
   deleteMmsm06005GroupProcs,
   fetchMmsm06005GroupProcs,
   fetchMmsm06005Groups,
@@ -29,11 +25,8 @@ import {
 
 // 공정그룹 라우팅 관리 (MMSM06005E)
 // 좌: 공정그룹 목록 | 중간 버튼(등록/해제) | 우: 상단 전체공정 목록, 하단 등록공정 목록
-// 기능: 그룹 선택 시 우측 두 목록 로드, 선택 후 등록/해제, CSV 내보내기
+// 기능: 화면 로딩 시 자동 조회, 그룹 선택 시 우측 두 목록 로드, 선택 후 등록/해제
 
-const searchLabelClass = 'font-medium text-slate-700';
-const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
-const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
 const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
 const routingLayoutGridClass = 'grid grid-cols-12 gap-4';
 const routingGroupCardClass = 'col-span-12 xl:col-span-3 xl:max-w-[340px]';
@@ -77,6 +70,10 @@ export default function MMSM06005E() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    void onSearch();
+  }, []);
 
   async function onSelectGroup(index: number) {
     const row = groups[index];
@@ -190,47 +187,9 @@ export default function MMSM06005E() {
     }
   }
 
-  function onExportCsv() {
-    const csv = buildMmsm06005Csv(selectedGrp, grpProcs);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'MMSM06005E_routing_procs.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
   return (
     <div className={pageShellClass}>
       <div className={pageContentClass}>
-        <SectionCard span="full" padding="md">
-          <div className="overflow-x-auto pb-1">
-            <div className={basicInfoSearchGridClass}>
-              <div className={searchFieldClass}>
-                <span className={searchLabelTextClass}>조회대상</span>
-                <span className="flex h-10 items-center text-sm text-slate-600">
-                  공정그룹 및 라우팅공정
-                </span>
-              </div>
-              <div className="col-start-3 row-start-1 flex flex-wrap items-end justify-end gap-2 xl:col-start-4">
-                {permissions.canSearch ? (
-                  <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
-                    조회
-                  </button>
-                ) : null}
-                <CrudActionButtons
-                  onExport={onExportCsv}
-                  disabled={loading}
-                  className="flex flex-wrap items-end justify-end gap-2"
-                />
-              </div>
-            </div>
-          </div>
-        </SectionCard>
-
         {error ? <AlertBox>{error}</AlertBox> : null}
 
         <div className={routingLayoutGridClass}>
@@ -249,7 +208,7 @@ export default function MMSM06005E() {
                   dataSource={groups}
                   rowKey={(row, index) => `${row.procGrpCd ?? 'group'}-${index}`}
                   showBorders
-                  emptyText="공정그룹이 없습니다. 조회를 눌러 로드하세요."
+                  emptyText="공정그룹이 없습니다."
                   classNames={{
                     table: 'min-w-[300px] w-full text-sm',
                   }}
