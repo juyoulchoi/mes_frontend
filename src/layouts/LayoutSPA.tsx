@@ -299,7 +299,7 @@ export default function LayoutSPA() {
   }, [maskedPage, nav.menu, tabs]);
 
   return (
-    <div className="h-[100vh] w-full bg-background text-foreground">
+    <div className="h-[100vh] w-full overflow-hidden bg-background text-foreground">
       <header className="border-b">
         <div className="h-12 flex items-center justify-between px-3">
           <NavLink to="/app/default.ts" className="font-semibold tracking-tight">
@@ -359,7 +359,7 @@ export default function LayoutSPA() {
           <MenuToggleButton panelRef={leftPanelRef} />
         </PanelResizeHandle>
         <Panel minSize={45} defaultSize={82}>
-          <div className="flex h-full flex-col bg-slate-50/50">
+          <div className="flex h-full min-w-0 flex-col overflow-hidden bg-slate-50/50">
             {tabs.length > 0 ? (
               <div className="flex min-h-10 items-end gap-1 overflow-x-auto border-b border-slate-200 bg-white px-2 pt-2 sm:px-3">
                 {tabs.map((tab) => {
@@ -402,7 +402,7 @@ export default function LayoutSPA() {
                 })}
               </div>
             ) : null}
-            <div className="min-h-0 flex-1 overflow-auto bg-background">
+            <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-background">
               <Routes>
                 <Route index element={<Navigate to="default.ts" replace />} />
                 <Route

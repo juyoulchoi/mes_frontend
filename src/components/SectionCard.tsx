@@ -9,6 +9,7 @@ type SectionCardProps = {
   span?: SectionCardSpan;
   width?: SectionCardWidth;
   padding?: SectionCardPadding;
+  className?: string;
 };
 
 const spanClassNames: Record<SectionCardSpan, string> = {
@@ -34,8 +35,10 @@ export default function SectionCard({
   span = 'full',
   width = 'auto',
   padding = 'none',
+  className = '',
 }: SectionCardProps) {
-  const baseClassName = 'min-w-0 rounded-lg border border-slate-200 bg-white shadow-sm';
+  const baseClassName =
+    'min-w-0 max-w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm';
 
   return (
     <div
@@ -44,6 +47,7 @@ export default function SectionCard({
         spanClassNames[span],
         widthClassNames[width],
         paddingClassNames[padding],
+        className,
       ]
         .filter(Boolean)
         .join(' ')}

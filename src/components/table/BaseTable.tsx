@@ -37,7 +37,7 @@ export interface BaseTableClassNames {
 }
 
 export const tableClassNames: BaseTableClassNames = {
-  wrapper: 'w-full overflow-auto',
+  wrapper: 'min-w-0 max-w-full overflow-auto',
   table: 'min-w-[760px] w-full text-sm sm:min-w-[900px]',
   thead: 'sticky top-0 bg-gray-100 z-10',
   headerCell:

@@ -79,7 +79,7 @@ type DataGridProps<T> = {
 
 const dataGridClassNames: BaseTableClassNames = {
   ...tableClassNames,
-  wrapper: 'w-full overflow-auto',
+  wrapper: 'min-w-0 max-w-full overflow-auto',
   table: 'min-w-[760px] w-full text-sm sm:min-w-[900px]',
   thead: 'sticky top-0 bg-background z-10',
   headerRow: 'border-b',
