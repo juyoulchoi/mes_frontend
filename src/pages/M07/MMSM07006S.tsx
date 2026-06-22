@@ -12,13 +12,13 @@ import {
   pageShellClass,
   registerSplitGridClass,
   searchButtonClass,
+  systemInlineSearchGridClass,
 } from '@/lib/pageStyles';
 import { buildMmsm07006Csv, fetchMmsm07006Rows, type Row } from '@/services/m07/mmsm07006';
 
 // 시스템 LOG 조회 (MMSM07006S)
 // MMSM06007E 패턴 기반 조회/엑셀 화면
 
-const searchGridClass = 'grid grid-cols-1 gap-3 md:grid-cols-[320px_320px_260px_1fr]';
 const searchLabelClass = 'font-medium text-slate-700';
 const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
 const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
@@ -65,39 +65,43 @@ export default function MMSM07006S() {
     <div className={pageShellClass}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className={searchGridClass}>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>시작일</span>
-              <input
-                type="date"
-                className={searchInputClass}
-                value={startDate}
-                onChange={(event) => setStartDate(event.target.value)}
-              />
-            </div>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>종료일</span>
-              <input
-                type="date"
-                className={searchInputClass}
-                value={endDate}
-                onChange={(event) => setEndDate(event.target.value)}
-              />
-            </div>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>구분</span>
-              <input
-                className={searchInputClass}
-                value={evtTp}
-                onChange={(event) => setEvtTp(event.target.value)}
-              />
-            </div>
-            <div className="flex flex-wrap items-end justify-end gap-2">
-              {permissions.canSearch ? (
-                <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
-                  조회
-                </button>
-              ) : null}
+          <div className="overflow-x-auto pb-1">
+            <div className={systemInlineSearchGridClass}>
+              <div className={searchFieldClass}>
+                <span className={searchLabelTextClass}>시작일</span>
+                <input
+                  type="date"
+                  className={searchInputClass}
+                  value={startDate}
+                  onChange={(event) => setStartDate(event.target.value)}
+                />
+              </div>
+              <div className={`${searchFieldClass} col-start-2 row-start-1`}>
+                <span className={searchLabelTextClass}>종료일</span>
+                <input
+                  type="date"
+                  className={searchInputClass}
+                  value={endDate}
+                  onChange={(event) => setEndDate(event.target.value)}
+                />
+              </div>
+              <div
+                className={`${searchFieldClass} col-start-1 row-start-2 xl:col-start-3 xl:row-start-1`}
+              >
+                <span className={searchLabelTextClass}>구분</span>
+                <input
+                  className={searchInputClass}
+                  value={evtTp}
+                  onChange={(event) => setEvtTp(event.target.value)}
+                />
+              </div>
+              <div className="col-start-4 row-start-1 flex flex-wrap items-end justify-end gap-2 xl:col-start-5">
+                {permissions.canSearch ? (
+                  <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
+                    조회
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
         </SectionCard>

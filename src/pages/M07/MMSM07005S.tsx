@@ -12,24 +12,35 @@ import {
   pageShellClass,
   registerSplitGridClass,
   searchButtonClass,
+  systemInlineSearchGridClass,
 } from '@/lib/pageStyles';
+import { getTodayYmd } from '@/lib/registerDetailUtils';
 import { buildMmsm07005Csv, fetchMmsm07005Rows, type Row } from '@/services/m07/mmsm07005';
 
 // 시스템 사용현황 조회 (MMSM07005S)
 // MMSM06007E 패턴 기반 조회/엑셀 화면
 
-const searchGridClass = 'grid grid-cols-1 gap-3 md:grid-cols-[320px_320px_260px_1fr]';
 const searchLabelClass = 'font-medium text-slate-700';
 const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
 const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
 const searchInputClass = 'h-10 w-full rounded-lg border border-slate-200 px-3 text-sm';
 const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
 
+function getDefaultStartDate() {
+  const date = new Date();
+  date.setDate(date.getDate() - 7);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
 export default function MMSM07005S() {
   const permissions = usePagePermissions();
 
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState(getDefaultStartDate);
+  const [endDate, setEndDate] = useState(getTodayYmd);
   const [groupCd, setGroupCd] = useState('');
 
   const [rows, setRows] = useState<Row[]>([]);
@@ -65,39 +76,43 @@ export default function MMSM07005S() {
     <div className={pageShellClass}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className={searchGridClass}>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>시작일</span>
-              <input
-                type="date"
-                className={searchInputClass}
-                value={startDate}
-                onChange={(event) => setStartDate(event.target.value)}
-              />
-            </div>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>종료일</span>
-              <input
-                type="date"
-                className={searchInputClass}
-                value={endDate}
-                onChange={(event) => setEndDate(event.target.value)}
-              />
-            </div>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>사용자그룹</span>
-              <input
-                className={searchInputClass}
-                value={groupCd}
-                onChange={(event) => setGroupCd(event.target.value)}
-              />
-            </div>
-            <div className="flex flex-wrap items-end justify-end gap-2">
-              {permissions.canSearch ? (
-                <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
-                  조회
-                </button>
-              ) : null}
+          <div className="overflow-x-auto pb-1">
+            <div className={systemInlineSearchGridClass}>
+              <div className={searchFieldClass}>
+                <span className={searchLabelTextClass}>시작일</span>
+                <input
+                  type="date"
+                  className={searchInputClass}
+                  value={startDate}
+                  onChange={(event) => setStartDate(event.target.value)}
+                />
+              </div>
+              <div className={`${searchFieldClass} col-start-2 row-start-1`}>
+                <span className={searchLabelTextClass}>종료일</span>
+                <input
+                  type="date"
+                  className={searchInputClass}
+                  value={endDate}
+                  onChange={(event) => setEndDate(event.target.value)}
+                />
+              </div>
+              <div
+                className={`${searchFieldClass} col-start-1 row-start-2 xl:col-start-3 xl:row-start-1`}
+              >
+                <span className={searchLabelTextClass}>사용자그룹</span>
+                <input
+                  className={searchInputClass}
+                  value={groupCd}
+                  onChange={(event) => setGroupCd(event.target.value)}
+                />
+              </div>
+              <div className="col-start-4 row-start-1 flex flex-wrap items-end justify-end gap-2 xl:col-start-5">
+                {permissions.canSearch ? (
+                  <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
+                    조회
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
         </SectionCard>

@@ -549,7 +549,7 @@ export default function MMSM02001E() {
             </div>
           </div>
 
-          <div className="mt-4 overflow-x-auto border-t border-slate-200 pt-4">
+          <div className="mt-4 min-w-0 max-w-full overflow-x-auto border-t border-slate-200 pt-4">
             <div className="flex min-w-[820px] items-center justify-between gap-3">
               <div className="flex shrink-0 items-center gap-2">
                 <span className="text-sm font-semibold text-slate-800">생산계획 생성</span>

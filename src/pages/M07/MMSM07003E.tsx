@@ -6,10 +6,10 @@ import SectionHeader from '@/components/SectionHeader';
 import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
 import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
+  basicInfoSearchGridClass,
   countBadgeClass,
   editableInputClass,
   editableNumberInputClass,
-  gridScrollClass,
   pageContentClass,
   pageShellClass,
   registerSplitGridClass,
@@ -30,13 +30,13 @@ import {
 // 프로그램 메뉴 관리 (MMSM07003E)
 // MMSM06007E 패턴 기반: 좌측 목록 선택 + 우측 상세 편집
 
-const searchGridClass = 'grid grid-cols-1 gap-3 md:grid-cols-[360px_1fr]';
 const searchLabelClass = 'font-medium text-slate-700';
 const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
 const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
 const searchInputClass = 'h-10 w-full rounded-lg border border-slate-200 px-3 text-sm';
 const readonlyInputClass = `${editableInputClass} bg-slate-100 text-slate-500`;
 const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
+const panelScrollClass = 'min-h-0 flex-1 overflow-auto';
 
 function showWarning(message: string) {
   window.alert(message);
@@ -201,32 +201,34 @@ export default function MMSM07003E() {
   }
 
   return (
-    <div className={pageShellClass}>
-      <div className={pageContentClass}>
+    <div className={`${pageShellClass} h-full`}>
+      <div className={`${pageContentClass} h-full overflow-hidden`}>
         <SectionCard span="full" padding="md">
-          <div className={searchGridClass}>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>메뉴/프로그램</span>
-              <input
-                className={searchInputClass}
-                value={keyword}
-                onChange={(event) => setKeyword(event.target.value)}
-              />
-            </div>
-            <div className="flex flex-wrap items-end justify-end gap-2">
-              {permissions.canSearch ? (
-                <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
-                  조회
-                </button>
-              ) : null}
+          <div className="overflow-x-auto pb-1">
+            <div className={basicInfoSearchGridClass}>
+              <div className={searchFieldClass}>
+                <span className={searchLabelTextClass}>메뉴/프로그램</span>
+                <input
+                  className={searchInputClass}
+                  value={keyword}
+                  onChange={(event) => setKeyword(event.target.value)}
+                />
+              </div>
+              <div className="col-start-3 row-start-1 flex flex-wrap items-end justify-end gap-2 xl:col-start-4">
+                {permissions.canSearch ? (
+                  <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
+                    조회
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
         </SectionCard>
 
         {error ? <AlertBox>{error}</AlertBox> : null}
 
-        <div className={registerSplitGridClass}>
-          <SectionCard span="wideLeft" width="full">
+        <div className={`${registerSplitGridClass} min-h-0 flex-1`}>
+          <SectionCard span="wideLeft" width="full" className="flex min-h-0 flex-col">
             <SectionHeader
               title="메뉴"
               right={
@@ -242,7 +244,7 @@ export default function MMSM07003E() {
               ]}
               disabled={loading}
             />
-            <div className={gridScrollClass}>
+            <div className={panelScrollClass}>
               <DataGrid<MenuRow>
                 dataSource={filteredRows}
                 rowKey={(row, index) => `${row.MENU_ID || 'menu'}-${index}`}
@@ -290,7 +292,7 @@ export default function MMSM07003E() {
             </div>
           </SectionCard>
 
-          <SectionCard span="wideRight" width="full">
+          <SectionCard span="wideRight" width="full" className="flex min-h-0 flex-col">
             <SectionHeader
               title="메뉴 상세"
               right={
@@ -307,7 +309,7 @@ export default function MMSM07003E() {
               deleteDisabled={!selected}
               addActions={[]}
             />
-            <div className="grid grid-cols-1 gap-3 px-4 pb-4 text-sm md:grid-cols-2">
+            <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-auto px-4 pb-4 text-sm md:grid-cols-2">
               {!selected ? (
                 <div className="col-span-full rounded-lg border border-dashed border-slate-200 p-6 text-center text-slate-500">
                   좌측에서 메뉴를 선택하세요.

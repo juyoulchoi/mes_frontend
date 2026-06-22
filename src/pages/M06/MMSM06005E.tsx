@@ -28,7 +28,7 @@ import {
 // 기능: 화면 로딩 시 자동 조회, 그룹 선택 시 우측 두 목록 로드, 선택 후 등록/해제
 
 const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
-const routingLayoutGridClass = 'grid grid-cols-12 gap-4';
+const routingLayoutGridClass = 'grid min-w-0 grid-cols-12 gap-4';
 const routingGroupCardClass = 'col-span-12 xl:col-span-3 xl:max-w-[340px]';
 const routingTransferColumnClass =
   'col-span-12 flex items-center justify-center xl:col-span-1 xl:max-w-[72px]';
@@ -283,7 +283,7 @@ export default function MMSM06005E() {
                     <span className="text-sm font-semibold text-slate-700">등록가능공정</span>
                     <span className={countBadgeClass}>{procs.length}건</span>
                   </div>
-                  <div className="max-h-[64vh] overflow-auto">
+                  <div className="max-h-[64vh] min-w-0 max-w-full overflow-auto">
                     <DataGrid<ProcRow>
                       dataSource={procs}
                       rowKey={(row, index) => `all-${row.procCd ?? 'proc'}-${index}`}
@@ -338,7 +338,7 @@ export default function MMSM06005E() {
                     <span className="text-sm font-semibold text-slate-700">등록공정</span>
                     <span className={countBadgeClass}>{grpProcs.length}건</span>
                   </div>
-                  <div className="max-h-[64vh] overflow-auto">
+                  <div className="max-h-[64vh] min-w-0 max-w-full overflow-auto">
                     <DataGrid<ProcRow>
                       dataSource={grpProcs}
                       rowKey={(row, index) => `group-${row.procCd ?? 'proc'}-${index}`}

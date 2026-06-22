@@ -9,11 +9,11 @@ import {
   countBadgeClass,
   editableInputClass,
   editableSelectClass,
-  gridScrollClass,
   pageContentClass,
   pageShellClass,
   registerSplitGridClass,
   searchButtonClass,
+  systemWideSearchGridClass,
 } from '@/lib/pageStyles';
 import {
   buildMmsm07001Csv,
@@ -29,8 +29,6 @@ import {
 // MMSM06007E와 동일한 단일 그리드 패턴: 조회/추가/저장/삭제/엑셀
 // 필터: 사용자 이름, 사용자그룹, 부서, 사용여부
 
-const searchGridClass =
-  'grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[320px_260px_260px_180px_1fr]';
 const searchLabelClass = 'font-medium text-slate-700';
 const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
 const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
@@ -38,6 +36,7 @@ const searchInputClass = 'h-10 w-full rounded-lg border border-slate-200 px-3 te
 const searchSelectClass = `${searchInputClass} bg-white`;
 const readonlyInputClass = `${editableInputClass} bg-slate-100 text-slate-500`;
 const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
+const panelScrollClass = 'min-h-0 flex-1 overflow-auto';
 
 function showWarning(message: string) {
   window.alert(message);
@@ -211,60 +210,66 @@ export default function MMSM07001E() {
   }
 
   return (
-    <div className={pageShellClass}>
-      <div className={pageContentClass}>
+    <div className={`${pageShellClass} h-full`}>
+      <div className={`${pageContentClass} h-full overflow-hidden`}>
         <SectionCard span="full" padding="md">
-          <div className={searchGridClass}>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>사용자 이름</span>
-              <input
-                className={searchInputClass}
-                value={usrNm}
-                onChange={(event) => setUsrNm(event.target.value)}
-              />
-            </div>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>사용자그룹</span>
-              <input
-                className={searchInputClass}
-                value={usrGrpCd}
-                onChange={(event) => setUsrGrpCd(event.target.value)}
-              />
-            </div>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>부서</span>
-              <input
-                className={searchInputClass}
-                value={deptCd}
-                onChange={(event) => setDeptCd(event.target.value)}
-              />
-            </div>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>사용여부</span>
-              <select
-                className={searchSelectClass}
-                value={useYn}
-                onChange={(event) => setUseYn(event.target.value)}
+          <div className="overflow-x-auto pb-1">
+            <div className={systemWideSearchGridClass}>
+              <div className={searchFieldClass}>
+                <span className={searchLabelTextClass}>사용자 이름</span>
+                <input
+                  className={searchInputClass}
+                  value={usrNm}
+                  onChange={(event) => setUsrNm(event.target.value)}
+                />
+              </div>
+              <div className={`${searchFieldClass} col-start-2 row-start-1`}>
+                <span className={searchLabelTextClass}>사용자그룹</span>
+                <input
+                  className={searchInputClass}
+                  value={usrGrpCd}
+                  onChange={(event) => setUsrGrpCd(event.target.value)}
+                />
+              </div>
+              <div
+                className={`${searchFieldClass} col-start-1 row-start-2 xl:col-start-3 xl:row-start-1`}
               >
-                <option value="">전체</option>
-                <option value="Y">Y</option>
-                <option value="N">N</option>
-              </select>
-            </div>
-            <div className="flex flex-wrap items-end justify-end gap-2">
-              {permissions.canSearch ? (
-                <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
-                  조회
-                </button>
-              ) : null}
+                <span className={searchLabelTextClass}>부서</span>
+                <input
+                  className={searchInputClass}
+                  value={deptCd}
+                  onChange={(event) => setDeptCd(event.target.value)}
+                />
+              </div>
+              <div
+                className={`${searchFieldClass} col-start-2 row-start-2 xl:col-start-4 xl:row-start-1`}
+              >
+                <span className={searchLabelTextClass}>사용여부</span>
+                <select
+                  className={searchSelectClass}
+                  value={useYn}
+                  onChange={(event) => setUseYn(event.target.value)}
+                >
+                  <option value="">전체</option>
+                  <option value="Y">Y</option>
+                  <option value="N">N</option>
+                </select>
+              </div>
+              <div className="col-start-4 row-start-1 flex flex-wrap items-end justify-end gap-2 xl:col-start-6">
+                {permissions.canSearch ? (
+                  <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
+                    조회
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
         </SectionCard>
 
         {error ? <AlertBox>{error}</AlertBox> : null}
 
-        <div className={registerSplitGridClass}>
-          <SectionCard span="full" width="full">
+        <div className={`${registerSplitGridClass} min-h-0 flex-1`}>
+          <SectionCard span="full" width="full" className="flex min-h-0 flex-col">
             <SectionHeader
               title="사용자"
               right={
@@ -280,7 +285,7 @@ export default function MMSM07001E() {
               onExport={onExportCsv}
               disabled={loading}
             />
-            <div className={gridScrollClass}>
+            <div className={panelScrollClass}>
               <DataGrid<Row>
                 dataSource={rows}
                 rowKey={(row, index) =>

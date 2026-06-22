@@ -6,9 +6,9 @@ import SectionHeader from '@/components/SectionHeader';
 import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
 import { clearPagePermissionCache, usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
+  basicInfoInlineSearchGridClass,
   countBadgeClass,
   editableInputClass,
-  gridScrollClass,
   pageContentClass,
   pageShellClass,
   registerSplitGridClass,
@@ -26,13 +26,13 @@ import {
 // 권한 관리 (MMSM07004E)
 // MMSM06007E 패턴 기반: 좌측 사용자그룹 + 우측 메뉴 권한 그리드
 
-const searchGridClass = 'grid grid-cols-1 gap-3 md:grid-cols-[340px_340px_1fr]';
 const searchLabelClass = 'font-medium text-slate-700';
 const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
 const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
 const searchInputClass = 'h-10 w-full rounded-lg border border-slate-200 px-3 text-sm';
 const panelActionClass =
   'h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50';
+const panelScrollClass = 'min-h-0 flex-1 overflow-auto';
 
 function showWarning(message: string) {
   window.alert(message);
@@ -156,56 +156,66 @@ export default function MMSM07004E() {
   ] as const;
 
   return (
-    <div className={pageShellClass}>
-      <div className={pageContentClass}>
+    <div className={`${pageShellClass} h-full`}>
+      <div className={`${pageContentClass} h-full overflow-hidden`}>
         <SectionCard span="full" padding="md">
-          <div className={searchGridClass}>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>사용자그룹</span>
-              <input
-                className={searchInputClass}
-                value={groupKeyword}
-                onChange={(event) => setGroupKeyword(event.target.value)}
-              />
-            </div>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>메뉴</span>
-              <input
-                className={searchInputClass}
-                value={menuKeyword}
-                onChange={(event) => setMenuKeyword(event.target.value)}
-              />
-            </div>
-            <div className="flex flex-wrap items-end justify-end gap-2">
-              {permissions.canSearch ? (
-                <>
-                  <button onClick={onSearchGroups} disabled={loading} className={panelActionClass}>
-                    그룹조회
-                  </button>
-                  <button onClick={onSearchRights} disabled={loading} className={searchButtonClass}>
-                    조회
-                  </button>
-                </>
-              ) : null}
-              <CrudActionButtons
-                onSave={onSave}
-                disabled={loading}
-                addActions={[]}
-                className="flex flex-wrap items-end justify-end gap-2"
-              />
+          <div className="overflow-x-auto pb-1">
+            <div className={basicInfoInlineSearchGridClass}>
+              <div className={searchFieldClass}>
+                <span className={searchLabelTextClass}>사용자그룹</span>
+                <input
+                  className={searchInputClass}
+                  value={groupKeyword}
+                  onChange={(event) => setGroupKeyword(event.target.value)}
+                />
+              </div>
+              <div className={`${searchFieldClass} col-start-2 row-start-1`}>
+                <span className={searchLabelTextClass}>메뉴</span>
+                <input
+                  className={searchInputClass}
+                  value={menuKeyword}
+                  onChange={(event) => setMenuKeyword(event.target.value)}
+                />
+              </div>
+              <div className="col-start-4 row-start-1 flex flex-wrap items-end justify-end gap-2">
+                {permissions.canSearch ? (
+                  <>
+                    <button
+                      onClick={onSearchGroups}
+                      disabled={loading}
+                      className={panelActionClass}
+                    >
+                      그룹조회
+                    </button>
+                    <button
+                      onClick={onSearchRights}
+                      disabled={loading}
+                      className={searchButtonClass}
+                    >
+                      조회
+                    </button>
+                  </>
+                ) : null}
+                <CrudActionButtons
+                  onSave={onSave}
+                  disabled={loading}
+                  addActions={[]}
+                  className="flex flex-wrap items-end justify-end gap-2"
+                />
+              </div>
             </div>
           </div>
         </SectionCard>
 
         {error ? <AlertBox>{error}</AlertBox> : null}
 
-        <div className={registerSplitGridClass}>
-          <SectionCard span="left" width="full">
+        <div className={`${registerSplitGridClass} min-h-0 flex-1`}>
+          <SectionCard span="left" width="full" className="flex min-h-0 flex-col">
             <SectionHeader
               title="사용자그룹"
               right={<span className={countBadgeClass}>{groups.length}건</span>}
             />
-            <div className={gridScrollClass}>
+            <div className={panelScrollClass}>
               <DataGrid<GroupRow>
                 dataSource={groups}
                 rowKey={(row) => row.USR_GRP_CD}
@@ -227,7 +237,7 @@ export default function MMSM07004E() {
             </div>
           </SectionCard>
 
-          <SectionCard span="right" width="full">
+          <SectionCard span="right" width="full" className="flex min-h-0 flex-col">
             <SectionHeader
               title={selectedGroup ? `권한 - ${selectedGroup}` : '권한'}
               right={
@@ -236,7 +246,7 @@ export default function MMSM07004E() {
                 </span>
               }
             />
-            <div className={gridScrollClass}>
+            <div className={panelScrollClass}>
               <DataGrid<RightRow>
                 dataSource={rights}
                 rowKey={(row, index) => `${row.MENU_ID}-${index}`}

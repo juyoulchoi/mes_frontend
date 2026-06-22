@@ -324,7 +324,7 @@ export default function MMSM01003E() {
 
         {(masterError || saveError) && <AlertBox tone="error">{masterError ?? saveError}</AlertBox>}
 
-        <div className="grid grid-cols-12 gap-4">
+        <div className="grid min-w-0 grid-cols-12 gap-4">
           <SectionCard span="full" width="full">
             <SectionHeader title="입고 등록" />
             <div className={gridScrollClass}>

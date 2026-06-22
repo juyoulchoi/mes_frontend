@@ -14,6 +14,7 @@ import {
   pageShellClass,
   registerSplitGridClass,
   searchButtonClass,
+  systemInlineSearchGridClass,
 } from '@/lib/pageStyles';
 import {
   buildMmsm07002Csv,
@@ -28,8 +29,6 @@ import {
 // 프로그램 관리 (MMSM07002E)
 // MMSM06007E와 동일한 단일 그리드 패턴: 조회/추가/저장/삭제/엑셀
 
-const searchGridClass =
-  'grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[320px_360px_180px_1fr]';
 const searchLabelClass = 'font-medium text-slate-700';
 const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
 const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
@@ -196,41 +195,45 @@ export default function MMSM07002E() {
     <div className={pageShellClass}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className={searchGridClass}>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>프로그램ID</span>
-              <input
-                className={searchInputClass}
-                value={pgmId}
-                onChange={(event) => setPgmId(event.target.value)}
-              />
-            </div>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>프로그램명</span>
-              <input
-                className={searchInputClass}
-                value={pgmNm}
-                onChange={(event) => setPgmNm(event.target.value)}
-              />
-            </div>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>사용여부</span>
-              <select
-                className={searchSelectClass}
-                value={useYn}
-                onChange={(event) => setUseYn(event.target.value)}
+          <div className="overflow-x-auto pb-1">
+            <div className={systemInlineSearchGridClass}>
+              <div className={searchFieldClass}>
+                <span className={searchLabelTextClass}>프로그램ID</span>
+                <input
+                  className={searchInputClass}
+                  value={pgmId}
+                  onChange={(event) => setPgmId(event.target.value)}
+                />
+              </div>
+              <div className={`${searchFieldClass} col-start-2 row-start-1`}>
+                <span className={searchLabelTextClass}>프로그램명</span>
+                <input
+                  className={searchInputClass}
+                  value={pgmNm}
+                  onChange={(event) => setPgmNm(event.target.value)}
+                />
+              </div>
+              <div
+                className={`${searchFieldClass} col-start-1 row-start-2 xl:col-start-3 xl:row-start-1`}
               >
-                <option value="">전체</option>
-                <option value="Y">Y</option>
-                <option value="N">N</option>
-              </select>
-            </div>
-            <div className="flex flex-wrap items-end justify-end gap-2">
-              {permissions.canSearch ? (
-                <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
-                  조회
-                </button>
-              ) : null}
+                <span className={searchLabelTextClass}>사용여부</span>
+                <select
+                  className={searchSelectClass}
+                  value={useYn}
+                  onChange={(event) => setUseYn(event.target.value)}
+                >
+                  <option value="">전체</option>
+                  <option value="Y">Y</option>
+                  <option value="N">N</option>
+                </select>
+              </div>
+              <div className="col-start-4 row-start-1 flex flex-wrap items-end justify-end gap-2 xl:col-start-5">
+                {permissions.canSearch ? (
+                  <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
+                    조회
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
         </SectionCard>
