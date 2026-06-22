@@ -10,6 +10,7 @@ import { http } from '@/lib/http';
 import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
   countBadgeClass,
+  exportCsvButtonClass,
   gridScrollClass,
   pageContentClass,
   pageShellClass,
@@ -219,7 +220,7 @@ export default function MMSM02002E() {
                     </button>
                   )}
                   {canExport && (
-                    <button onClick={onExportCsv} className={searchButtonClass}>
+                    <button onClick={onExportCsv} className={exportCsvButtonClass}>
                       엑셀
                     </button>
                   )}
