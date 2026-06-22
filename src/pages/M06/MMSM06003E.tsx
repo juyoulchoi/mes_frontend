@@ -6,13 +6,13 @@ import SectionHeader from '@/components/SectionHeader';
 import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
 import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
+  basicInfoSearchGridClass,
   countBadgeClass,
   editableInputClass,
   editableSelectClass,
   gridScrollClass,
   pageContentClass,
   pageShellClass,
-  registerSearchGridClass,
   registerSplitGridClass,
   searchButtonClass,
 } from '@/lib/pageStyles';
@@ -263,21 +263,23 @@ export default function MMSM06003E() {
     <div className={pageShellClass}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className={registerSearchGridClass}>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>제품명</span>
-              <input
-                className={searchInputClass}
-                value={itemNm}
-                onChange={(event) => setItemNm(event.target.value)}
-              />
-            </div>
-            <div className="flex flex-wrap items-end justify-end gap-2 md:col-start-3">
-              {permissions.canSearch ? (
-                <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
-                  조회
-                </button>
-              ) : null}
+          <div className="overflow-x-auto pb-1">
+            <div className={basicInfoSearchGridClass}>
+              <div className={searchFieldClass}>
+                <span className={searchLabelTextClass}>제품명</span>
+                <input
+                  className={searchInputClass}
+                  value={itemNm}
+                  onChange={(event) => setItemNm(event.target.value)}
+                />
+              </div>
+              <div className="col-start-3 row-start-1 flex flex-wrap items-end justify-end gap-2 xl:col-start-4">
+                {permissions.canSearch ? (
+                  <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
+                    조회
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
         </SectionCard>

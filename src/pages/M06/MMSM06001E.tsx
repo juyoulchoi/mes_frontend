@@ -6,6 +6,7 @@ import SectionHeader from '@/components/SectionHeader';
 import { CheckColumn, Column, DataGrid, Paging } from '@/components/table/DataGrid';
 import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
+  basicInfoInlineSearchGridClass,
   countBadgeClass,
   editableInputClass,
   editableNumberInputClass,
@@ -13,7 +14,6 @@ import {
   gridScrollClass,
   pageContentClass,
   pageShellClass,
-  registerSearchGridClass,
   registerSplitGridClass,
   searchButtonClass,
 } from '@/lib/pageStyles';
@@ -387,29 +387,31 @@ export default function MMSM06001E() {
     <div className={pageShellClass}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className={registerSearchGridClass}>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>그룹코드</span>
-              <input
-                className={searchInputClass}
-                value={grpCd}
-                onChange={(e) => setGrpCd(e.target.value)}
-              />
-            </div>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>그룹명</span>
-              <input
-                className={searchInputClass}
-                value={grpNm}
-                onChange={(e) => setGrpNm(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-wrap items-end justify-end gap-2">
-              {permissions.canSearch ? (
-                <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
-                  조회
-                </button>
-              ) : null}
+          <div className="overflow-x-auto pb-1">
+            <div className={basicInfoInlineSearchGridClass}>
+              <div className={searchFieldClass}>
+                <span className={searchLabelTextClass}>그룹코드</span>
+                <input
+                  className={searchInputClass}
+                  value={grpCd}
+                  onChange={(e) => setGrpCd(e.target.value)}
+                />
+              </div>
+              <div className={`${searchFieldClass} col-start-2 row-start-1`}>
+                <span className={searchLabelTextClass}>그룹명</span>
+                <input
+                  className={searchInputClass}
+                  value={grpNm}
+                  onChange={(e) => setGrpNm(e.target.value)}
+                />
+              </div>
+              <div className="col-start-4 row-start-1 flex flex-wrap items-end justify-end gap-2">
+                {permissions.canSearch ? (
+                  <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
+                    조회
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
         </SectionCard>

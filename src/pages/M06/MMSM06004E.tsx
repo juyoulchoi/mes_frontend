@@ -6,13 +6,13 @@ import SectionHeader from '@/components/SectionHeader';
 import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
 import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
+  basicInfoInlineSearchGridClass,
   countBadgeClass,
   editableInputClass,
   editableSelectClass,
   gridScrollClass,
   pageContentClass,
   pageShellClass,
-  registerSearchGridClass,
   registerSplitGridClass,
   searchButtonClass,
 } from '@/lib/pageStyles';
@@ -29,6 +29,7 @@ const searchLabelClass = 'font-medium text-slate-700';
 const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
 const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
 const searchInputClass = 'h-10 w-full rounded-lg border border-slate-200 px-3 text-sm';
+const searchUseYnSelectClass = 'h-10 w-[120px] rounded-lg border border-slate-200 px-3 text-sm';
 const readonlyInputClass = `${editableInputClass} bg-slate-100 text-slate-500`;
 const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
 const custGbOptions = [
@@ -220,33 +221,35 @@ export default function MMSM06004E() {
     <div className={pageShellClass}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className={registerSearchGridClass}>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>거래처구분</span>
-              <input
-                className={searchInputClass}
-                value={cstGb}
-                onChange={(event) => setCstGb(event.target.value)}
-              />
-            </div>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>사용여부</span>
-              <select
-                className={searchInputClass}
-                value={useYn}
-                onChange={(event) => setUseYn(event.target.value)}
-              >
-                <option value="">전체</option>
-                <option value="Y">Y</option>
-                <option value="N">N</option>
-              </select>
-            </div>
-            <div className="flex flex-wrap items-end justify-end gap-2">
-              {permissions.canSearch ? (
-                <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
-                  조회
-                </button>
-              ) : null}
+          <div className="overflow-x-auto pb-1">
+            <div className={basicInfoInlineSearchGridClass}>
+              <div className={searchFieldClass}>
+                <span className={searchLabelTextClass}>거래처구분</span>
+                <input
+                  className={searchInputClass}
+                  value={cstGb}
+                  onChange={(event) => setCstGb(event.target.value)}
+                />
+              </div>
+              <div className={`${searchFieldClass} col-start-2 row-start-1`}>
+                <span className={searchLabelTextClass}>사용여부</span>
+                <select
+                  className={searchUseYnSelectClass}
+                  value={useYn}
+                  onChange={(event) => setUseYn(event.target.value)}
+                >
+                  <option value="">전체</option>
+                  <option value="Y">Y</option>
+                  <option value="N">N</option>
+                </select>
+              </div>
+              <div className="col-start-4 row-start-1 flex flex-wrap items-end justify-end gap-2">
+                {permissions.canSearch ? (
+                  <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
+                    조회
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
         </SectionCard>

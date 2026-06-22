@@ -7,12 +7,12 @@ import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
 import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
   addTransferButtonClass,
+  basicInfoSearchGridClass,
   countBadgeClass,
   deleteTransferButtonClass,
   gridScrollClass,
   pageContentClass,
   pageShellClass,
-  registerSearchGridClass,
   registerSplitGridClass,
   searchButtonClass,
   transferButtonGroupClass,
@@ -204,25 +204,26 @@ export default function MMSM06005E() {
     <div className={pageShellClass}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className={registerSearchGridClass}>
-            <div className={searchFieldClass}>
-              <span className={searchLabelTextClass}>조회대상</span>
-              <span className="flex h-10 items-center text-sm text-slate-600">
-                공정그룹 및 라우팅공정
-              </span>
-            </div>
-            <div />
-            <div className="flex flex-wrap items-end justify-end gap-2">
-              {permissions.canSearch ? (
-                <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
-                  조회
-                </button>
-              ) : null}
-              <CrudActionButtons
-                onExport={onExportCsv}
-                disabled={loading}
-                className="flex flex-wrap items-end justify-end gap-2"
-              />
+          <div className="overflow-x-auto pb-1">
+            <div className={basicInfoSearchGridClass}>
+              <div className={searchFieldClass}>
+                <span className={searchLabelTextClass}>조회대상</span>
+                <span className="flex h-10 items-center text-sm text-slate-600">
+                  공정그룹 및 라우팅공정
+                </span>
+              </div>
+              <div className="col-start-3 row-start-1 flex flex-wrap items-end justify-end gap-2 xl:col-start-4">
+                {permissions.canSearch ? (
+                  <button onClick={onSearch} disabled={loading} className={searchButtonClass}>
+                    조회
+                  </button>
+                ) : null}
+                <CrudActionButtons
+                  onExport={onExportCsv}
+                  disabled={loading}
+                  className="flex flex-wrap items-end justify-end gap-2"
+                />
+              </div>
             </div>
           </div>
         </SectionCard>
