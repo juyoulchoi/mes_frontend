@@ -40,7 +40,7 @@ const custGbOptions = [
 export default function MMSM06004E() {
   const permissions = usePagePermissions();
 
-  const [cstGb, setCstGb] = useState('');
+  const [cstNm, setCstNm] = useState('');
   const [useYn, setUseYn] = useState('');
   const [rows, setRows] = useState<Row[]>([]);
   const [selectedCstCd, setSelectedCstCd] = useState('');
@@ -49,7 +49,7 @@ export default function MMSM06004E() {
   const [error, setError] = useState<string | null>(null);
 
   async function fetchRows() {
-    return fetchMmsm06004Rows({ cstGb, useYn });
+    return fetchMmsm06004Rows({ cstNm, useYn });
   }
 
   async function onSearch() {
@@ -224,11 +224,11 @@ export default function MMSM06004E() {
           <div className="overflow-x-auto pb-1">
             <div className={basicInfoInlineSearchGridClass}>
               <div className={searchFieldClass}>
-                <span className={searchLabelTextClass}>거래처구분</span>
+                <span className={searchLabelTextClass}>거래처명</span>
                 <input
                   className={searchInputClass}
-                  value={cstGb}
-                  onChange={(event) => setCstGb(event.target.value)}
+                  value={cstNm}
+                  onChange={(event) => setCstNm(event.target.value)}
                 />
               </div>
               <div className={`${searchFieldClass} col-start-2 row-start-1`}>

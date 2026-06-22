@@ -57,7 +57,7 @@ type CustInfoResponse = {
 };
 
 export type FetchMmsm06004Params = {
-  cstGb?: string;
+  cstNm?: string;
   useYn?: string;
 };
 
@@ -118,12 +118,13 @@ export function createNewMmsm06004Row(index: number): Row {
   };
 }
 
-export async function fetchMmsm06004Rows({ cstGb = '', useYn = '' }: FetchMmsm06004Params) {
-  const custGbs = cstGb.trim() ? [cstGb.trim()] : DEFAULT_CUST_GBS;
+export async function fetchMmsm06004Rows({ cstNm = '', useYn = '' }: FetchMmsm06004Params) {
+  const cstNmValue = cstNm.trim();
   const status = mapUseYnToStatus(useYn);
   const pages = await Promise.all(
-    custGbs.map((custGbValue) => {
+    DEFAULT_CUST_GBS.map((custGbValue) => {
       const params = new URLSearchParams({ custGb: custGbValue, size: '1000' });
+      if (cstNmValue) params.set('cstNm', cstNmValue);
       if (useYn) params.set('status', status);
       return http<ApiPage<CustInfoResponse>>(`/api/v1/mdm/cust/search?${params}`);
     })
