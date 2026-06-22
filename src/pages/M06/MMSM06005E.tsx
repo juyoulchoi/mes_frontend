@@ -13,10 +13,8 @@ import {
   gridScrollClass,
   pageContentClass,
   pageShellClass,
-  registerSplitGridClass,
   searchButtonClass,
   transferButtonGroupClass,
-  transferColumnClass,
 } from '@/lib/pageStyles';
 import {
   addMmsm06005GroupProcs,
@@ -37,6 +35,11 @@ const searchLabelClass = 'font-medium text-slate-700';
 const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
 const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
 const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
+const routingLayoutGridClass = 'grid grid-cols-12 gap-4';
+const routingGroupCardClass = 'col-span-12 xl:col-span-3 xl:max-w-[340px]';
+const routingTransferColumnClass =
+  'col-span-12 flex items-center justify-center xl:col-span-1 xl:max-w-[72px]';
+const routingRouteCardClass = 'col-span-12 xl:col-span-6 xl:max-w-[760px]';
 
 export default function MMSM06005E() {
   const permissions = usePagePermissions();
@@ -230,52 +233,57 @@ export default function MMSM06005E() {
 
         {error ? <AlertBox>{error}</AlertBox> : null}
 
-        <div className={registerSplitGridClass}>
-          <SectionCard span="left" width="full">
-            <SectionHeader
-              title="공정그룹"
-              right={
-                <span className={countBadgeClass}>
-                  {loading ? '조회중...' : `${groups.length}건`}
-                </span>
-              }
-            />
-            <div className={gridScrollClass}>
-              <DataGrid<GroupRow>
-                dataSource={groups}
-                rowKey={(row, index) => `${row.procGrpCd ?? 'group'}-${index}`}
-                showBorders
-                emptyText="공정그룹이 없습니다. 조회를 눌러 로드하세요."
-                getRowProps={(row, index) => ({
-                  onClick: () => onSelectGroup(index),
-                  className: `cursor-pointer ${
-                    row.procGrpCd && row.procGrpCd === selectedGrp ? 'bg-sky-50' : ''
-                  }`,
-                })}
-              >
-                <Paging enabled={false} />
-                <Column<GroupRow>
-                  dataField="procGrpCd"
-                  caption="공정그룹코드"
-                  width={130}
-                  alignment="center"
-                  cellRender={(row) => (
-                    <span className={readOnlyCellClass}>{row.procGrpCd ?? ''}</span>
-                  )}
-                />
-                <Column<GroupRow>
-                  dataField="procGrpNm"
-                  caption="공정그룹명"
-                  width={180}
-                  cellRender={(row) => (
-                    <span className={readOnlyCellClass}>{row.procGrpNm ?? ''}</span>
-                  )}
-                />
-              </DataGrid>
-            </div>
-          </SectionCard>
+        <div className={routingLayoutGridClass}>
+          <div className={routingGroupCardClass}>
+            <SectionCard span="full" width="full">
+              <SectionHeader
+                title="공정그룹"
+                right={
+                  <span className={countBadgeClass}>
+                    {loading ? '조회중...' : `${groups.length}건`}
+                  </span>
+                }
+              />
+              <div className={gridScrollClass}>
+                <DataGrid<GroupRow>
+                  dataSource={groups}
+                  rowKey={(row, index) => `${row.procGrpCd ?? 'group'}-${index}`}
+                  showBorders
+                  emptyText="공정그룹이 없습니다. 조회를 눌러 로드하세요."
+                  classNames={{
+                    table: 'min-w-[300px] w-full text-sm',
+                  }}
+                  getRowProps={(row, index) => ({
+                    onClick: () => onSelectGroup(index),
+                    className: `cursor-pointer ${
+                      row.procGrpCd && row.procGrpCd === selectedGrp ? 'bg-sky-50' : ''
+                    }`,
+                  })}
+                >
+                  <Paging enabled={false} />
+                  <Column<GroupRow>
+                    dataField="procGrpCd"
+                    caption="공정그룹코드"
+                    width={110}
+                    alignment="center"
+                    cellRender={(row) => (
+                      <span className={readOnlyCellClass}>{row.procGrpCd ?? ''}</span>
+                    )}
+                  />
+                  <Column<GroupRow>
+                    dataField="procGrpNm"
+                    caption="공정그룹명"
+                    width={160}
+                    cellRender={(row) => (
+                      <span className={readOnlyCellClass}>{row.procGrpNm ?? ''}</span>
+                    )}
+                  />
+                </DataGrid>
+              </div>
+            </SectionCard>
+          </div>
 
-          <div className={transferColumnClass}>
+          <div className={routingTransferColumnClass}>
             <div className={transferButtonGroupClass}>
               {permissions.canDelete ? (
                 <button
@@ -298,125 +306,133 @@ export default function MMSM06005E() {
             </div>
           </div>
 
-          <SectionCard span="wideRight" width="full">
-            <SectionHeader
-              title="공정그룹 라우팅"
-              right={
-                <span className={countBadgeClass}>
-                  {loading
-                    ? '조회중...'
-                    : `등록가능공정 ${procs.length}건 / 등록공정 ${grpProcs.length}건`}
-                </span>
-              }
-            />
-            <div className="grid gap-4 p-4 xl:grid-cols-2">
-              <div className="min-w-0">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-slate-700">등록가능공정</span>
-                  <span className={countBadgeClass}>{procs.length}건</span>
+          <div className={routingRouteCardClass}>
+            <SectionCard span="full" width="full">
+              <SectionHeader
+                title="공정그룹 라우팅"
+                right={
+                  <span className={countBadgeClass}>
+                    {loading
+                      ? '조회중...'
+                      : `등록가능공정 ${procs.length}건 / 등록공정 ${grpProcs.length}건`}
+                  </span>
+                }
+              />
+              <div className="grid gap-4 p-4 xl:grid-cols-2">
+                <div className="min-w-0">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-sm font-semibold text-slate-700">등록가능공정</span>
+                    <span className={countBadgeClass}>{procs.length}건</span>
+                  </div>
+                  <div className="max-h-[64vh] overflow-auto">
+                    <DataGrid<ProcRow>
+                      dataSource={procs}
+                      rowKey={(row, index) => `all-${row.procCd ?? 'proc'}-${index}`}
+                      showBorders
+                      emptyText="등록 가능한 공정이 없습니다. 공정정보를 등록했거나 이미 모두 등록된 상태인지 확인하세요."
+                      classNames={{
+                        table: 'min-w-[320px] w-full text-sm',
+                      }}
+                      getRowProps={(row, index) => ({
+                        onClick: () => toggleProcs(setProcs, index, !row.check),
+                        className: `cursor-pointer ${row.check ? 'bg-sky-50' : ''}`,
+                      })}
+                    >
+                      <Paging enabled={false} />
+                      <Column<ProcRow>
+                        dataField="check"
+                        caption="선택"
+                        width={48}
+                        alignment="center"
+                        cellRender={(row, index) => (
+                          <input
+                            type="checkbox"
+                            checked={!!row.check}
+                            onClick={(event) => event.stopPropagation()}
+                            onChange={(event) => toggleProcs(setProcs, index, event.target.checked)}
+                          />
+                        )}
+                      />
+                      <Column<ProcRow>
+                        dataField="procCd"
+                        caption="공정코드"
+                        width={100}
+                        alignment="center"
+                        cellRender={(row) => (
+                          <span className={readOnlyCellClass}>{row.procCd ?? ''}</span>
+                        )}
+                      />
+                      <Column<ProcRow>
+                        dataField="procNm"
+                        caption="공정명"
+                        width={160}
+                        cellRender={(row) => (
+                          <span className={readOnlyCellClass}>{row.procNm ?? ''}</span>
+                        )}
+                      />
+                    </DataGrid>
+                  </div>
                 </div>
-                <div className="max-h-[64vh] overflow-auto">
-                  <DataGrid<ProcRow>
-                    dataSource={procs}
-                    rowKey={(row, index) => `all-${row.procCd ?? 'proc'}-${index}`}
-                    showBorders
-                    emptyText="등록 가능한 공정이 없습니다. 공정정보를 등록했거나 이미 모두 등록된 상태인지 확인하세요."
-                    getRowProps={(row, index) => ({
-                      onClick: () => toggleProcs(setProcs, index, !row.check),
-                      className: `cursor-pointer ${row.check ? 'bg-sky-50' : ''}`,
-                    })}
-                  >
-                    <Paging enabled={false} />
-                    <Column<ProcRow>
-                      dataField="check"
-                      caption="선택"
-                      width={48}
-                      alignment="center"
-                      cellRender={(row, index) => (
-                        <input
-                          type="checkbox"
-                          checked={!!row.check}
-                          onClick={(event) => event.stopPropagation()}
-                          onChange={(event) => toggleProcs(setProcs, index, event.target.checked)}
-                        />
-                      )}
-                    />
-                    <Column<ProcRow>
-                      dataField="procCd"
-                      caption="공정코드"
-                      width={120}
-                      alignment="center"
-                      cellRender={(row) => (
-                        <span className={readOnlyCellClass}>{row.procCd ?? ''}</span>
-                      )}
-                    />
-                    <Column<ProcRow>
-                      dataField="procNm"
-                      caption="공정명"
-                      width={200}
-                      cellRender={(row) => (
-                        <span className={readOnlyCellClass}>{row.procNm ?? ''}</span>
-                      )}
-                    />
-                  </DataGrid>
-                </div>
-              </div>
 
-              <div className="min-w-0">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-slate-700">등록공정</span>
-                  <span className={countBadgeClass}>{grpProcs.length}건</span>
-                </div>
-                <div className="max-h-[64vh] overflow-auto">
-                  <DataGrid<ProcRow>
-                    dataSource={grpProcs}
-                    rowKey={(row, index) => `group-${row.procCd ?? 'proc'}-${index}`}
-                    showBorders
-                    emptyText="공정그룹에 등록된 라우팅공정이 없습니다."
-                    getRowProps={(row, index) => ({
-                      onClick: () => toggleProcs(setGrpProcs, index, !row.check),
-                      className: `cursor-pointer ${row.check ? 'bg-sky-50' : ''}`,
-                    })}
-                  >
-                    <Paging enabled={false} />
-                    <Column<ProcRow>
-                      dataField="check"
-                      caption="선택"
-                      width={48}
-                      alignment="center"
-                      cellRender={(row, index) => (
-                        <input
-                          type="checkbox"
-                          checked={!!row.check}
-                          onClick={(event) => event.stopPropagation()}
-                          onChange={(event) =>
-                            toggleProcs(setGrpProcs, index, event.target.checked)
-                          }
-                        />
-                      )}
-                    />
-                    <Column<ProcRow>
-                      dataField="procCd"
-                      caption="공정코드"
-                      width={120}
-                      alignment="center"
-                      cellRender={(row) => (
-                        <span className={readOnlyCellClass}>{row.procCd ?? ''}</span>
-                      )}
-                    />
-                    <Column<ProcRow>
-                      dataField="procNm"
-                      caption="공정명"
-                      width={200}
-                      cellRender={(row) => (
-                        <span className={readOnlyCellClass}>{row.procNm ?? ''}</span>
-                      )}
-                    />
-                  </DataGrid>
+                <div className="min-w-0">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-sm font-semibold text-slate-700">등록공정</span>
+                    <span className={countBadgeClass}>{grpProcs.length}건</span>
+                  </div>
+                  <div className="max-h-[64vh] overflow-auto">
+                    <DataGrid<ProcRow>
+                      dataSource={grpProcs}
+                      rowKey={(row, index) => `group-${row.procCd ?? 'proc'}-${index}`}
+                      showBorders
+                      emptyText="공정그룹에 등록된 라우팅공정이 없습니다."
+                      classNames={{
+                        table: 'min-w-[320px] w-full text-sm',
+                      }}
+                      getRowProps={(row, index) => ({
+                        onClick: () => toggleProcs(setGrpProcs, index, !row.check),
+                        className: `cursor-pointer ${row.check ? 'bg-sky-50' : ''}`,
+                      })}
+                    >
+                      <Paging enabled={false} />
+                      <Column<ProcRow>
+                        dataField="check"
+                        caption="선택"
+                        width={48}
+                        alignment="center"
+                        cellRender={(row, index) => (
+                          <input
+                            type="checkbox"
+                            checked={!!row.check}
+                            onClick={(event) => event.stopPropagation()}
+                            onChange={(event) =>
+                              toggleProcs(setGrpProcs, index, event.target.checked)
+                            }
+                          />
+                        )}
+                      />
+                      <Column<ProcRow>
+                        dataField="procCd"
+                        caption="공정코드"
+                        width={100}
+                        alignment="center"
+                        cellRender={(row) => (
+                          <span className={readOnlyCellClass}>{row.procCd ?? ''}</span>
+                        )}
+                      />
+                      <Column<ProcRow>
+                        dataField="procNm"
+                        caption="공정명"
+                        width={160}
+                        cellRender={(row) => (
+                          <span className={readOnlyCellClass}>{row.procNm ?? ''}</span>
+                        )}
+                      />
+                    </DataGrid>
+                  </div>
                 </div>
               </div>
-            </div>
-          </SectionCard>
+            </SectionCard>
+          </div>
         </div>
       </div>
     </div>
