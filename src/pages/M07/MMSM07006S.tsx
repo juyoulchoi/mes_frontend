@@ -7,13 +7,13 @@ import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
 import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
   countBadgeClass,
-  gridScrollClass,
   pageContentClass,
   pageShellClass,
   registerSplitGridClass,
   searchButtonClass,
   systemInlineSearchGridClass,
 } from '@/lib/pageStyles';
+import { getTodayYmd } from '@/lib/registerDetailUtils';
 import { buildMmsm07006Csv, fetchMmsm07006Rows, type Row } from '@/services/m07/mmsm07006';
 
 // 시스템 LOG 조회 (MMSM07006S)
@@ -24,12 +24,23 @@ const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
 const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
 const searchInputClass = 'h-10 w-full rounded-lg border border-slate-200 px-3 text-sm';
 const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
+const panelScrollClass = 'min-h-0 flex-1 overflow-auto';
+
+function getDefaultStartDate() {
+  const date = new Date();
+  date.setDate(date.getDate() - 7);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
 
 export default function MMSM07006S() {
   const permissions = usePagePermissions();
 
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState(getDefaultStartDate);
+  const [endDate, setEndDate] = useState(getTodayYmd);
   const [evtTp, setEvtTp] = useState('');
 
   const [rows, setRows] = useState<Row[]>([]);
@@ -62,8 +73,8 @@ export default function MMSM07006S() {
   }
 
   return (
-    <div className={pageShellClass}>
-      <div className={pageContentClass}>
+    <div className={`${pageShellClass} h-full`}>
+      <div className={`${pageContentClass} h-full overflow-hidden`}>
         <SectionCard span="full" padding="md">
           <div className="overflow-x-auto pb-1">
             <div className={systemInlineSearchGridClass}>
@@ -108,8 +119,8 @@ export default function MMSM07006S() {
 
         {error ? <AlertBox>{error}</AlertBox> : null}
 
-        <div className={registerSplitGridClass}>
-          <SectionCard span="full" width="full">
+        <div className={`${registerSplitGridClass} min-h-0 flex-1`}>
+          <SectionCard span="full" width="full" className="flex min-h-0 flex-col">
             <SectionHeader
               title="시스템 LOG"
               right={
@@ -119,7 +130,7 @@ export default function MMSM07006S() {
               }
             />
             <CrudActionButtons onExport={onExportCsv} disabled={loading} />
-            <div className={gridScrollClass}>
+            <div className={panelScrollClass}>
               <DataGrid<Row>
                 dataSource={rows}
                 rowKey={(row, index) => `${row.EVT_DT || 'log'}-${index}`}
