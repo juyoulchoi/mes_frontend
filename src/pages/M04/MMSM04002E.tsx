@@ -22,6 +22,14 @@ import {
   transferButtonGroupClass,
   transferColumnClass,
 } from '@/lib/pageStyles';
+import {
+  getResponsiveSearchLayoutMode,
+  responsiveSearchActionsClass,
+  responsiveSearchCustomerFieldClass,
+  responsiveSearchDateFieldClass,
+  responsiveSearchFieldGridClass,
+  responsiveSearchGridClass,
+} from '@/lib/pageStyles';
 import { getTodayYmd } from '@/lib/registerDetailUtils';
 import {
   buildMmsm04002SavePayload,
@@ -41,35 +49,6 @@ const issueDateInputClass =
   'h-10 w-full max-w-[150px] rounded-lg border border-slate-200 bg-white px-3 text-sm';
 const issueDateLabelClass = 'flex h-10 items-center gap-2 text-sm';
 const issueDateTextClass = 'w-[72px] shrink-0 font-medium text-slate-700';
-type productIssueRegisterSearchLayoutMode = 'compact' | 'twoRow' | 'wide';
-
-const productIssueRegisterSearchGridClass =
-  'grid min-w-[892px] grid-cols-[minmax(0,1fr)_max-content] items-start gap-2 xl:gap-x-[30px]';
-const productIssueRegisterSearchFieldGridClass: Record<
-  productIssueRegisterSearchLayoutMode,
-  string
-> = {
-  compact:
-    'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
-  twoRow:
-    'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
-  wide: 'col-start-1 row-start-1 grid min-w-[1338px] grid-cols-[repeat(3,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
-};
-const productIssueRegisterDateFieldClass: Record<productIssueRegisterSearchLayoutMode, string> = {
-  compact: 'col-start-1 row-start-1 min-w-0',
-  twoRow: 'col-start-1 row-start-1 min-w-0',
-  wide: 'col-start-1 row-start-1 min-w-0',
-};
-const productIssueRegisterCustomerFieldClass: Record<productIssueRegisterSearchLayoutMode, string> =
-  {
-    compact: 'col-start-1 row-start-2 min-w-0',
-    twoRow: 'col-start-2 row-start-1 min-w-0',
-    wide: 'col-start-2 row-start-1 min-w-0',
-  };
-const productIssueRegisterSearchActionsClass = 'col-start-2 row-start-1 flex min-w-max justify-end';
-const productIssueRegisterTwoRowMinWidth = 1280;
-const productIssueRegisterWideMinWidth = 1640;
-
 function getSalesRowKey(row: {
   soYmd?: string;
   soSeq?: string | number;
@@ -316,20 +295,15 @@ export default function MMSM04002E() {
     URL.revokeObjectURL(url);
   }
 
-  const searchLayoutMode: productIssueRegisterSearchLayoutMode =
-    searchWidth >= productIssueRegisterWideMinWidth
-      ? 'wide'
-      : searchWidth >= productIssueRegisterTwoRowMinWidth
-        ? 'twoRow'
-        : 'compact';
+  const searchLayoutMode = getResponsiveSearchLayoutMode(searchWidth);
   return (
     <div className={pageShellClass}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
           <div ref={searchRef} className="overflow-x-auto pb-1">
-            <div className={productIssueRegisterSearchGridClass}>
-              <div className={productIssueRegisterSearchFieldGridClass[searchLayoutMode]}>
-                <div className={productIssueRegisterDateFieldClass[searchLayoutMode]}>
+            <div className={responsiveSearchGridClass}>
+              <div className={responsiveSearchFieldGridClass[searchLayoutMode]}>
+                <div className={responsiveSearchDateFieldClass[searchLayoutMode]}>
                   <DateEdit
                     label="수주일자"
                     value={form.soYmd}
@@ -337,7 +311,7 @@ export default function MMSM04002E() {
                   />
                 </div>
 
-                <div className={productIssueRegisterCustomerFieldClass[searchLayoutMode]}>
+                <div className={responsiveSearchCustomerFieldClass[searchLayoutMode]}>
                   <CodeNameField
                     label="거래처"
                     id="cust"
@@ -354,7 +328,7 @@ export default function MMSM04002E() {
                 </div>
               </div>
 
-              <div className={productIssueRegisterSearchActionsClass}>
+              <div className={responsiveSearchActionsClass}>
                 <ActionButtonGroup
                   onSearch={() => void onSearch()}
                   onSave={() => void onSave()}

@@ -12,6 +12,15 @@ import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
 import { http } from '@/lib/http';
 import { PAGE_SIZE } from '@/lib/pagination';
 import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
+import {
+  getResponsiveSearchLayoutMode,
+  responsiveSearchActionsClass,
+  responsiveSearchCustomerFieldClass,
+  responsiveSearchDateFieldClass,
+  responsiveSearchFieldGridClass,
+  responsiveSearchGridClass,
+  responsiveSearchItemFieldClass,
+} from '@/lib/pageStyles';
 import { usePageApiFetch } from '@/services/common/getApiFetch';
 import {
   buildReceiptCancelPayload,
@@ -23,36 +32,6 @@ import {
 } from '@/services/m01/mmsm01004';
 import { updateCheckedRows } from '@/lib/gridRows';
 import type { AuthMeResponse } from '@/services/m01/mmsm01003';
-
-type receiptStatusSearchLayoutMode = 'compact' | 'twoRow' | 'wide';
-
-const receiptStatusSearchGridClass =
-  'grid min-w-[892px] grid-cols-[minmax(0,1fr)_max-content] items-start gap-2 xl:gap-x-[30px]';
-const receiptStatusSearchFieldGridClass: Record<receiptStatusSearchLayoutMode, string> = {
-  compact:
-    'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
-  twoRow:
-    'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
-  wide: 'col-start-1 row-start-1 grid min-w-[1338px] grid-cols-[repeat(3,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
-};
-const receiptStatusDateFieldClass: Record<receiptStatusSearchLayoutMode, string> = {
-  compact: 'col-start-1 row-start-1 min-w-0',
-  twoRow: 'col-start-1 row-start-1 min-w-0',
-  wide: 'col-start-1 row-start-1 min-w-0',
-};
-const receiptStatusCustomerFieldClass: Record<receiptStatusSearchLayoutMode, string> = {
-  compact: 'col-start-1 row-start-2 min-w-0',
-  twoRow: 'col-start-2 row-start-1 min-w-0',
-  wide: 'col-start-2 row-start-1 min-w-0',
-};
-const receiptStatusItemFieldClass: Record<receiptStatusSearchLayoutMode, string> = {
-  compact: 'col-start-2 row-start-2 min-w-0',
-  twoRow: 'col-start-1 row-start-2 min-w-0',
-  wide: 'col-start-3 row-start-1 min-w-0',
-};
-const receiptStatusSearchActionsClass = 'col-start-2 row-start-1 flex min-w-max justify-end';
-const receiptStatusTwoRowMinWidth = 1280;
-const receiptStatusWideMinWidth = 1640;
 
 const MMSM01004S: React.FC = () => {
   const today = useMemo(() => new Date(), []);
@@ -112,12 +91,7 @@ const MMSM01004S: React.FC = () => {
     [result, rows]
   );
 
-  const searchLayoutMode: receiptStatusSearchLayoutMode =
-    searchWidth >= receiptStatusWideMinWidth
-      ? 'wide'
-      : searchWidth >= receiptStatusTwoRowMinWidth
-        ? 'twoRow'
-        : 'compact';
+  const searchLayoutMode = getResponsiveSearchLayoutMode(searchWidth);
 
   function toggleRow(rowIndex: number, checked: boolean) {
     updateCheckedRows(setRows, rowIndex, checked);
@@ -171,9 +145,9 @@ const MMSM01004S: React.FC = () => {
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
           <div ref={searchRef} className="overflow-x-auto pb-1">
-            <div className={receiptStatusSearchGridClass}>
-              <div className={receiptStatusSearchFieldGridClass[searchLayoutMode]}>
-                <div className={receiptStatusDateFieldClass[searchLayoutMode]}>
+            <div className={responsiveSearchGridClass}>
+              <div className={responsiveSearchFieldGridClass[searchLayoutMode]}>
+                <div className={responsiveSearchDateFieldClass[searchLayoutMode]}>
                   <FromToDateField
                     label="입고일자"
                     fromValue={form.startDate}
@@ -183,7 +157,7 @@ const MMSM01004S: React.FC = () => {
                   />
                 </div>
 
-                <div className={receiptStatusCustomerFieldClass[searchLayoutMode]}>
+                <div className={responsiveSearchCustomerFieldClass[searchLayoutMode]}>
                   <CodeNameField
                     label="거래처"
                     id="cust"
@@ -195,7 +169,7 @@ const MMSM01004S: React.FC = () => {
                     onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
                   />
                 </div>
-                <div className={receiptStatusItemFieldClass[searchLayoutMode]}>
+                <div className={responsiveSearchItemFieldClass[searchLayoutMode]}>
                   <CodeNameField
                     label="원자재"
                     id="item"
@@ -209,7 +183,7 @@ const MMSM01004S: React.FC = () => {
                 </div>
               </div>
 
-              <div className={receiptStatusSearchActionsClass}>
+              <div className={responsiveSearchActionsClass}>
                 <StatusActionButtons
                   loading={loading}
                   canceling={canceling}

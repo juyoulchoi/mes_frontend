@@ -1,8 +1,4 @@
 import { useState } from 'react';
-import AlertBox from '@/components/AlertBox';
-import CrudActionButtons from '@/components/CrudActionButtons';
-import SectionCard from '@/components/SectionCard';
-import SectionHeader from '@/components/SectionHeader';
 import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
 import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
@@ -14,9 +10,18 @@ import {
   gridScrollClass,
   pageContentClass,
   pageShellClass,
+  readOnlyCellClass,
+  readonlyInputClass,
   registerSplitGridClass,
   searchButtonClass,
+  searchFieldClass,
+  searchInputClass,
+  searchLabelTextClass,
 } from '@/lib/pageStyles';
+import AlertBox from '@/components/AlertBox';
+import CrudActionButtons from '@/components/CrudActionButtons';
+import SectionCard from '@/components/SectionCard';
+import SectionHeader from '@/components/SectionHeader';
 import {
   buildMmsm06007Csv,
   createNewMmsm06007Row,
@@ -31,13 +36,6 @@ import {
 // 작업장 관리 (MMSM06007E)
 // 단일 그리드: 조회/추가/저장/삭제/엑셀
 // 필터: 작업장명(line_nm)
-
-const searchLabelClass = 'font-medium text-slate-700';
-const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
-const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
-const searchInputClass = 'h-10 w-full rounded-lg border border-slate-200 px-3 text-sm';
-const readonlyInputClass = `${editableInputClass} bg-slate-100 text-slate-500`;
-const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
 
 function showWarning(message: string) {
   window.alert(message);

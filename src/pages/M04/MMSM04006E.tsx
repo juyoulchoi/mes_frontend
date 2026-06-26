@@ -11,6 +11,16 @@ import { CheckColumn, Column, DataGrid, Pager, Paging } from '@/components/table
 import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
 import { PAGE_SIZE } from '@/lib/pagination';
 import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
+import {
+  getResponsiveSearchLayoutMode,
+  responsiveSearchActionsClass,
+  responsiveSearchCustomerFieldClass,
+  responsiveSearchDateFieldClass,
+  responsiveSearchFieldGridClass,
+  responsiveSearchGridClass,
+  responsiveSearchInlineInputClass,
+  responsiveSearchInlineInputFieldClass,
+} from '@/lib/pageStyles';
 import { getTodayYmd } from '@/lib/registerDetailUtils';
 import {
   exportHeaders,
@@ -23,40 +33,6 @@ import {
   type GridInputProps,
   type Row,
 } from '@/services/m04/mmsm04006';
-
-type productIssueSearchLayoutMode = 'compact' | 'twoRow' | 'wide';
-
-const productIssueSearchGridClass =
-  'grid min-w-[892px] grid-cols-[minmax(0,1fr)_max-content] items-start gap-2 xl:gap-x-[30px]';
-const productIssueSearchFieldGridClass: Record<productIssueSearchLayoutMode, string> = {
-  compact:
-    'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
-  twoRow:
-    'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
-  wide: 'col-start-1 row-start-1 grid min-w-[1338px] grid-cols-[repeat(3,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
-};
-const productIssueDateFieldClass: Record<productIssueSearchLayoutMode, string> = {
-  compact: 'col-start-1 row-start-1 min-w-0',
-  twoRow: 'col-start-1 row-start-1 min-w-0',
-  wide: 'col-start-1 row-start-1 min-w-0',
-};
-const productIssueCustomerFieldClass: Record<productIssueSearchLayoutMode, string> = {
-  compact: 'col-start-1 row-start-2 min-w-0',
-  twoRow: 'col-start-2 row-start-1 min-w-0',
-  wide: 'col-start-2 row-start-1 min-w-0',
-};
-const productIssueSequenceFieldClass: Record<productIssueSearchLayoutMode, string> = {
-  compact:
-    'col-start-2 row-start-2 grid w-full min-w-0 max-w-[446px] grid-cols-1 gap-2 sm:grid-cols-[100px_minmax(130px,150px)] sm:items-center sm:gap-2',
-  twoRow:
-    'col-start-1 row-start-2 grid w-full min-w-0 max-w-[446px] grid-cols-1 gap-2 sm:grid-cols-[100px_minmax(130px,150px)] sm:items-center sm:gap-2',
-  wide: 'col-start-3 row-start-1 grid w-full min-w-0 max-w-[446px] grid-cols-1 gap-2 sm:grid-cols-[100px_minmax(130px,150px)] sm:items-center sm:gap-2',
-};
-const productIssueSearchActionsClass = 'col-start-2 row-start-1 flex min-w-max justify-end';
-const productIssueTwoRowMinWidth = 1280;
-const productIssueWideMinWidth = 1640;
-const sequenceInputClass =
-  'h-9 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-400';
 
 function GridInput({ value, type = 'text', align = 'left', onChange }: GridInputProps) {
   return (
@@ -154,24 +130,19 @@ export default function MMSM04006E() {
     }
   }
 
-  const searchLayoutMode: productIssueSearchLayoutMode =
-    searchWidth >= productIssueWideMinWidth
-      ? 'wide'
-      : searchWidth >= productIssueTwoRowMinWidth
-        ? 'twoRow'
-        : 'compact';
+  const searchLayoutMode = getResponsiveSearchLayoutMode(searchWidth);
   return (
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
           <div ref={searchRef} className="overflow-x-auto pb-1">
-            <div className={productIssueSearchGridClass}>
-              <div className={productIssueSearchFieldGridClass[searchLayoutMode]}>
-                <div className={productIssueDateFieldClass[searchLayoutMode]}>
+            <div className={responsiveSearchGridClass}>
+              <div className={responsiveSearchFieldGridClass[searchLayoutMode]}>
+                <div className={responsiveSearchDateFieldClass[searchLayoutMode]}>
                   <DateEdit label="입고일자" value={inDate} onChange={setInDate} />
                 </div>
 
-                <div className={productIssueCustomerFieldClass[searchLayoutMode]}>
+                <div className={responsiveSearchCustomerFieldClass[searchLayoutMode]}>
                   <CodeNameField
                     label="거래처"
                     id="cust"
@@ -187,17 +158,17 @@ export default function MMSM04006E() {
                   />
                 </div>
 
-                <label className={productIssueSequenceFieldClass[searchLayoutMode]}>
+                <label className={responsiveSearchInlineInputFieldClass[searchLayoutMode]}>
                   <span className="text-sm text-gray-600 sm:whitespace-nowrap">순번</span>
                   <input
                     value={seq}
                     onChange={(event) => setSeq(event.target.value)}
-                    className={sequenceInputClass}
+                    className={responsiveSearchInlineInputClass}
                   />
                 </label>
               </div>
 
-              <div className={productIssueSearchActionsClass}>
+              <div className={responsiveSearchActionsClass}>
                 <StatusActionButtons
                   loading={loading}
                   saving={saving}

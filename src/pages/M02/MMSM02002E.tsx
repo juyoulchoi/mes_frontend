@@ -1,12 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-
-import AlertBox from '@/components/AlertBox';
-import CodeNameField from '@/components/CodeNameField';
-import SectionCard from '@/components/SectionCard';
-import SectionHeader from '@/components/SectionHeader';
 import { CheckColumn, Column, DataGrid } from '@/components/table/DataGrid';
-import { toYmd } from '@/lib/excel';
-import { http } from '@/lib/http';
 import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
   countBadgeClass,
@@ -14,9 +7,25 @@ import {
   gridScrollClass,
   pageContentClass,
   pageShellClass,
+  planningResponsiveSearchActionsClass,
+  planningResponsiveSearchCustomerFieldClass,
+  planningResponsiveSearchDateFieldClass,
+  planningResponsiveSearchExtraFieldClass,
+  planningResponsiveSearchFieldGridClass,
+  planningResponsiveSearchGridClass,
+  planningResponsiveSearchItemFieldClass,
   searchButtonClass,
+  searchControlClass,
+  searchLabelClass,
   statusActionGroupClass,
+  getPlanningResponsiveSearchLayoutMode,
 } from '@/lib/pageStyles';
+import { toYmd } from '@/lib/excel';
+import { http } from '@/lib/http';
+import AlertBox from '@/components/AlertBox';
+import CodeNameField from '@/components/CodeNameField';
+import SectionCard from '@/components/SectionCard';
+import SectionHeader from '@/components/SectionHeader';
 import { useCodes } from '@/lib/hooks/useCodes';
 import { getTodayYmd } from '@/lib/registerDetailUtils';
 import { exportMmsm02002PlanCsv, normalizeMmsm02002MasterRow } from '@/services/m02/mmsm02002';
@@ -29,43 +38,6 @@ import type {
   Mmsm02002SalesLinkRow,
   Mmsm02002SearchForm,
 } from '@/services/m02/mmsm02002';
-
-const searchLabelClass = 'font-medium text-slate-700';
-const searchControlClass = 'h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm';
-type productionPlanSearchLayoutMode = 'compact' | 'twoRow' | 'wide';
-
-const productionPlanSearchGridClass =
-  'grid min-w-[1032px] grid-cols-[minmax(0,1fr)_max-content] items-start gap-2 xl:gap-x-[30px]';
-const productionPlanSearchFieldGridClass: Record<productionPlanSearchLayoutMode, string> = {
-  compact:
-    'col-start-1 row-start-1 grid min-w-[1032px] grid-cols-[586px_minmax(446px,1fr)] items-end gap-2 xl:gap-x-[30px]',
-  twoRow:
-    'col-start-1 row-start-1 grid min-w-[1032px] grid-cols-[586px_minmax(446px,1fr)] items-end gap-2 xl:gap-x-[30px]',
-  wide: 'col-start-1 row-start-1 grid min-w-[1478px] grid-cols-[586px_repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
-};
-const productionPlanDateFieldClass: Record<productionPlanSearchLayoutMode, string> = {
-  compact: 'col-start-1 row-start-1 min-w-0',
-  twoRow: 'col-start-1 row-start-1 min-w-0',
-  wide: 'col-start-1 row-start-1 min-w-0',
-};
-const productionPlanCustomerFieldClass: Record<productionPlanSearchLayoutMode, string> = {
-  compact: 'col-start-1 row-start-2 min-w-0',
-  twoRow: 'col-start-2 row-start-1 min-w-0',
-  wide: 'col-start-2 row-start-1 min-w-0',
-};
-const productionPlanItemFieldClass: Record<productionPlanSearchLayoutMode, string> = {
-  compact: 'col-start-2 row-start-2 min-w-0',
-  twoRow: 'col-start-1 row-start-2 min-w-0',
-  wide: 'col-start-3 row-start-1 min-w-0',
-};
-const productionPlanExtraFieldClass: Record<productionPlanSearchLayoutMode, string> = {
-  compact: 'col-span-2 col-start-1 row-start-3 flex flex-wrap items-end gap-2',
-  twoRow: 'col-start-2 row-start-2 flex flex-wrap items-end gap-2',
-  wide: 'col-span-2 col-start-1 row-start-2 flex flex-wrap items-end gap-2',
-};
-const productionPlanSearchActionsClass = 'col-start-2 row-start-1 flex min-w-max justify-end';
-const productionPlanTwoRowMinWidth = 1360;
-const productionPlanWideMinWidth = 1720;
 
 export default function MMSM02002E() {
   const { canSearch, canExport } = usePagePermissions();
@@ -184,21 +156,16 @@ export default function MMSM02002E() {
     exportMmsm02002PlanCsv(master);
   }
 
-  const searchLayoutMode: productionPlanSearchLayoutMode =
-    searchWidth >= productionPlanWideMinWidth
-      ? 'wide'
-      : searchWidth >= productionPlanTwoRowMinWidth
-        ? 'twoRow'
-        : 'compact';
+  const searchLayoutMode = getPlanningResponsiveSearchLayoutMode(searchWidth);
 
   return (
     <div className={pageShellClass}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
           <div ref={searchRef} className="overflow-x-auto pb-1">
-            <div className={productionPlanSearchGridClass}>
-              <div className={productionPlanSearchFieldGridClass[searchLayoutMode]}>
-                <div className={productionPlanDateFieldClass[searchLayoutMode]}>
+            <div className={planningResponsiveSearchGridClass}>
+              <div className={planningResponsiveSearchFieldGridClass[searchLayoutMode]}>
+                <div className={planningResponsiveSearchDateFieldClass[searchLayoutMode]}>
                   <div className="flex max-w-[586px] flex-nowrap items-end gap-2">
                     <span
                       className={`${searchLabelClass} flex h-10 w-[100px] shrink-0 items-center text-sm`}
@@ -245,7 +212,7 @@ export default function MMSM02002E() {
                   </div>
                 </div>
 
-                <div className={productionPlanCustomerFieldClass[searchLayoutMode]}>
+                <div className={planningResponsiveSearchCustomerFieldClass[searchLayoutMode]}>
                   <CodeNameField
                     label="거래처"
                     id="cust"
@@ -258,7 +225,7 @@ export default function MMSM02002E() {
                   />
                 </div>
 
-                <div className={productionPlanItemFieldClass[searchLayoutMode]}>
+                <div className={planningResponsiveSearchItemFieldClass[searchLayoutMode]}>
                   <CodeNameField
                     label="제품"
                     id="item"
@@ -271,7 +238,7 @@ export default function MMSM02002E() {
                   />
                 </div>
 
-                <div className={productionPlanExtraFieldClass[searchLayoutMode]}>
+                <div className={planningResponsiveSearchExtraFieldClass[searchLayoutMode]}>
                   <label className="flex h-10 items-center gap-2 text-sm">
                     <span className={`${searchLabelClass} w-[100px] shrink-0`}>계획상태</span>
                     <select
@@ -306,7 +273,7 @@ export default function MMSM02002E() {
                 </div>
               </div>
 
-              <div className={productionPlanSearchActionsClass}>
+              <div className={planningResponsiveSearchActionsClass}>
                 <div className={statusActionGroupClass}>
                   {canSearch && (
                     <button

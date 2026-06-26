@@ -1,24 +1,33 @@
 import { useEffect, useRef, useState } from 'react';
-
-import AlertBox from '@/components/AlertBox';
-import CodeNameField from '@/components/CodeNameField';
-import SectionCard from '@/components/SectionCard';
-import SectionHeader from '@/components/SectionHeader';
-import StatusActionButtons from '@/components/StatusActionButtons';
 import { CheckColumn, Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
-import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
 import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
-import { useCodes } from '@/lib/hooks/useCodes';
-import { toYmd } from '@/lib/excel';
-import { http } from '@/lib/http';
-import { PAGE_SIZE } from '@/lib/pagination';
 import {
   countBadgeClass,
   gridScrollClass,
   pageContentClass,
   pageShellClass,
+  planningResponsiveSearchActionsClass,
+  planningResponsiveSearchCustomerFieldClass,
+  planningResponsiveSearchDateFieldClass,
+  planningResponsiveSearchExtraFieldClass,
+  planningResponsiveSearchFieldGridClass,
+  planningResponsiveSearchGridClass,
+  planningResponsiveSearchItemFieldClass,
   saveButtonClass,
+  searchControlClass,
+  searchLabelClass,
+  getPlanningResponsiveSearchLayoutMode,
 } from '@/lib/pageStyles';
+import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
+import { useCodes } from '@/lib/hooks/useCodes';
+import { toYmd } from '@/lib/excel';
+import { http } from '@/lib/http';
+import { PAGE_SIZE } from '@/lib/pagination';
+import AlertBox from '@/components/AlertBox';
+import CodeNameField from '@/components/CodeNameField';
+import SectionCard from '@/components/SectionCard';
+import SectionHeader from '@/components/SectionHeader';
+import StatusActionButtons from '@/components/StatusActionButtons';
 import { getTodayYmd } from '@/lib/registerDetailUtils';
 import { formatNumber } from '@/lib/utils';
 import {
@@ -38,42 +47,6 @@ import {
   type WorkOrderCreateResponse,
 } from '@/services/m02/mmsm02004';
 
-const searchLabelClass = 'font-medium text-slate-700';
-const searchControlClass = 'h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm';
-type workOrderSearchLayoutMode = 'compact' | 'twoRow' | 'wide';
-
-const workOrderSearchGridClass =
-  'grid min-w-[1032px] grid-cols-[minmax(0,1fr)_max-content] items-start gap-2 xl:gap-x-[30px]';
-const workOrderSearchFieldGridClass: Record<workOrderSearchLayoutMode, string> = {
-  compact:
-    'col-start-1 row-start-1 grid min-w-[1032px] grid-cols-[586px_minmax(446px,1fr)] items-end gap-2 xl:gap-x-[30px]',
-  twoRow:
-    'col-start-1 row-start-1 grid min-w-[1032px] grid-cols-[586px_minmax(446px,1fr)] items-end gap-2 xl:gap-x-[30px]',
-  wide: 'col-start-1 row-start-1 grid min-w-[1478px] grid-cols-[586px_repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
-};
-const workOrderDateFieldClass: Record<workOrderSearchLayoutMode, string> = {
-  compact: 'col-start-1 row-start-1 min-w-0',
-  twoRow: 'col-start-1 row-start-1 min-w-0',
-  wide: 'col-start-1 row-start-1 min-w-0',
-};
-const workOrderCustomerFieldClass: Record<workOrderSearchLayoutMode, string> = {
-  compact: 'col-start-1 row-start-2 min-w-0',
-  twoRow: 'col-start-2 row-start-1 min-w-0',
-  wide: 'col-start-2 row-start-1 min-w-0',
-};
-const workOrderItemFieldClass: Record<workOrderSearchLayoutMode, string> = {
-  compact: 'col-start-2 row-start-2 min-w-0',
-  twoRow: 'col-start-1 row-start-2 min-w-0',
-  wide: 'col-start-3 row-start-1 min-w-0',
-};
-const workOrderExtraFieldClass: Record<workOrderSearchLayoutMode, string> = {
-  compact: 'col-span-2 col-start-1 row-start-3 flex flex-wrap items-end gap-2',
-  twoRow: 'col-start-2 row-start-2 flex flex-wrap items-end gap-2',
-  wide: 'col-span-2 col-start-1 row-start-2 flex flex-wrap items-end gap-2',
-};
-const workOrderSearchActionsClass = 'col-start-2 row-start-1 flex min-w-max justify-end';
-const workOrderTwoRowMinWidth = 1360;
-const workOrderWideMinWidth = 1720;
 const detailLabelClass =
   'flex w-28 shrink-0 items-center bg-slate-50 px-3 font-medium text-slate-700';
 const detailInputClass = 'h-9 w-full rounded border border-slate-200 bg-white px-2 text-sm';
@@ -253,21 +226,16 @@ export default function MMSM02004E() {
     }
   }
 
-  const searchLayoutMode: workOrderSearchLayoutMode =
-    searchWidth >= workOrderWideMinWidth
-      ? 'wide'
-      : searchWidth >= workOrderTwoRowMinWidth
-        ? 'twoRow'
-        : 'compact';
+  const searchLayoutMode = getPlanningResponsiveSearchLayoutMode(searchWidth);
 
   return (
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
           <div ref={searchRef} className="overflow-x-auto pb-1">
-            <div className={workOrderSearchGridClass}>
-              <div className={workOrderSearchFieldGridClass[searchLayoutMode]}>
-                <div className={workOrderDateFieldClass[searchLayoutMode]}>
+            <div className={planningResponsiveSearchGridClass}>
+              <div className={planningResponsiveSearchFieldGridClass[searchLayoutMode]}>
+                <div className={planningResponsiveSearchDateFieldClass[searchLayoutMode]}>
                   <div className="flex max-w-[586px] flex-nowrap items-end gap-2">
                     <span
                       className={`${searchLabelClass} flex h-10 w-[100px] shrink-0 items-center text-sm`}
@@ -314,7 +282,7 @@ export default function MMSM02004E() {
                   </div>
                 </div>
 
-                <div className={workOrderCustomerFieldClass[searchLayoutMode]}>
+                <div className={planningResponsiveSearchCustomerFieldClass[searchLayoutMode]}>
                   <CodeNameField
                     label="거래처"
                     id="cust"
@@ -327,7 +295,7 @@ export default function MMSM02004E() {
                   />
                 </div>
 
-                <div className={workOrderItemFieldClass[searchLayoutMode]}>
+                <div className={planningResponsiveSearchItemFieldClass[searchLayoutMode]}>
                   <CodeNameField
                     label="제품"
                     id="item"
@@ -340,7 +308,7 @@ export default function MMSM02004E() {
                   />
                 </div>
 
-                <div className={workOrderExtraFieldClass[searchLayoutMode]}>
+                <div className={planningResponsiveSearchExtraFieldClass[searchLayoutMode]}>
                   <label className="flex h-10 items-center gap-2 text-sm">
                     <span className={`${searchLabelClass} w-[100px] shrink-0`}>계획상태</span>
                     <select
@@ -375,7 +343,7 @@ export default function MMSM02004E() {
                 </div>
               </div>
 
-              <div className={workOrderSearchActionsClass}>
+              <div className={planningResponsiveSearchActionsClass}>
                 <StatusActionButtons
                   loading={loading}
                   onSearch={() => void onSearch()}

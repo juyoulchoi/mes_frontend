@@ -1,15 +1,20 @@
 import { useRef, useState } from 'react';
-
+import { Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
+import {
+  gridScrollClass,
+  pageContentClass,
+  pageShellClass,
+  searchControlClass,
+  searchLabelClass,
+} from '@/lib/pageStyles';
+import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
+import { http } from '@/lib/http';
+import { PAGE_SIZE } from '@/lib/pagination';
 import AlertBox from '@/components/AlertBox';
 import FromToDateField from '@/components/FromToDateField';
 import SectionCard from '@/components/SectionCard';
 import SectionHeader from '@/components/SectionHeader';
 import StatusActionButtons from '@/components/StatusActionButtons';
-import { Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
-import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
-import { http } from '@/lib/http';
-import { PAGE_SIZE } from '@/lib/pagination';
-import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
 import { getTodayYmd } from '@/lib/registerDetailUtils';
 import {
   columns,
@@ -27,8 +32,6 @@ function getFirstDayOfMonthYmd() {
   return new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
 }
 
-const searchLabelClass = 'font-medium text-slate-700';
-const searchControlClass = 'h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm';
 const productionStatusSearchGridClass =
   'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] xl:gap-x-[30px]';
 

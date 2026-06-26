@@ -1,18 +1,21 @@
 import { useEffect, useState } from 'react';
-import AlertBox from '@/components/AlertBox';
-import CrudActionButtons from '@/components/CrudActionButtons';
-import SectionCard from '@/components/SectionCard';
-import SectionHeader from '@/components/SectionHeader';
 import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
 import { clearPagePermissionCache, usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
   countBadgeClass,
-  editableInputClass,
   pageContentClass,
   pageShellClass,
+  panelScrollClass,
   registerSplitGridClass,
   searchButtonClass,
+  searchFieldClass,
+  searchInputClass,
+  searchLabelTextClass,
 } from '@/lib/pageStyles';
+import AlertBox from '@/components/AlertBox';
+import CrudActionButtons from '@/components/CrudActionButtons';
+import SectionCard from '@/components/SectionCard';
+import SectionHeader from '@/components/SectionHeader';
 import {
   fetchMmsm07004Groups,
   fetchMmsm07004Rights,
@@ -25,17 +28,12 @@ import {
 // 권한 관리 (MMSM07004E)
 // MMSM06007E 패턴 기반: 좌측 사용자그룹 + 우측 메뉴 권한 그리드
 
-const searchLabelClass = 'font-medium text-slate-700';
-const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
-const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
-const searchInputClass = 'h-10 w-full rounded-lg border border-slate-200 px-3 text-sm';
 const authSearchGridClass =
   'grid min-w-[920px] grid-cols-[minmax(280px,380px)_minmax(280px,380px)_minmax(16px,1fr)_max-content] items-end gap-2 xl:min-w-[1180px] xl:grid-cols-[minmax(320px,420px)_minmax(320px,420px)_minmax(16px,1fr)_max-content] xl:gap-x-6';
 const authSearchActionClass =
   'col-start-4 row-start-1 flex min-w-[280px] flex-wrap items-end justify-end gap-2';
 const panelActionClass =
   'h-10 min-w-24 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50';
-const panelScrollClass = 'min-h-0 flex-1 overflow-auto';
 
 function showWarning(message: string) {
   window.alert(message);

@@ -1,8 +1,4 @@
 import { useEffect, useState } from 'react';
-import AlertBox from '@/components/AlertBox';
-import CrudActionButtons from '@/components/CrudActionButtons';
-import SectionCard from '@/components/SectionCard';
-import SectionHeader from '@/components/SectionHeader';
 import { CheckColumn, Column, DataGrid, Paging } from '@/components/table/DataGrid';
 import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
@@ -14,8 +10,17 @@ import {
   gridScrollClass,
   pageContentClass,
   pageShellClass,
+  readOnlyCellClass,
+  readonlyInputClass,
   searchButtonClass,
+  searchFieldClass,
+  searchInputClass,
+  searchLabelTextClass,
 } from '@/lib/pageStyles';
+import AlertBox from '@/components/AlertBox';
+import CrudActionButtons from '@/components/CrudActionButtons';
+import SectionCard from '@/components/SectionCard';
+import SectionHeader from '@/components/SectionHeader';
 import {
   deleteMmsm06001Detail,
   deleteMmsm06001Master,
@@ -32,12 +37,6 @@ import {
 // 상단: 그룹코드/그룹명 필터 + 조회
 // 좌/우 각각: 추가, 저장(체크 또는 신규), 삭제
 
-const searchLabelClass = 'font-medium text-slate-700';
-const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
-const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
-const searchInputClass = 'h-10 w-full rounded-lg border border-slate-200 px-3 text-sm';
-const readonlyInputClass = `${editableInputClass} bg-slate-100 text-slate-500`;
-const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
 const basicCodeSplitGridClass =
   'grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2.8fr)_minmax(0,9.2fr)]';
 

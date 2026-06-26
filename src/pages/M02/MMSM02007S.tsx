@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
+import {
+  gridScrollClass,
+  pageContentClass,
+  pageShellClass,
+  getResponsiveSearchLayoutMode,
+  responsiveSearchActionsClass,
+  responsiveSearchCustomerFieldClass,
+  responsiveSearchDateFieldClass,
+  responsiveSearchFieldGridClass,
+  responsiveSearchGridClass,
+  responsiveSearchItemFieldClass,
+} from '@/lib/pageStyles';
 import { useNavigate } from 'react-router-dom';
-
 import AlertBox from '@/components/AlertBox';
 import CodeNameField from '@/components/CodeNameField';
 import FromToDateField from '@/components/FromToDateField';
@@ -8,10 +20,8 @@ import SectionCard from '@/components/SectionCard';
 import SectionHeader from '@/components/SectionHeader';
 import SearchCodePickers from '@/components/SearchCodePickers';
 import StatusActionButtons from '@/components/StatusActionButtons';
-import { Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
 import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
 import { PAGE_SIZE } from '@/lib/pagination';
-import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
 import { usePageApiFetch } from '@/services/common/getApiFetch';
 import {
   columns,
@@ -20,36 +30,6 @@ import {
   type RowItem,
   type SearchForm,
 } from '@/services/m02/mmsm02007';
-
-type salesStatusSearchLayoutMode = 'compact' | 'twoRow' | 'wide';
-
-const salesStatusSearchGridClass =
-  'grid min-w-[892px] grid-cols-[minmax(0,1fr)_max-content] items-start gap-2 xl:gap-x-[30px]';
-const salesStatusSearchFieldGridClass: Record<salesStatusSearchLayoutMode, string> = {
-  compact:
-    'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
-  twoRow:
-    'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
-  wide: 'col-start-1 row-start-1 grid min-w-[1338px] grid-cols-[repeat(3,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
-};
-const salesStatusDateFieldClass: Record<salesStatusSearchLayoutMode, string> = {
-  compact: 'col-start-1 row-start-1 min-w-0',
-  twoRow: 'col-start-1 row-start-1 min-w-0',
-  wide: 'col-start-1 row-start-1 min-w-0',
-};
-const salesStatusCustomerFieldClass: Record<salesStatusSearchLayoutMode, string> = {
-  compact: 'col-start-1 row-start-2 min-w-0',
-  twoRow: 'col-start-2 row-start-1 min-w-0',
-  wide: 'col-start-2 row-start-1 min-w-0',
-};
-const salesStatusItemFieldClass: Record<salesStatusSearchLayoutMode, string> = {
-  compact: 'col-start-2 row-start-2 min-w-0',
-  twoRow: 'col-start-1 row-start-2 min-w-0',
-  wide: 'col-start-3 row-start-1 min-w-0',
-};
-const salesStatusSearchActionsClass = 'col-start-2 row-start-1 flex min-w-max justify-end';
-const salesStatusTwoRowMinWidth = 1280;
-const salesStatusWideMinWidth = 1640;
 
 export default function MMSM02007S() {
   const navigate = useNavigate();
@@ -97,21 +77,16 @@ export default function MMSM02007S() {
     return () => resizeObserver.disconnect();
   }, []);
 
-  const searchLayoutMode: salesStatusSearchLayoutMode =
-    searchWidth >= salesStatusWideMinWidth
-      ? 'wide'
-      : searchWidth >= salesStatusTwoRowMinWidth
-        ? 'twoRow'
-        : 'compact';
+  const searchLayoutMode = getResponsiveSearchLayoutMode(searchWidth);
 
   return (
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
           <div ref={searchRef} className="overflow-x-auto pb-1">
-            <div className={salesStatusSearchGridClass}>
-              <div className={salesStatusSearchFieldGridClass[searchLayoutMode]}>
-                <div className={salesStatusDateFieldClass[searchLayoutMode]}>
+            <div className={responsiveSearchGridClass}>
+              <div className={responsiveSearchFieldGridClass[searchLayoutMode]}>
+                <div className={responsiveSearchDateFieldClass[searchLayoutMode]}>
                   <FromToDateField
                     label="수주일자"
                     fromValue={form.startDate}
@@ -121,7 +96,7 @@ export default function MMSM02007S() {
                   />
                 </div>
 
-                <div className={salesStatusCustomerFieldClass[searchLayoutMode]}>
+                <div className={responsiveSearchCustomerFieldClass[searchLayoutMode]}>
                   <CodeNameField
                     label="거래처"
                     id="customer"
@@ -134,7 +109,7 @@ export default function MMSM02007S() {
                   />
                 </div>
 
-                <div className={salesStatusItemFieldClass[searchLayoutMode]}>
+                <div className={responsiveSearchItemFieldClass[searchLayoutMode]}>
                   <CodeNameField
                     label="제품"
                     id="item"
@@ -148,7 +123,7 @@ export default function MMSM02007S() {
                 </div>
               </div>
 
-              <div className={salesStatusSearchActionsClass}>
+              <div className={responsiveSearchActionsClass}>
                 <StatusActionButtons
                   loading={loading}
                   onSearch={() => void fetchList(0)}

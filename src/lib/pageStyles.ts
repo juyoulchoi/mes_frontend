@@ -1,7 +1,123 @@
 export const pageShellClass = 'min-h-full min-w-0 overflow-hidden bg-slate-50/60 p-2 sm:p-3 lg:p-4';
 
-export const pageContentClass =
-  'mx-auto flex min-w-0 w-full flex-col gap-3 lg:gap-4';
+export const pageContentClass = 'mx-auto flex min-w-0 w-full flex-col gap-3 lg:gap-4';
+
+export type ResponsiveSearchLayoutMode = 'compact' | 'twoRow' | 'wide';
+
+export const responsiveSearchGridClass =
+  'grid min-w-[892px] grid-cols-[minmax(0,1fr)_max-content] items-start gap-2 xl:gap-x-[30px]';
+
+export const responsiveSearchFieldGridClass: Record<ResponsiveSearchLayoutMode, string> = {
+  compact:
+    'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
+  twoRow:
+    'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
+  wide: 'col-start-1 row-start-1 grid min-w-[1338px] grid-cols-[repeat(3,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
+};
+
+export const responsiveSearchDateFieldClass: Record<ResponsiveSearchLayoutMode, string> = {
+  compact: 'col-start-1 row-start-1 min-w-0',
+  twoRow: 'col-start-1 row-start-1 min-w-0',
+  wide: 'col-start-1 row-start-1 min-w-0',
+};
+
+export const responsiveSearchCustomerFieldClass: Record<ResponsiveSearchLayoutMode, string> = {
+  compact: 'col-start-1 row-start-2 min-w-0',
+  twoRow: 'col-start-2 row-start-1 min-w-0',
+  wide: 'col-start-2 row-start-1 min-w-0',
+};
+
+export const responsiveSearchItemFieldClass: Record<ResponsiveSearchLayoutMode, string> = {
+  compact: 'col-start-2 row-start-2 min-w-0',
+  twoRow: 'col-start-1 row-start-2 min-w-0',
+  wide: 'col-start-3 row-start-1 min-w-0',
+};
+
+export const responsiveSearchInlineInputFieldClass: Record<ResponsiveSearchLayoutMode, string> = {
+  compact:
+    'col-start-2 row-start-2 grid w-full min-w-0 max-w-[446px] grid-cols-1 gap-2 sm:grid-cols-[100px_minmax(130px,150px)] sm:items-center sm:gap-2',
+  twoRow:
+    'col-start-1 row-start-2 grid w-full min-w-0 max-w-[446px] grid-cols-1 gap-2 sm:grid-cols-[100px_minmax(130px,150px)] sm:items-center sm:gap-2',
+  wide: 'col-start-3 row-start-1 grid w-full min-w-0 max-w-[446px] grid-cols-1 gap-2 sm:grid-cols-[100px_minmax(130px,150px)] sm:items-center sm:gap-2',
+};
+
+export const responsiveSearchInlineInputClass =
+  'h-9 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-400';
+
+export const responsiveSearchActionsClass = 'col-start-2 row-start-1 flex min-w-max justify-end';
+
+export const responsiveSearchTwoRowMinWidth = 1280;
+
+export const responsiveSearchWideMinWidth = 1640;
+
+export function getResponsiveSearchLayoutMode(width: number): ResponsiveSearchLayoutMode {
+  if (width >= responsiveSearchWideMinWidth) {
+    return 'wide';
+  }
+
+  if (width >= responsiveSearchTwoRowMinWidth) {
+    return 'twoRow';
+  }
+
+  return 'compact';
+}
+
+export const planningResponsiveSearchGridClass =
+  'grid min-w-[1032px] grid-cols-[minmax(0,1fr)_max-content] items-start gap-2 xl:gap-x-[30px]';
+
+export const planningResponsiveSearchFieldGridClass: Record<ResponsiveSearchLayoutMode, string> = {
+  compact:
+    'col-start-1 row-start-1 grid min-w-[1032px] grid-cols-[586px_minmax(446px,1fr)] items-end gap-2 xl:gap-x-[30px]',
+  twoRow:
+    'col-start-1 row-start-1 grid min-w-[1032px] grid-cols-[586px_minmax(446px,1fr)] items-end gap-2 xl:gap-x-[30px]',
+  wide: 'col-start-1 row-start-1 grid min-w-[1478px] grid-cols-[586px_repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
+};
+
+export const planningResponsiveSearchDateFieldClass = responsiveSearchDateFieldClass;
+
+export const planningResponsiveSearchCustomerFieldClass = responsiveSearchCustomerFieldClass;
+
+export const planningResponsiveSearchItemFieldClass = responsiveSearchItemFieldClass;
+
+export const planningResponsiveSearchExtraFieldClass: Record<ResponsiveSearchLayoutMode, string> = {
+  compact: 'col-span-2 col-start-1 row-start-3 flex flex-wrap items-end gap-2',
+  twoRow: 'col-start-2 row-start-2 flex flex-wrap items-end gap-2',
+  wide: 'col-span-2 col-start-1 row-start-2 flex flex-wrap items-end gap-2',
+};
+
+export const planningResponsiveSearchActionsClass = responsiveSearchActionsClass;
+
+export const planningResponsiveSearchTwoRowMinWidth = 1360;
+
+export const planningResponsiveSearchWideMinWidth = 1720;
+
+export function getPlanningResponsiveSearchLayoutMode(width: number): ResponsiveSearchLayoutMode {
+  if (width >= planningResponsiveSearchWideMinWidth) {
+    return 'wide';
+  }
+
+  if (width >= planningResponsiveSearchTwoRowMinWidth) {
+    return 'twoRow';
+  }
+
+  return 'compact';
+}
+
+export const responsiveStaticSearchGridClass =
+  'grid min-w-[446px] grid-cols-[minmax(0,1fr)_max-content] items-start gap-2 xl:gap-x-[30px]';
+
+export const responsiveStaticSearchFieldsClass =
+  'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 2xl:min-w-0 2xl:grid-cols-[repeat(3,minmax(446px,1fr))] xl:gap-x-[30px]';
+
+export const responsiveStaticSearchDateFieldClass = 'col-start-1 row-start-1 min-w-0';
+
+export const responsiveStaticSearchCustomerFieldClass =
+  'col-start-1 row-start-2 min-w-0 2xl:col-start-2 2xl:row-start-1';
+
+export const responsiveStaticSearchItemFieldClass =
+  'col-start-2 row-start-2 min-w-0 2xl:col-start-3 2xl:row-start-1';
+
+export const responsiveStaticSearchActionsClass = responsiveSearchActionsClass;
 
 export const registerSearchGridClass =
   'grid min-w-[920px] grid-cols-[minmax(320px,420px)_1fr_minmax(300px,360px)] items-end gap-2';
@@ -51,6 +167,24 @@ export const editableNumberInputClass = `${editableInputClass} text-right`;
 
 export const editableSelectClass =
   'h-8 w-full rounded border border-slate-200 bg-white px-2 text-center';
+
+export const searchLabelClass = 'font-medium text-slate-700';
+
+export const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
+
+export const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
+
+export const searchInputClass = 'h-10 w-full rounded-lg border border-slate-200 px-3 text-sm';
+
+export const searchSelectClass = `${searchInputClass} bg-white`;
+
+export const searchControlClass = 'h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm';
+
+export const readonlyInputClass = `${editableInputClass} bg-slate-100 text-slate-500`;
+
+export const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
+
+export const panelScrollClass = 'min-h-0 flex-1 overflow-auto';
 
 export const exportCsvButtonClass =
   'h-10 w-auto min-w-20 justify-self-end rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-sm font-medium text-emerald-700 shadow-none transition hover:bg-emerald-100 disabled:opacity-50 sm:px-4';

@@ -11,6 +11,14 @@ import { Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
 import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
 import { PAGE_SIZE } from '@/lib/pagination';
 import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
+import {
+  responsiveStaticSearchActionsClass,
+  responsiveStaticSearchCustomerFieldClass,
+  responsiveStaticSearchDateFieldClass,
+  responsiveStaticSearchFieldsClass,
+  responsiveStaticSearchGridClass,
+  responsiveStaticSearchItemFieldClass,
+} from '@/lib/pageStyles';
 import { usePageApiFetch } from '@/services/common/getApiFetch';
 import {
   columns,
@@ -20,16 +28,6 @@ import {
   type RowItem,
   type SearchForm,
 } from '@/services/m01/mmsm01007';
-
-const stockStatusSearchGridClass =
-  'grid min-w-[446px] grid-cols-[minmax(0,1fr)_max-content] items-start gap-2 xl:gap-x-[30px]';
-const stockStatusSearchFieldsClass =
-  'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 2xl:min-w-0 2xl:grid-cols-[repeat(3,minmax(446px,1fr))] xl:gap-x-[30px]';
-const stockStatusDateFieldClass = 'col-start-1 row-start-1 min-w-0';
-const stockStatusCustomerFieldClass =
-  'col-start-1 row-start-2 min-w-0 2xl:col-start-2 2xl:row-start-1';
-const stockStatusItemFieldClass = 'col-start-2 row-start-2 min-w-0 2xl:col-start-3 2xl:row-start-1';
-const stockStatusSearchActionsClass = 'col-start-2 row-start-1 flex min-w-max justify-end';
 
 const MMSM01007S: React.FC = () => {
   const today = useMemo(() => new Date(), []);
@@ -77,9 +75,9 @@ const MMSM01007S: React.FC = () => {
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
           <div className="overflow-x-auto pb-1">
-            <div className={stockStatusSearchGridClass}>
-              <div className={stockStatusSearchFieldsClass}>
-                <div className={stockStatusDateFieldClass}>
+            <div className={responsiveStaticSearchGridClass}>
+              <div className={responsiveStaticSearchFieldsClass}>
+                <div className={responsiveStaticSearchDateFieldClass}>
                   <FromToDateField
                     label="출고일자"
                     fromValue={form.startDate}
@@ -89,7 +87,7 @@ const MMSM01007S: React.FC = () => {
                   />
                 </div>
 
-                <div className={stockStatusCustomerFieldClass}>
+                <div className={responsiveStaticSearchCustomerFieldClass}>
                   <CodeNameField
                     label="거래처"
                     id="cust"
@@ -101,7 +99,7 @@ const MMSM01007S: React.FC = () => {
                     onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
                   />
                 </div>
-                <div className={stockStatusItemFieldClass}>
+                <div className={responsiveStaticSearchItemFieldClass}>
                   <CodeNameField
                     label="원자재"
                     id="item"
@@ -115,7 +113,7 @@ const MMSM01007S: React.FC = () => {
                 </div>
               </div>
 
-              <div className={stockStatusSearchActionsClass}>
+              <div className={responsiveStaticSearchActionsClass}>
                 <StatusActionButtons
                   loading={loading}
                   onSearch={() => void fetchList(0)}

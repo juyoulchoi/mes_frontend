@@ -1,15 +1,14 @@
-import { useRef, useState, type ReactNode } from 'react';
-
+import { useRef, useState } from 'react';
+import { CheckColumn, Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
+import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
+import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
 import AlertBox from '@/components/AlertBox';
 import FromToDateField from '@/components/FromToDateField';
 import SectionCard from '@/components/SectionCard';
 import SectionHeader from '@/components/SectionHeader';
 import StatusActionButtons from '@/components/StatusActionButtons';
-import { CheckColumn, Column, DataGrid, Pager, Paging } from '@/components/table/DataGrid';
 import { useAutoTableHeight } from '@/lib/hooks/useAutoTableHeight';
-import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import { PAGE_SIZE } from '@/lib/pagination';
-import { gridScrollClass, pageContentClass, pageShellClass } from '@/lib/pageStyles';
 import { getTodayYmd } from '@/lib/registerDetailUtils';
 import {
   exportHeaders,

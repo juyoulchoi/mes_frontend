@@ -1,7 +1,4 @@
 import { useEffect, useState } from 'react';
-import AlertBox from '@/components/AlertBox';
-import SectionCard from '@/components/SectionCard';
-import SectionHeader from '@/components/SectionHeader';
 import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
 import { usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
@@ -11,8 +8,12 @@ import {
   gridScrollClass,
   pageContentClass,
   pageShellClass,
+  readOnlyCellClass,
   transferButtonGroupClass,
 } from '@/lib/pageStyles';
+import AlertBox from '@/components/AlertBox';
+import SectionCard from '@/components/SectionCard';
+import SectionHeader from '@/components/SectionHeader';
 import {
   addMmsm06005GroupProcs,
   deleteMmsm06005GroupProcs,
@@ -27,7 +28,6 @@ import {
 // 좌: 공정그룹 목록 | 중간 버튼(등록/해제) | 우: 상단 전체공정 목록, 하단 등록공정 목록
 // 기능: 화면 로딩 시 자동 조회, 그룹 선택 시 우측 두 목록 로드, 선택 후 등록/해제
 
-const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
 const routingLayoutGridClass =
   'grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(280px,0.85fr)_72px_minmax(0,2.65fr)]';
 const routingGroupCardClass = 'min-w-0';
