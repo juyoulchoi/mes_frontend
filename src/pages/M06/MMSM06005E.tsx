@@ -28,11 +28,11 @@ import {
 // 기능: 화면 로딩 시 자동 조회, 그룹 선택 시 우측 두 목록 로드, 선택 후 등록/해제
 
 const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
-const routingLayoutGridClass = 'grid min-w-0 grid-cols-12 gap-4';
-const routingGroupCardClass = 'col-span-12 xl:col-span-3 xl:max-w-[340px]';
-const routingTransferColumnClass =
-  'col-span-12 flex items-center justify-center xl:col-span-1 xl:max-w-[72px]';
-const routingRouteCardClass = 'col-span-12 xl:col-span-6 xl:max-w-[760px]';
+const routingLayoutGridClass =
+  'grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(280px,0.85fr)_72px_minmax(0,2.65fr)]';
+const routingGroupCardClass = 'min-w-0';
+const routingTransferColumnClass = 'flex min-w-0 items-center justify-center';
+const routingRouteCardClass = 'min-w-0';
 
 export default function MMSM06005E() {
   const permissions = usePagePermissions();

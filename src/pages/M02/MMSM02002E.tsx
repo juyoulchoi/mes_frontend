@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import AlertBox from '@/components/AlertBox';
 import CodeNameField from '@/components/CodeNameField';
@@ -32,8 +32,40 @@ import type {
 
 const searchLabelClass = 'font-medium text-slate-700';
 const searchControlClass = 'h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm';
+type productionPlanSearchLayoutMode = 'compact' | 'twoRow' | 'wide';
+
 const productionPlanSearchGridClass =
-  'grid min-w-[920px] grid-cols-[minmax(300px,586px)_minmax(16px,1fr)_minmax(300px,446px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,586px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] xl:gap-x-[30px]';
+  'grid min-w-[1032px] grid-cols-[minmax(0,1fr)_max-content] items-start gap-2 xl:gap-x-[30px]';
+const productionPlanSearchFieldGridClass: Record<productionPlanSearchLayoutMode, string> = {
+  compact:
+    'col-start-1 row-start-1 grid min-w-[1032px] grid-cols-[586px_minmax(446px,1fr)] items-end gap-2 xl:gap-x-[30px]',
+  twoRow:
+    'col-start-1 row-start-1 grid min-w-[1032px] grid-cols-[586px_minmax(446px,1fr)] items-end gap-2 xl:gap-x-[30px]',
+  wide: 'col-start-1 row-start-1 grid min-w-[1478px] grid-cols-[586px_repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
+};
+const productionPlanDateFieldClass: Record<productionPlanSearchLayoutMode, string> = {
+  compact: 'col-start-1 row-start-1 min-w-0',
+  twoRow: 'col-start-1 row-start-1 min-w-0',
+  wide: 'col-start-1 row-start-1 min-w-0',
+};
+const productionPlanCustomerFieldClass: Record<productionPlanSearchLayoutMode, string> = {
+  compact: 'col-start-1 row-start-2 min-w-0',
+  twoRow: 'col-start-2 row-start-1 min-w-0',
+  wide: 'col-start-2 row-start-1 min-w-0',
+};
+const productionPlanItemFieldClass: Record<productionPlanSearchLayoutMode, string> = {
+  compact: 'col-start-2 row-start-2 min-w-0',
+  twoRow: 'col-start-1 row-start-2 min-w-0',
+  wide: 'col-start-3 row-start-1 min-w-0',
+};
+const productionPlanExtraFieldClass: Record<productionPlanSearchLayoutMode, string> = {
+  compact: 'col-span-2 col-start-1 row-start-3 flex flex-wrap items-end gap-2',
+  twoRow: 'col-start-2 row-start-2 flex flex-wrap items-end gap-2',
+  wide: 'col-span-2 col-start-1 row-start-2 flex flex-wrap items-end gap-2',
+};
+const productionPlanSearchActionsClass = 'col-start-2 row-start-1 flex min-w-max justify-end';
+const productionPlanTwoRowMinWidth = 1360;
+const productionPlanWideMinWidth = 1720;
 
 export default function MMSM02002E() {
   const { canSearch, canExport } = usePagePermissions();
@@ -59,6 +91,8 @@ export default function MMSM02002E() {
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const [searchWidth, setSearchWidth] = useState(0);
   const { codes: dateTypeCodes } = useCodes('PLAN_DATE');
   const { codes: planStatusCodes } = useCodes('PLAN_STAT');
 
@@ -150,65 +184,129 @@ export default function MMSM02002E() {
     exportMmsm02002PlanCsv(master);
   }
 
+  const searchLayoutMode: productionPlanSearchLayoutMode =
+    searchWidth >= productionPlanWideMinWidth
+      ? 'wide'
+      : searchWidth >= productionPlanTwoRowMinWidth
+        ? 'twoRow'
+        : 'compact';
+
   return (
     <div className={pageShellClass}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className="overflow-x-auto pb-1">
+          <div ref={searchRef} className="overflow-x-auto pb-1">
             <div className={productionPlanSearchGridClass}>
-              <div className="flex max-w-[586px] flex-nowrap items-end gap-2">
-                <span
-                  className={`${searchLabelClass} flex h-10 w-[100px] shrink-0 items-center text-sm`}
-                >
-                  검색일자
-                </span>
-                <select
-                  className={`${searchControlClass} w-[104px] shrink-0`}
-                  value={form.dateType}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      dateType: event.target.value,
-                    }))
-                  }
-                >
-                  {dateTypeCodes.map((code) => (
-                    <option key={code.code} value={code.code}>
-                      {code.name}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="date"
-                  className={`${searchControlClass} w-[150px] shrink-0`}
-                  value={form.dateFrom}
-                  max={form.dateTo || undefined}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, dateFrom: event.target.value }))
-                  }
-                />
-                <span className="flex h-10 shrink-0 items-center text-sm text-slate-500">~</span>
-                <input
-                  type="date"
-                  className={`${searchControlClass} w-[150px] shrink-0`}
-                  value={form.dateTo}
-                  min={form.dateFrom || undefined}
-                  onChange={(event) => setForm((prev) => ({ ...prev, dateTo: event.target.value }))}
-                />
+              <div className={productionPlanSearchFieldGridClass[searchLayoutMode]}>
+                <div className={productionPlanDateFieldClass[searchLayoutMode]}>
+                  <div className="flex max-w-[586px] flex-nowrap items-end gap-2">
+                    <span
+                      className={`${searchLabelClass} flex h-10 w-[100px] shrink-0 items-center text-sm`}
+                    >
+                      검색일자
+                    </span>
+                    <select
+                      className={`${searchControlClass} w-[104px] shrink-0`}
+                      value={form.dateType}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          dateType: event.target.value,
+                        }))
+                      }
+                    >
+                      {dateTypeCodes.map((code) => (
+                        <option key={code.code} value={code.code}>
+                          {code.name}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="date"
+                      className={`${searchControlClass} w-[150px] shrink-0`}
+                      value={form.dateFrom}
+                      max={form.dateTo || undefined}
+                      onChange={(event) =>
+                        setForm((prev) => ({ ...prev, dateFrom: event.target.value }))
+                      }
+                    />
+                    <span className="flex h-10 shrink-0 items-center text-sm text-slate-500">
+                      ~
+                    </span>
+                    <input
+                      type="date"
+                      className={`${searchControlClass} w-[150px] shrink-0`}
+                      value={form.dateTo}
+                      min={form.dateFrom || undefined}
+                      onChange={(event) =>
+                        setForm((prev) => ({ ...prev, dateTo: event.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className={productionPlanCustomerFieldClass[searchLayoutMode]}>
+                  <CodeNameField
+                    label="거래처"
+                    id="cust"
+                    code={form.cstCd}
+                    name={form.cstNm}
+                    codePlaceholder="코드"
+                    namePlaceholder="거래처명"
+                    onSearch={() => undefined}
+                    onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
+                  />
+                </div>
+
+                <div className={productionPlanItemFieldClass[searchLayoutMode]}>
+                  <CodeNameField
+                    label="제품"
+                    id="item"
+                    code={form.itemCd}
+                    name={form.itemNm}
+                    codePlaceholder="코드"
+                    namePlaceholder="제품명"
+                    onSearch={() => undefined}
+                    onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
+                  />
+                </div>
+
+                <div className={productionPlanExtraFieldClass[searchLayoutMode]}>
+                  <label className="flex h-10 items-center gap-2 text-sm">
+                    <span className={`${searchLabelClass} w-[100px] shrink-0`}>계획상태</span>
+                    <select
+                      className={`${searchControlClass} w-full max-w-[110px]`}
+                      value={form.planStatus}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          planStatus: event.target.value as Mmsm02002PlanStatus,
+                        }))
+                      }
+                    >
+                      <option value="">전체</option>
+                      {planStatusCodes.map((code) => (
+                        <option key={code.code} value={code.code}>
+                          {code.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex h-10 items-center gap-2 text-sm">
+                    <span className={`${searchLabelClass} w-[56px] shrink-0`}>공정</span>
+                    <input
+                      className={`${searchControlClass} w-full max-w-[170px]`}
+                      placeholder="공정코드"
+                      value={form.procCd}
+                      onChange={(event) =>
+                        setForm((prev) => ({ ...prev, procCd: event.target.value }))
+                      }
+                    />
+                  </label>
+                </div>
               </div>
-              <div className="col-start-1 row-start-2 xl:col-start-2 xl:row-start-1">
-                <CodeNameField
-                  label="거래처"
-                  id="cust"
-                  code={form.cstCd}
-                  name={form.cstNm}
-                  codePlaceholder="코드"
-                  namePlaceholder="거래처명"
-                  onSearch={() => undefined}
-                  onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
-                />
-              </div>
-              <div className="col-start-3 row-start-1 xl:col-start-4">
+
+              <div className={productionPlanSearchActionsClass}>
                 <div className={statusActionGroupClass}>
                   {canSearch && (
                     <button
@@ -225,51 +323,6 @@ export default function MMSM02002E() {
                     </button>
                   )}
                 </div>
-              </div>
-              <div className="col-start-3 row-start-2 xl:col-start-1 xl:row-start-2">
-                <CodeNameField
-                  label="제품"
-                  id="item"
-                  code={form.itemCd}
-                  name={form.itemNm}
-                  codePlaceholder="코드"
-                  namePlaceholder="제품명"
-                  onSearch={() => undefined}
-                  onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
-                />
-              </div>
-              <div className="col-span-3 col-start-1 row-start-3 flex flex-wrap items-end gap-2 xl:col-span-2 xl:col-start-2 xl:row-start-2">
-                <label className="flex h-10 items-center gap-2 text-sm">
-                  <span className={`${searchLabelClass} w-[100px] shrink-0`}>계획상태</span>
-                  <select
-                    className={`${searchControlClass} w-full max-w-[110px]`}
-                    value={form.planStatus}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        planStatus: event.target.value as Mmsm02002PlanStatus,
-                      }))
-                    }
-                  >
-                    <option value="">전체</option>
-                    {planStatusCodes.map((code) => (
-                      <option key={code.code} value={code.code}>
-                        {code.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex h-10 items-center gap-2 text-sm">
-                  <span className={`${searchLabelClass} w-[56px] shrink-0`}>공정</span>
-                  <input
-                    className={`${searchControlClass} w-full max-w-[170px]`}
-                    placeholder="공정코드"
-                    value={form.procCd}
-                    onChange={(event) =>
-                      setForm((prev) => ({ ...prev, procCd: event.target.value }))
-                    }
-                  />
-                </label>
               </div>
             </div>
           </div>

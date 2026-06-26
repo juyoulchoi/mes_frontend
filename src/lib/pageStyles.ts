@@ -1,7 +1,7 @@
 export const pageShellClass = 'min-h-full min-w-0 overflow-hidden bg-slate-50/60 p-2 sm:p-3 lg:p-4';
 
 export const pageContentClass =
-  'mx-auto flex min-w-0 w-full max-w-[1680px] flex-col gap-3 lg:gap-4';
+  'mx-auto flex min-w-0 w-full flex-col gap-3 lg:gap-4';
 
 export const registerSearchGridClass =
   'grid min-w-[920px] grid-cols-[minmax(320px,420px)_1fr_minmax(300px,360px)] items-end gap-2';

@@ -22,7 +22,14 @@ import {
 } from '@/services/m01/mmsm01007';
 
 const stockStatusSearchGridClass =
-  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,446px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] xl:gap-x-[30px]';
+  'grid min-w-[446px] grid-cols-[minmax(0,1fr)_max-content] items-start gap-2 xl:gap-x-[30px]';
+const stockStatusSearchFieldsClass =
+  'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 2xl:min-w-0 2xl:grid-cols-[repeat(3,minmax(446px,1fr))] xl:gap-x-[30px]';
+const stockStatusDateFieldClass = 'col-start-1 row-start-1 min-w-0';
+const stockStatusCustomerFieldClass =
+  'col-start-1 row-start-2 min-w-0 2xl:col-start-2 2xl:row-start-1';
+const stockStatusItemFieldClass = 'col-start-2 row-start-2 min-w-0 2xl:col-start-3 2xl:row-start-1';
+const stockStatusSearchActionsClass = 'col-start-2 row-start-1 flex min-w-max justify-end';
 
 const MMSM01007S: React.FC = () => {
   const today = useMemo(() => new Date(), []);
@@ -71,28 +78,44 @@ const MMSM01007S: React.FC = () => {
         <SectionCard span="full" padding="md">
           <div className="overflow-x-auto pb-1">
             <div className={stockStatusSearchGridClass}>
-              <FromToDateField
-                label="출고일자"
-                fromValue={form.startDate}
-                toValue={form.endDate}
-                onFromChange={(value) => setForm({ ...form, startDate: value })}
-                onToChange={(value) => setForm({ ...form, endDate: value })}
-              />
+              <div className={stockStatusSearchFieldsClass}>
+                <div className={stockStatusDateFieldClass}>
+                  <FromToDateField
+                    label="출고일자"
+                    fromValue={form.startDate}
+                    toValue={form.endDate}
+                    onFromChange={(value) => setForm({ ...form, startDate: value })}
+                    onToChange={(value) => setForm({ ...form, endDate: value })}
+                  />
+                </div>
 
-              <div className="col-start-1 row-start-2 xl:col-start-2 xl:row-start-1">
-                <CodeNameField
-                  label="거래처"
-                  id="cust"
-                  code={form.cstCd}
-                  name={form.cstNm}
-                  codePlaceholder="코드"
-                  namePlaceholder="거래처명"
-                  onSearch={() => setCustomerOpen(true)}
-                  onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
-                />
+                <div className={stockStatusCustomerFieldClass}>
+                  <CodeNameField
+                    label="거래처"
+                    id="cust"
+                    code={form.cstCd}
+                    name={form.cstNm}
+                    codePlaceholder="코드"
+                    namePlaceholder="거래처명"
+                    onSearch={() => setCustomerOpen(true)}
+                    onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
+                  />
+                </div>
+                <div className={stockStatusItemFieldClass}>
+                  <CodeNameField
+                    label="원자재"
+                    id="item"
+                    code={form.itemCd}
+                    name={form.itemNm}
+                    codePlaceholder="코드"
+                    namePlaceholder="원자재명"
+                    onSearch={() => setItemPickerOpen(true)}
+                    onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
+                  />
+                </div>
               </div>
 
-              <div className="col-start-3 row-start-1 xl:col-start-4">
+              <div className={stockStatusSearchActionsClass}>
                 <StatusActionButtons
                   loading={loading}
                   onSearch={() => void fetchList(0)}
@@ -102,19 +125,6 @@ const MMSM01007S: React.FC = () => {
                     mapRow: mapExportRow,
                     filename: () => `원자재재고현황_${form.endDate.split('-').join('')}.csv`,
                   }}
-                />
-              </div>
-
-              <div className="col-start-3 row-start-2 xl:col-start-1 xl:row-start-2">
-                <CodeNameField
-                  label="원자재"
-                  id="item"
-                  code={form.itemCd}
-                  name={form.itemNm}
-                  codePlaceholder="코드"
-                  namePlaceholder="원자재명"
-                  onSearch={() => setItemPickerOpen(true)}
-                  onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
                 />
               </div>
             </div>

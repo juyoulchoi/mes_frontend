@@ -40,8 +40,40 @@ import {
 
 const searchLabelClass = 'font-medium text-slate-700';
 const searchControlClass = 'h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm';
+type workOrderSearchLayoutMode = 'compact' | 'twoRow' | 'wide';
+
 const workOrderSearchGridClass =
-  'grid min-w-[920px] grid-cols-[minmax(300px,586px)_minmax(16px,1fr)_minmax(300px,446px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,586px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] xl:gap-x-[30px]';
+  'grid min-w-[1032px] grid-cols-[minmax(0,1fr)_max-content] items-start gap-2 xl:gap-x-[30px]';
+const workOrderSearchFieldGridClass: Record<workOrderSearchLayoutMode, string> = {
+  compact:
+    'col-start-1 row-start-1 grid min-w-[1032px] grid-cols-[586px_minmax(446px,1fr)] items-end gap-2 xl:gap-x-[30px]',
+  twoRow:
+    'col-start-1 row-start-1 grid min-w-[1032px] grid-cols-[586px_minmax(446px,1fr)] items-end gap-2 xl:gap-x-[30px]',
+  wide: 'col-start-1 row-start-1 grid min-w-[1478px] grid-cols-[586px_repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
+};
+const workOrderDateFieldClass: Record<workOrderSearchLayoutMode, string> = {
+  compact: 'col-start-1 row-start-1 min-w-0',
+  twoRow: 'col-start-1 row-start-1 min-w-0',
+  wide: 'col-start-1 row-start-1 min-w-0',
+};
+const workOrderCustomerFieldClass: Record<workOrderSearchLayoutMode, string> = {
+  compact: 'col-start-1 row-start-2 min-w-0',
+  twoRow: 'col-start-2 row-start-1 min-w-0',
+  wide: 'col-start-2 row-start-1 min-w-0',
+};
+const workOrderItemFieldClass: Record<workOrderSearchLayoutMode, string> = {
+  compact: 'col-start-2 row-start-2 min-w-0',
+  twoRow: 'col-start-1 row-start-2 min-w-0',
+  wide: 'col-start-3 row-start-1 min-w-0',
+};
+const workOrderExtraFieldClass: Record<workOrderSearchLayoutMode, string> = {
+  compact: 'col-span-2 col-start-1 row-start-3 flex flex-wrap items-end gap-2',
+  twoRow: 'col-start-2 row-start-2 flex flex-wrap items-end gap-2',
+  wide: 'col-span-2 col-start-1 row-start-2 flex flex-wrap items-end gap-2',
+};
+const workOrderSearchActionsClass = 'col-start-2 row-start-1 flex min-w-max justify-end';
+const workOrderTwoRowMinWidth = 1360;
+const workOrderWideMinWidth = 1720;
 const detailLabelClass =
   'flex w-28 shrink-0 items-center bg-slate-50 px-3 font-medium text-slate-700';
 const detailInputClass = 'h-9 w-full rounded border border-slate-200 bg-white px-2 text-sm';
@@ -76,7 +108,9 @@ export default function MMSM02004E() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
   const tableHeight = useAutoTableHeight(containerRef);
+  const [searchWidth, setSearchWidth] = useState(0);
   const { codes: dateTypeCodes } = useCodes('PLAN_DATE');
   const { codes: planStatusCodes } = useCodes('PLAN_STAT');
 
@@ -219,65 +253,129 @@ export default function MMSM02004E() {
     }
   }
 
+  const searchLayoutMode: workOrderSearchLayoutMode =
+    searchWidth >= workOrderWideMinWidth
+      ? 'wide'
+      : searchWidth >= workOrderTwoRowMinWidth
+        ? 'twoRow'
+        : 'compact';
+
   return (
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className="overflow-x-auto pb-1">
+          <div ref={searchRef} className="overflow-x-auto pb-1">
             <div className={workOrderSearchGridClass}>
-              <div className="flex max-w-[586px] flex-nowrap items-end gap-2">
-                <span
-                  className={`${searchLabelClass} flex h-10 w-[100px] shrink-0 items-center text-sm`}
-                >
-                  검색일자
-                </span>
-                <select
-                  className={`${searchControlClass} w-[104px] shrink-0`}
-                  value={form.dateType}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      dateType: event.target.value,
-                    }))
-                  }
-                >
-                  {dateTypeCodes.map((code) => (
-                    <option key={code.code} value={code.code}>
-                      {code.name}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="date"
-                  className={`${searchControlClass} w-[150px] shrink-0`}
-                  value={form.dateFrom}
-                  max={form.dateTo || undefined}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, dateFrom: event.target.value }))
-                  }
-                />
-                <span className="flex h-10 shrink-0 items-center text-sm text-slate-500">~</span>
-                <input
-                  type="date"
-                  className={`${searchControlClass} w-[150px] shrink-0`}
-                  value={form.dateTo}
-                  min={form.dateFrom || undefined}
-                  onChange={(event) => setForm((prev) => ({ ...prev, dateTo: event.target.value }))}
-                />
+              <div className={workOrderSearchFieldGridClass[searchLayoutMode]}>
+                <div className={workOrderDateFieldClass[searchLayoutMode]}>
+                  <div className="flex max-w-[586px] flex-nowrap items-end gap-2">
+                    <span
+                      className={`${searchLabelClass} flex h-10 w-[100px] shrink-0 items-center text-sm`}
+                    >
+                      검색일자
+                    </span>
+                    <select
+                      className={`${searchControlClass} w-[104px] shrink-0`}
+                      value={form.dateType}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          dateType: event.target.value,
+                        }))
+                      }
+                    >
+                      {dateTypeCodes.map((code) => (
+                        <option key={code.code} value={code.code}>
+                          {code.name}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="date"
+                      className={`${searchControlClass} w-[150px] shrink-0`}
+                      value={form.dateFrom}
+                      max={form.dateTo || undefined}
+                      onChange={(event) =>
+                        setForm((prev) => ({ ...prev, dateFrom: event.target.value }))
+                      }
+                    />
+                    <span className="flex h-10 shrink-0 items-center text-sm text-slate-500">
+                      ~
+                    </span>
+                    <input
+                      type="date"
+                      className={`${searchControlClass} w-[150px] shrink-0`}
+                      value={form.dateTo}
+                      min={form.dateFrom || undefined}
+                      onChange={(event) =>
+                        setForm((prev) => ({ ...prev, dateTo: event.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className={workOrderCustomerFieldClass[searchLayoutMode]}>
+                  <CodeNameField
+                    label="거래처"
+                    id="cust"
+                    code={form.cstCd}
+                    name={form.cstNm}
+                    codePlaceholder="코드"
+                    namePlaceholder="거래처명"
+                    onSearch={() => undefined}
+                    onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
+                  />
+                </div>
+
+                <div className={workOrderItemFieldClass[searchLayoutMode]}>
+                  <CodeNameField
+                    label="제품"
+                    id="item"
+                    code={form.itemCd}
+                    name={form.itemNm}
+                    codePlaceholder="코드"
+                    namePlaceholder="제품명"
+                    onSearch={() => undefined}
+                    onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
+                  />
+                </div>
+
+                <div className={workOrderExtraFieldClass[searchLayoutMode]}>
+                  <label className="flex h-10 items-center gap-2 text-sm">
+                    <span className={`${searchLabelClass} w-[100px] shrink-0`}>계획상태</span>
+                    <select
+                      className={`${searchControlClass} w-full max-w-[110px]`}
+                      value={form.planStatus}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          planStatus: event.target.value as Mmsm02002PlanStatus,
+                        }))
+                      }
+                    >
+                      <option value="">전체</option>
+                      {planStatusCodes.map((code) => (
+                        <option key={code.code} value={code.code}>
+                          {code.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex h-10 items-center gap-2 text-sm">
+                    <span className={`${searchLabelClass} w-[56px] shrink-0`}>공정</span>
+                    <input
+                      className={`${searchControlClass} w-full max-w-[170px]`}
+                      placeholder="공정코드"
+                      value={form.procCd}
+                      onChange={(event) =>
+                        setForm((prev) => ({ ...prev, procCd: event.target.value }))
+                      }
+                    />
+                  </label>
+                </div>
               </div>
-              <div className="col-start-1 row-start-2 xl:col-start-2 xl:row-start-1">
-                <CodeNameField
-                  label="거래처"
-                  id="cust"
-                  code={form.cstCd}
-                  name={form.cstNm}
-                  codePlaceholder="코드"
-                  namePlaceholder="거래처명"
-                  onSearch={() => undefined}
-                  onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
-                />
-              </div>
-              <div className="col-start-3 row-start-1 xl:col-start-4">
+
+              <div className={workOrderSearchActionsClass}>
                 <StatusActionButtons
                   loading={loading}
                   onSearch={() => void onSearch()}
@@ -288,51 +386,6 @@ export default function MMSM02004E() {
                     filename: () => `작업지시서_${toYmd(form.dateFrom)}_${toYmd(form.dateTo)}.csv`,
                   }}
                 />
-              </div>
-              <div className="col-start-3 row-start-2 xl:col-start-1 xl:row-start-2">
-                <CodeNameField
-                  label="제품"
-                  id="item"
-                  code={form.itemCd}
-                  name={form.itemNm}
-                  codePlaceholder="코드"
-                  namePlaceholder="제품명"
-                  onSearch={() => undefined}
-                  onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
-                />
-              </div>
-              <div className="col-span-3 col-start-1 row-start-3 flex flex-wrap items-end gap-2 xl:col-span-2 xl:col-start-2 xl:row-start-2">
-                <label className="flex h-10 items-center gap-2 text-sm">
-                  <span className={`${searchLabelClass} w-[100px] shrink-0`}>계획상태</span>
-                  <select
-                    className={`${searchControlClass} w-full max-w-[110px]`}
-                    value={form.planStatus}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        planStatus: event.target.value as Mmsm02002PlanStatus,
-                      }))
-                    }
-                  >
-                    <option value="">전체</option>
-                    {planStatusCodes.map((code) => (
-                      <option key={code.code} value={code.code}>
-                        {code.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex h-10 items-center gap-2 text-sm">
-                  <span className={`${searchLabelClass} w-[56px] shrink-0`}>공정</span>
-                  <input
-                    className={`${searchControlClass} w-full max-w-[170px]`}
-                    placeholder="공정코드"
-                    value={form.procCd}
-                    onChange={(event) =>
-                      setForm((prev) => ({ ...prev, procCd: event.target.value }))
-                    }
-                  />
-                </label>
               </div>
             </div>
           </div>

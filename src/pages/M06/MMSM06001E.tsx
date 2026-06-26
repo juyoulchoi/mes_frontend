@@ -14,7 +14,6 @@ import {
   gridScrollClass,
   pageContentClass,
   pageShellClass,
-  registerSplitGridClass,
   searchButtonClass,
 } from '@/lib/pageStyles';
 import {
@@ -39,6 +38,8 @@ const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 it
 const searchInputClass = 'h-10 w-full rounded-lg border border-slate-200 px-3 text-sm';
 const readonlyInputClass = `${editableInputClass} bg-slate-100 text-slate-500`;
 const readOnlyCellClass = 'block min-h-8 px-2 py-1.5 text-sm text-slate-700';
+const basicCodeSplitGridClass =
+  'grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2.8fr)_minmax(0,9.2fr)]';
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, '');
@@ -418,8 +419,8 @@ export default function MMSM06001E() {
 
         {error ? <AlertBox>{error}</AlertBox> : null}
 
-        <div className={registerSplitGridClass}>
-          <SectionCard span="wideLeft" width="full">
+        <div className={basicCodeSplitGridClass}>
+          <SectionCard span="custom" width="full">
             <SectionHeader
               title="기초코드 그룹"
               right={
@@ -557,7 +558,7 @@ export default function MMSM06001E() {
             </div>
           </SectionCard>
 
-          <SectionCard span="wideRight" width="full">
+          <SectionCard span="custom" width="full">
             <SectionHeader
               title="기초코드 상세"
               right={

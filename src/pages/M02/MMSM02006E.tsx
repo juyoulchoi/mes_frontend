@@ -154,12 +154,12 @@ export default function MMSM02006E() {
                 onToChange={setEndDate}
               />
 
-              <label className="col-start-1 row-start-2 grid max-w-[446px] grid-cols-1 gap-2 sm:grid-cols-[100px_minmax(0,1fr)] sm:items-center sm:gap-2 xl:col-start-2 xl:row-start-1">
+              <label className="col-start-1 row-start-2 grid max-w-[260px] grid-cols-1 gap-2 sm:grid-cols-[100px_140px] sm:items-center sm:gap-2 xl:col-start-2 xl:row-start-1">
                 <span className="text-sm text-gray-600 sm:whitespace-nowrap">외주구분</span>
                 <select
                   value={outGb}
                   onChange={(event) => setOutGb(event.target.value)}
-                  className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-slate-400"
+                  className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-slate-400"
                 >
                   <option value="">전체</option>
                   <option value="Y">외주출고</option>

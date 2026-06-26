@@ -33,7 +33,7 @@ import {
   type MasterRow,
   type SearchForm,
 } from '@/services/m04/mmsm04002';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const editableTextInputClass =
   'h-9 w-full min-w-[140px] rounded-md border border-slate-200 bg-white px-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100';
@@ -41,8 +41,34 @@ const issueDateInputClass =
   'h-10 w-full max-w-[150px] rounded-lg border border-slate-200 bg-white px-3 text-sm';
 const issueDateLabelClass = 'flex h-10 items-center gap-2 text-sm';
 const issueDateTextClass = 'w-[72px] shrink-0 font-medium text-slate-700';
+type productIssueRegisterSearchLayoutMode = 'compact' | 'twoRow' | 'wide';
+
 const productIssueRegisterSearchGridClass =
-  'grid min-w-[920px] grid-cols-[296px_150px_minmax(0,1fr)_max-content] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[296px_446px_minmax(0,1fr)_max-content] xl:gap-x-[30px]';
+  'grid min-w-[892px] grid-cols-[minmax(0,1fr)_max-content] items-start gap-2 xl:gap-x-[30px]';
+const productIssueRegisterSearchFieldGridClass: Record<
+  productIssueRegisterSearchLayoutMode,
+  string
+> = {
+  compact:
+    'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
+  twoRow:
+    'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
+  wide: 'col-start-1 row-start-1 grid min-w-[1338px] grid-cols-[repeat(3,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
+};
+const productIssueRegisterDateFieldClass: Record<productIssueRegisterSearchLayoutMode, string> = {
+  compact: 'col-start-1 row-start-1 min-w-0',
+  twoRow: 'col-start-1 row-start-1 min-w-0',
+  wide: 'col-start-1 row-start-1 min-w-0',
+};
+const productIssueRegisterCustomerFieldClass: Record<productIssueRegisterSearchLayoutMode, string> =
+  {
+    compact: 'col-start-1 row-start-2 min-w-0',
+    twoRow: 'col-start-2 row-start-1 min-w-0',
+    wide: 'col-start-2 row-start-1 min-w-0',
+  };
+const productIssueRegisterSearchActionsClass = 'col-start-2 row-start-1 flex min-w-max justify-end';
+const productIssueRegisterTwoRowMinWidth = 1280;
+const productIssueRegisterWideMinWidth = 1640;
 
 function getSalesRowKey(row: {
   soYmd?: string;
@@ -72,6 +98,8 @@ export default function MMSM04002E() {
     giYmd: getTodayYmd(),
     cstCd: '',
   }));
+  const searchRef = useRef<HTMLDivElement>(null);
+  const [searchWidth, setSearchWidth] = useState(0);
 
   const isBusy = masterLoading || detailLoading || saving;
 
@@ -288,43 +316,57 @@ export default function MMSM04002E() {
     URL.revokeObjectURL(url);
   }
 
+  const searchLayoutMode: productIssueRegisterSearchLayoutMode =
+    searchWidth >= productIssueRegisterWideMinWidth
+      ? 'wide'
+      : searchWidth >= productIssueRegisterTwoRowMinWidth
+        ? 'twoRow'
+        : 'compact';
   return (
     <div className={pageShellClass}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className="overflow-x-auto pb-1">
+          <div ref={searchRef} className="overflow-x-auto pb-1">
             <div className={productIssueRegisterSearchGridClass}>
-              <DateEdit
-                label="수주일자"
-                value={form.soYmd}
-                onChange={(value) => setForm((prev) => ({ ...prev, soYmd: value }))}
-              />
-              <div className="col-span-2 col-start-1 row-start-2 xl:col-span-1 xl:col-start-2 xl:row-start-1">
-                <CodeNameField
-                  label="거래처"
-                  id="cust"
-                  code={form.cstCd}
-                  name={cstNm}
-                  codePlaceholder="코드"
-                  namePlaceholder="거래처명"
-                  onSearch={() => setCustomerOpen(true)}
-                  onClear={() => {
-                    setCstNm('');
-                    setForm((prev) => ({ ...prev, cstCd: '' }));
-                  }}
+              <div className={productIssueRegisterSearchFieldGridClass[searchLayoutMode]}>
+                <div className={productIssueRegisterDateFieldClass[searchLayoutMode]}>
+                  <DateEdit
+                    label="수주일자"
+                    value={form.soYmd}
+                    onChange={(value) => setForm((prev) => ({ ...prev, soYmd: value }))}
+                  />
+                </div>
+
+                <div className={productIssueRegisterCustomerFieldClass[searchLayoutMode]}>
+                  <CodeNameField
+                    label="거래처"
+                    id="cust"
+                    code={form.cstCd}
+                    name={cstNm}
+                    codePlaceholder="코드"
+                    namePlaceholder="거래처명"
+                    onSearch={() => setCustomerOpen(true)}
+                    onClear={() => {
+                      setCstNm('');
+                      setForm((prev) => ({ ...prev, cstCd: '' }));
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className={productIssueRegisterSearchActionsClass}>
+                <ActionButtonGroup
+                  onSearch={() => void onSearch()}
+                  onSave={() => void onSave()}
+                  onUpload={() => undefined}
+                  onExport={onExportCsv}
+                  searchDisabled={isBusy}
+                  saveDisabled={isBusy}
+                  showUpload={false}
+                  compact
+                  className="flex flex-wrap content-end items-end justify-end gap-2 self-end"
                 />
               </div>
-              <ActionButtonGroup
-                onSearch={() => void onSearch()}
-                onSave={() => void onSave()}
-                onUpload={() => undefined}
-                onExport={onExportCsv}
-                searchDisabled={isBusy}
-                saveDisabled={isBusy}
-                showUpload={false}
-                compact
-                className="col-start-4 row-start-1 flex flex-wrap content-end items-end justify-end gap-2 self-end"
-              />
             </div>
           </div>
 

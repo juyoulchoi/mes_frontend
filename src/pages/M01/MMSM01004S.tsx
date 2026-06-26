@@ -24,8 +24,35 @@ import {
 import { updateCheckedRows } from '@/lib/gridRows';
 import type { AuthMeResponse } from '@/services/m01/mmsm01003';
 
+type receiptStatusSearchLayoutMode = 'compact' | 'twoRow' | 'wide';
+
 const receiptStatusSearchGridClass =
-  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,446px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] xl:gap-x-[30px]';
+  'grid min-w-[892px] grid-cols-[minmax(0,1fr)_max-content] items-start gap-2 xl:gap-x-[30px]';
+const receiptStatusSearchFieldGridClass: Record<receiptStatusSearchLayoutMode, string> = {
+  compact:
+    'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
+  twoRow:
+    'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
+  wide: 'col-start-1 row-start-1 grid min-w-[1338px] grid-cols-[repeat(3,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
+};
+const receiptStatusDateFieldClass: Record<receiptStatusSearchLayoutMode, string> = {
+  compact: 'col-start-1 row-start-1 min-w-0',
+  twoRow: 'col-start-1 row-start-1 min-w-0',
+  wide: 'col-start-1 row-start-1 min-w-0',
+};
+const receiptStatusCustomerFieldClass: Record<receiptStatusSearchLayoutMode, string> = {
+  compact: 'col-start-1 row-start-2 min-w-0',
+  twoRow: 'col-start-2 row-start-1 min-w-0',
+  wide: 'col-start-2 row-start-1 min-w-0',
+};
+const receiptStatusItemFieldClass: Record<receiptStatusSearchLayoutMode, string> = {
+  compact: 'col-start-2 row-start-2 min-w-0',
+  twoRow: 'col-start-1 row-start-2 min-w-0',
+  wide: 'col-start-3 row-start-1 min-w-0',
+};
+const receiptStatusSearchActionsClass = 'col-start-2 row-start-1 flex min-w-max justify-end';
+const receiptStatusTwoRowMinWidth = 1280;
+const receiptStatusWideMinWidth = 1640;
 
 const MMSM01004S: React.FC = () => {
   const today = useMemo(() => new Date(), []);
@@ -35,7 +62,9 @@ const MMSM01004S: React.FC = () => {
   const [rows, setRows] = useState<RowItem[]>([]);
   const [canceling, setCanceling] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
   const tableHeight = useAutoTableHeight(containerRef);
+  const [searchWidth, setSearchWidth] = useState(0);
 
   const [form, setForm] = useState<SearchForm>({
     startDate: first.toISOString().slice(0, 10),
@@ -59,6 +88,19 @@ const MMSM01004S: React.FC = () => {
   });
 
   useEffect(() => {
+    const searchElement = searchRef.current;
+    if (!searchElement) return;
+
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      setSearchWidth(entry.contentRect.width);
+    });
+    setSearchWidth(searchElement.clientWidth);
+    resizeObserver.observe(searchElement);
+
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  useEffect(() => {
     setRows(result.content.map((row) => ({ ...row, CHECK: false })));
   }, [result.content]);
 
@@ -69,6 +111,13 @@ const MMSM01004S: React.FC = () => {
     }),
     [result, rows]
   );
+
+  const searchLayoutMode: receiptStatusSearchLayoutMode =
+    searchWidth >= receiptStatusWideMinWidth
+      ? 'wide'
+      : searchWidth >= receiptStatusTwoRowMinWidth
+        ? 'twoRow'
+        : 'compact';
 
   function toggleRow(rowIndex: number, checked: boolean) {
     updateCheckedRows(setRows, rowIndex, checked);
@@ -121,30 +170,46 @@ const MMSM01004S: React.FC = () => {
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className="overflow-x-auto pb-1">
+          <div ref={searchRef} className="overflow-x-auto pb-1">
             <div className={receiptStatusSearchGridClass}>
-              <FromToDateField
-                label="입고일자"
-                fromValue={form.startDate}
-                toValue={form.endDate}
-                onFromChange={(value) => setForm({ ...form, startDate: value })}
-                onToChange={(value) => setForm({ ...form, endDate: value })}
-              />
+              <div className={receiptStatusSearchFieldGridClass[searchLayoutMode]}>
+                <div className={receiptStatusDateFieldClass[searchLayoutMode]}>
+                  <FromToDateField
+                    label="입고일자"
+                    fromValue={form.startDate}
+                    toValue={form.endDate}
+                    onFromChange={(value) => setForm({ ...form, startDate: value })}
+                    onToChange={(value) => setForm({ ...form, endDate: value })}
+                  />
+                </div>
 
-              <div className="col-start-1 row-start-2 xl:col-start-2 xl:row-start-1">
-                <CodeNameField
-                  label="거래처"
-                  id="cust"
-                  code={form.cstCd}
-                  name={form.cstNm}
-                  codePlaceholder="코드"
-                  namePlaceholder="거래처명"
-                  onSearch={() => setCustomerOpen(true)}
-                  onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
-                />
+                <div className={receiptStatusCustomerFieldClass[searchLayoutMode]}>
+                  <CodeNameField
+                    label="거래처"
+                    id="cust"
+                    code={form.cstCd}
+                    name={form.cstNm}
+                    codePlaceholder="코드"
+                    namePlaceholder="거래처명"
+                    onSearch={() => setCustomerOpen(true)}
+                    onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
+                  />
+                </div>
+                <div className={receiptStatusItemFieldClass[searchLayoutMode]}>
+                  <CodeNameField
+                    label="원자재"
+                    id="item"
+                    code={form.itemCd}
+                    name={form.itemNm}
+                    codePlaceholder="코드"
+                    namePlaceholder="원자재명"
+                    onSearch={() => setItemPickerOpen(true)}
+                    onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
+                  />
+                </div>
               </div>
 
-              <div className="col-start-3 row-start-1 xl:col-start-4">
+              <div className={receiptStatusSearchActionsClass}>
                 <StatusActionButtons
                   loading={loading}
                   canceling={canceling}
@@ -157,19 +222,6 @@ const MMSM01004S: React.FC = () => {
                     mapRow: mapExportRow,
                     filename: () => `원자재입고현황_${form.endDate.split('-').join('')}.csv`,
                   }}
-                />
-              </div>
-
-              <div className="col-start-3 row-start-2 xl:col-start-1 xl:row-start-2">
-                <CodeNameField
-                  label="원자재"
-                  id="item"
-                  code={form.itemCd}
-                  name={form.itemNm}
-                  codePlaceholder="코드"
-                  namePlaceholder="원자재명"
-                  onSearch={() => setItemPickerOpen(true)}
-                  onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
                 />
               </div>
             </div>

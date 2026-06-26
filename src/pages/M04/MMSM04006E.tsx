@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import AlertBox from '@/components/AlertBox';
 import CodeNameField from '@/components/CodeNameField';
@@ -24,10 +24,39 @@ import {
   type Row,
 } from '@/services/m04/mmsm04006';
 
+type productIssueSearchLayoutMode = 'compact' | 'twoRow' | 'wide';
+
 const productIssueSearchGridClass =
-  'grid min-w-[920px] grid-cols-[446px_30px_minmax(300px,1fr)] items-end gap-y-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] xl:gap-x-[30px]';
+  'grid min-w-[892px] grid-cols-[minmax(0,1fr)_max-content] items-start gap-2 xl:gap-x-[30px]';
+const productIssueSearchFieldGridClass: Record<productIssueSearchLayoutMode, string> = {
+  compact:
+    'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
+  twoRow:
+    'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
+  wide: 'col-start-1 row-start-1 grid min-w-[1338px] grid-cols-[repeat(3,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
+};
+const productIssueDateFieldClass: Record<productIssueSearchLayoutMode, string> = {
+  compact: 'col-start-1 row-start-1 min-w-0',
+  twoRow: 'col-start-1 row-start-1 min-w-0',
+  wide: 'col-start-1 row-start-1 min-w-0',
+};
+const productIssueCustomerFieldClass: Record<productIssueSearchLayoutMode, string> = {
+  compact: 'col-start-1 row-start-2 min-w-0',
+  twoRow: 'col-start-2 row-start-1 min-w-0',
+  wide: 'col-start-2 row-start-1 min-w-0',
+};
+const productIssueSequenceFieldClass: Record<productIssueSearchLayoutMode, string> = {
+  compact:
+    'col-start-2 row-start-2 grid w-full min-w-0 max-w-[446px] grid-cols-1 gap-2 sm:grid-cols-[100px_minmax(130px,150px)] sm:items-center sm:gap-2',
+  twoRow:
+    'col-start-1 row-start-2 grid w-full min-w-0 max-w-[446px] grid-cols-1 gap-2 sm:grid-cols-[100px_minmax(130px,150px)] sm:items-center sm:gap-2',
+  wide: 'col-start-3 row-start-1 grid w-full min-w-0 max-w-[446px] grid-cols-1 gap-2 sm:grid-cols-[100px_minmax(130px,150px)] sm:items-center sm:gap-2',
+};
+const productIssueSearchActionsClass = 'col-start-2 row-start-1 flex min-w-max justify-end';
+const productIssueTwoRowMinWidth = 1280;
+const productIssueWideMinWidth = 1640;
 const sequenceInputClass =
-  'h-10 w-[150px] rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-400';
+  'h-9 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-400';
 
 function GridInput({ value, type = 'text', align = 'left', onChange }: GridInputProps) {
   return (
@@ -53,10 +82,25 @@ export default function MMSM04006E() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
   const tableHeight = useAutoTableHeight(containerRef);
+  const [searchWidth, setSearchWidth] = useState(0);
 
   const busy = loading || saving;
   const gridHeight = Math.max(tableHeight - 58, 360);
+
+  useEffect(() => {
+    const searchElement = searchRef.current;
+    if (!searchElement) return;
+
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      setSearchWidth(entry.contentRect.width);
+    });
+    setSearchWidth(searchElement.clientWidth);
+    resizeObserver.observe(searchElement);
+
+    return () => resizeObserver.disconnect();
+  }, []);
 
   async function loadRows() {
     return fetchRows({
@@ -110,31 +154,50 @@ export default function MMSM04006E() {
     }
   }
 
+  const searchLayoutMode: productIssueSearchLayoutMode =
+    searchWidth >= productIssueWideMinWidth
+      ? 'wide'
+      : searchWidth >= productIssueTwoRowMinWidth
+        ? 'twoRow'
+        : 'compact';
   return (
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className="overflow-x-auto pb-1">
+          <div ref={searchRef} className="overflow-x-auto pb-1">
             <div className={productIssueSearchGridClass}>
-              <DateEdit label="입고일자" value={inDate} onChange={setInDate} />
+              <div className={productIssueSearchFieldGridClass[searchLayoutMode]}>
+                <div className={productIssueDateFieldClass[searchLayoutMode]}>
+                  <DateEdit label="입고일자" value={inDate} onChange={setInDate} />
+                </div>
 
-              <div className="col-start-1 row-start-2 xl:col-start-2 xl:row-start-1">
-                <CodeNameField
-                  label="거래처"
-                  id="cust"
-                  code={cstCd}
-                  name={cstNm}
-                  codePlaceholder="코드"
-                  namePlaceholder="거래처명"
-                  onSearch={() => setCustomerOpen(true)}
-                  onClear={() => {
-                    setCstCd('');
-                    setCstNm('');
-                  }}
-                />
+                <div className={productIssueCustomerFieldClass[searchLayoutMode]}>
+                  <CodeNameField
+                    label="거래처"
+                    id="cust"
+                    code={cstCd}
+                    name={cstNm}
+                    codePlaceholder="코드"
+                    namePlaceholder="거래처명"
+                    onSearch={() => setCustomerOpen(true)}
+                    onClear={() => {
+                      setCstCd('');
+                      setCstNm('');
+                    }}
+                  />
+                </div>
+
+                <label className={productIssueSequenceFieldClass[searchLayoutMode]}>
+                  <span className="text-sm text-gray-600 sm:whitespace-nowrap">순번</span>
+                  <input
+                    value={seq}
+                    onChange={(event) => setSeq(event.target.value)}
+                    className={sequenceInputClass}
+                  />
+                </label>
               </div>
 
-              <div className="col-start-3 row-start-1 xl:col-start-4">
+              <div className={productIssueSearchActionsClass}>
                 <StatusActionButtons
                   loading={loading}
                   saving={saving}
@@ -149,15 +212,6 @@ export default function MMSM04006E() {
                   }}
                 />
               </div>
-
-              <label className="col-start-3 row-start-2 flex h-10 items-center justify-start gap-2 xl:col-start-1 xl:row-start-2">
-                <span className="w-[100px] shrink-0 text-sm font-medium text-slate-700">순번</span>
-                <input
-                  value={seq}
-                  onChange={(event) => setSeq(event.target.value)}
-                  className={sequenceInputClass}
-                />
-              </label>
             </div>
           </div>
         </SectionCard>

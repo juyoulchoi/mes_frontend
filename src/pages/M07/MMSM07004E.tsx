@@ -6,7 +6,6 @@ import SectionHeader from '@/components/SectionHeader';
 import { Column, DataGrid, Paging } from '@/components/table/DataGrid';
 import { clearPagePermissionCache, usePagePermissions } from '@/lib/hooks/usePagePermissions';
 import {
-  basicInfoInlineSearchGridClass,
   countBadgeClass,
   editableInputClass,
   pageContentClass,
@@ -30,8 +29,12 @@ const searchLabelClass = 'font-medium text-slate-700';
 const searchFieldClass = 'flex flex-col gap-2 sm:flex-row sm:items-center';
 const searchLabelTextClass = `${searchLabelClass} flex h-10 w-[96px] shrink-0 items-center text-sm`;
 const searchInputClass = 'h-10 w-full rounded-lg border border-slate-200 px-3 text-sm';
+const authSearchGridClass =
+  'grid min-w-[920px] grid-cols-[minmax(280px,380px)_minmax(280px,380px)_minmax(16px,1fr)_max-content] items-end gap-2 xl:min-w-[1180px] xl:grid-cols-[minmax(320px,420px)_minmax(320px,420px)_minmax(16px,1fr)_max-content] xl:gap-x-6';
+const authSearchActionClass =
+  'col-start-4 row-start-1 flex min-w-[280px] flex-wrap items-end justify-end gap-2';
 const panelActionClass =
-  'h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50';
+  'h-10 min-w-24 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50';
 const panelScrollClass = 'min-h-0 flex-1 overflow-auto';
 
 function showWarning(message: string) {
@@ -160,11 +163,12 @@ export default function MMSM07004E() {
       <div className={`${pageContentClass} h-full overflow-hidden`}>
         <SectionCard span="full" padding="md">
           <div className="overflow-x-auto pb-1">
-            <div className={basicInfoInlineSearchGridClass}>
+            <div className={authSearchGridClass}>
               <div className={searchFieldClass}>
                 <span className={searchLabelTextClass}>사용자그룹</span>
                 <input
                   className={searchInputClass}
+                  placeholder="그룹 코드/명"
                   value={groupKeyword}
                   onChange={(event) => setGroupKeyword(event.target.value)}
                 />
@@ -173,11 +177,12 @@ export default function MMSM07004E() {
                 <span className={searchLabelTextClass}>메뉴</span>
                 <input
                   className={searchInputClass}
+                  placeholder="메뉴 ID/명"
                   value={menuKeyword}
                   onChange={(event) => setMenuKeyword(event.target.value)}
                 />
               </div>
-              <div className="col-start-4 row-start-1 flex flex-wrap items-end justify-end gap-2">
+              <div className={authSearchActionClass}>
                 {permissions.canSearch ? (
                   <>
                     <button
@@ -185,7 +190,7 @@ export default function MMSM07004E() {
                       disabled={loading}
                       className={panelActionClass}
                     >
-                      그룹조회
+                      그룹 조회
                     </button>
                     <button
                       onClick={onSearchRights}

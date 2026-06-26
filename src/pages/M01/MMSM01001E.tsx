@@ -482,6 +482,9 @@ export default function MMSM01001E() {
                 showBorders={true}
                 rowKey={(row, index) => row.itemCd || index}
                 emptyText="원자재가 없습니다."
+                classNames={{
+                  table: 'min-w-0 w-full table-fixed text-sm',
+                }}
               >
                 <CheckColumn
                   checked={(row) => !!row.CHECK}

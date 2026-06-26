@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-type SectionCardSpan = 'full' | 'left' | 'right' | 'wideLeft' | 'wideRight';
+type SectionCardSpan = 'full' | 'left' | 'right' | 'wideLeft' | 'wideRight' | 'custom';
 type SectionCardWidth = 'auto' | 'full';
 type SectionCardPadding = 'none' | 'md';
 
@@ -18,6 +18,7 @@ const spanClassNames: Record<SectionCardSpan, string> = {
   right: 'col-span-12 xl:col-span-8',
   wideLeft: 'col-span-12 xl:col-span-4',
   wideRight: 'col-span-12 xl:col-span-8',
+  custom: '',
 };
 
 const widthClassNames: Record<SectionCardWidth, string> = {

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import AlertBox from '@/components/AlertBox';
@@ -21,8 +21,35 @@ import {
   type SearchForm,
 } from '@/services/m02/mmsm02007';
 
+type salesStatusSearchLayoutMode = 'compact' | 'twoRow' | 'wide';
+
 const salesStatusSearchGridClass =
-  'grid min-w-[920px] grid-cols-[minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,446px)] items-end gap-2 xl:min-w-[1240px] xl:grid-cols-[minmax(300px,446px)_minmax(300px,446px)_minmax(16px,1fr)_minmax(300px,420px)] xl:gap-x-[30px]';
+  'grid min-w-[892px] grid-cols-[minmax(0,1fr)_max-content] items-start gap-2 xl:gap-x-[30px]';
+const salesStatusSearchFieldGridClass: Record<salesStatusSearchLayoutMode, string> = {
+  compact:
+    'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
+  twoRow:
+    'col-start-1 row-start-1 grid min-w-[892px] grid-cols-[repeat(2,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
+  wide: 'col-start-1 row-start-1 grid min-w-[1338px] grid-cols-[repeat(3,minmax(446px,1fr))] items-end gap-2 xl:gap-x-[30px]',
+};
+const salesStatusDateFieldClass: Record<salesStatusSearchLayoutMode, string> = {
+  compact: 'col-start-1 row-start-1 min-w-0',
+  twoRow: 'col-start-1 row-start-1 min-w-0',
+  wide: 'col-start-1 row-start-1 min-w-0',
+};
+const salesStatusCustomerFieldClass: Record<salesStatusSearchLayoutMode, string> = {
+  compact: 'col-start-1 row-start-2 min-w-0',
+  twoRow: 'col-start-2 row-start-1 min-w-0',
+  wide: 'col-start-2 row-start-1 min-w-0',
+};
+const salesStatusItemFieldClass: Record<salesStatusSearchLayoutMode, string> = {
+  compact: 'col-start-2 row-start-2 min-w-0',
+  twoRow: 'col-start-1 row-start-2 min-w-0',
+  wide: 'col-start-3 row-start-1 min-w-0',
+};
+const salesStatusSearchActionsClass = 'col-start-2 row-start-1 flex min-w-max justify-end';
+const salesStatusTwoRowMinWidth = 1280;
+const salesStatusWideMinWidth = 1640;
 
 export default function MMSM02007S() {
   const navigate = useNavigate();
@@ -31,7 +58,9 @@ export default function MMSM02007S() {
   const [customerOpen, setCustomerOpen] = useState(false);
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
   const tableHeight = useAutoTableHeight(containerRef);
+  const [searchWidth, setSearchWidth] = useState(0);
   const [form, setForm] = useState<SearchForm>({
     startDate: first.toISOString().slice(0, 10),
     endDate: today.toISOString().slice(0, 10),
@@ -55,34 +84,71 @@ export default function MMSM02007S() {
     }),
   });
 
+  useEffect(() => {
+    const searchElement = searchRef.current;
+    if (!searchElement) return;
+
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      setSearchWidth(entry.contentRect.width);
+    });
+    setSearchWidth(searchElement.clientWidth);
+    resizeObserver.observe(searchElement);
+
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  const searchLayoutMode: salesStatusSearchLayoutMode =
+    searchWidth >= salesStatusWideMinWidth
+      ? 'wide'
+      : searchWidth >= salesStatusTwoRowMinWidth
+        ? 'twoRow'
+        : 'compact';
+
   return (
     <div className={pageShellClass} ref={containerRef}>
       <div className={pageContentClass}>
         <SectionCard span="full" padding="md">
-          <div className="overflow-x-auto pb-1">
+          <div ref={searchRef} className="overflow-x-auto pb-1">
             <div className={salesStatusSearchGridClass}>
-              <FromToDateField
-                label="수주일자"
-                fromValue={form.startDate}
-                toValue={form.endDate}
-                onFromChange={(value) => setForm((prev) => ({ ...prev, startDate: value }))}
-                onToChange={(value) => setForm((prev) => ({ ...prev, endDate: value }))}
-              />
+              <div className={salesStatusSearchFieldGridClass[searchLayoutMode]}>
+                <div className={salesStatusDateFieldClass[searchLayoutMode]}>
+                  <FromToDateField
+                    label="수주일자"
+                    fromValue={form.startDate}
+                    toValue={form.endDate}
+                    onFromChange={(value) => setForm((prev) => ({ ...prev, startDate: value }))}
+                    onToChange={(value) => setForm((prev) => ({ ...prev, endDate: value }))}
+                  />
+                </div>
 
-              <div className="col-start-1 row-start-2 xl:col-start-2 xl:row-start-1">
-                <CodeNameField
-                  label="거래처"
-                  id="customer"
-                  code={form.cstCd}
-                  name={form.cstNm}
-                  codePlaceholder="코드"
-                  namePlaceholder="거래처명"
-                  onSearch={() => setCustomerOpen(true)}
-                  onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
-                />
+                <div className={salesStatusCustomerFieldClass[searchLayoutMode]}>
+                  <CodeNameField
+                    label="거래처"
+                    id="customer"
+                    code={form.cstCd}
+                    name={form.cstNm}
+                    codePlaceholder="코드"
+                    namePlaceholder="거래처명"
+                    onSearch={() => setCustomerOpen(true)}
+                    onClear={() => setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }))}
+                  />
+                </div>
+
+                <div className={salesStatusItemFieldClass[searchLayoutMode]}>
+                  <CodeNameField
+                    label="제품"
+                    id="item"
+                    code={form.itemCd}
+                    name={form.itemNm}
+                    codePlaceholder="코드"
+                    namePlaceholder="제품명"
+                    onSearch={() => setItemPickerOpen(true)}
+                    onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
+                  />
+                </div>
               </div>
 
-              <div className="col-start-3 row-start-1 xl:col-start-4">
+              <div className={salesStatusSearchActionsClass}>
                 <StatusActionButtons
                   loading={loading}
                   onSearch={() => void fetchList(0)}
@@ -94,19 +160,6 @@ export default function MMSM02007S() {
                     mapRow: mapExportRow,
                     filename: () => `수주현황_${form.endDate.split('-').join('')}.csv`,
                   }}
-                />
-              </div>
-
-              <div className="col-start-3 row-start-2 xl:col-start-1 xl:row-start-2">
-                <CodeNameField
-                  label="제품"
-                  id="item"
-                  code={form.itemCd}
-                  name={form.itemNm}
-                  codePlaceholder="코드"
-                  namePlaceholder="제품명"
-                  onSearch={() => setItemPickerOpen(true)}
-                  onClear={() => setForm((prev) => ({ ...prev, itemCd: '', itemNm: '' }))}
                 />
               </div>
             </div>
