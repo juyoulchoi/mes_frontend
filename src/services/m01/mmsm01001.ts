@@ -34,6 +34,7 @@ export function normalizeDetailRow(row: DetailRow | Record<string, unknown>): De
 export interface SearchForm {
   poYmd: string;
   cstCd: string;
+  cstNm?: string;
   itemGb: string;
   poSeq?: string;
 }
@@ -76,6 +77,7 @@ export interface SaveDetailRow {
   emGb: string;
   desc: string;
   itemCd: string;
+  itemNm?: string;
   unitCd: string;
   qty: number | string;
   price?: number | string;
@@ -86,6 +88,7 @@ export interface SaveMasterRow {
   method: 'I' | 'D';
   userId: string;
   cstCd: string;
+  cstNm?: string;
   poYmd: string;
   poSeq: string;
   desc: string;
@@ -219,6 +222,7 @@ export function buildMmsm01001SavePayload({
       emGb: row.emGb ?? '',
       desc: row.description ?? '',
       itemCd: row.itemCd ?? '',
+      itemNm: row.itemNm ?? '',
       unitCd: row.unitCd ?? '',
       qty: row.qty ?? '',
       price: row.price ?? '',
@@ -238,6 +242,7 @@ export function buildMmsm01001SavePayload({
       emGb: row.emGb ?? '',
       desc: row.description ?? '',
       itemCd: row.itemCd ?? '',
+      itemNm: row.itemNm ?? '',
       unitCd: row.unitCd ?? '',
       qty: row.qty ?? '',
       price: row.price ?? '',
@@ -256,6 +261,7 @@ export function buildMmsm01001SavePayload({
       emGb: row.emGb ?? '',
       desc: row.description ?? '',
       itemCd: row.itemCd ?? '',
+      itemNm: row.itemNm ?? '',
       unitCd: row.unitCd ?? '',
       qty: row.qty ?? '',
       price: row.price ?? '',
@@ -273,6 +279,7 @@ export function buildMmsm01001SavePayload({
       method: shouldDeleteMaster ? 'D' : 'I',
       userId,
       cstCd: form.cstCd,
+      cstNm: form.cstNm ?? '',
       poYmd: shouldDeleteMaster ? String(deleteTarget?.poYmd ?? '') : toYmd(form.poYmd),
       poSeq:
         shouldDeleteMaster && deleteTarget?.poSeq !== undefined && deleteTarget.poSeq !== null

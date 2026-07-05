@@ -79,6 +79,7 @@ export default function MMSM01001E() {
   const [form, setForm] = useState<SearchForm>(() => ({
     poYmd: getTodayYmd(),
     cstCd: '',
+    cstNm: '',
     itemGb: RAW_MATERIAL_ITEM_GB,
     poSeq: '',
   }));
@@ -439,7 +440,7 @@ export default function MMSM01001E() {
                   onSearch={() => setCustomerOpen(true)}
                   onClear={() => {
                     setCstNm('');
-                    setForm((prev) => ({ ...prev, cstCd: '' }));
+                    setForm((prev) => ({ ...prev, cstCd: '', cstNm: '' }));
                   }}
                 />
               </div>
@@ -610,7 +611,7 @@ export default function MMSM01001E() {
             onClose: () => setCustomerOpen(false),
             onSelect: (value) => {
               setCstNm(value.cstNm);
-              setForm((prev) => ({ ...prev, cstCd: value.cstCd }));
+              setForm((prev) => ({ ...prev, cstCd: value.cstCd, cstNm: value.cstNm }));
             },
           }}
         />
